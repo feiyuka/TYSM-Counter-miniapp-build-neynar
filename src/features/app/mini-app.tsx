@@ -306,26 +306,6 @@ function CheckInTab() {
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-1 mb-4">
-          {weekDays.map(({ day, reward, isPast, isToday }) => (
-            <div
-              key={day}
-              className={`text-center p-2 rounded-lg ${
-                isPast
-                  ? 'bg-green-500/30 border border-green-400'
-                  : isToday
-                  ? 'bg-purple-500/30 border-2 border-purple-400'
-                  : 'bg-gray-500/20 opacity-50'
-              }`}
-            >
-              <p className="text-xs opacity-70">D{day}</p>
-              <p className={`text-sm font-bold ${isPast ? 'text-green-400' : isToday ? 'text-purple-400' : ''}`}>
-                {isPast ? '✓' : reward}
-              </p>
-            </div>
-          ))}
-        </div>
-
         {balanced ? (
           !todayClaimed ? (
             <div className="text-center">
