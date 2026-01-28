@@ -48,6 +48,20 @@ const mockLiveClaims = [
   { username: 'ted', amount: 12, time: '2m ago', txHash: '0xmno345...' },
 ];
 
+// Mock leaderboard data
+const mockLeaderboard = [
+  { rank: 1, username: 'dwr.eth', totalTYSM: 4850, streakWeek: 12, tier: '🏆 LEGENDARY' },
+  { rank: 2, username: 'vitalik', totalTYSM: 3920, streakWeek: 10, tier: '🏆 LEGENDARY' },
+  { rank: 3, username: 'jessepollak', totalTYSM: 3100, streakWeek: 8, tier: '💎 DIAMOND' },
+  { rank: 4, username: 'linda', totalTYSM: 2450, streakWeek: 7, tier: '💎 DIAMOND' },
+  { rank: 5, username: 'ted', totalTYSM: 1890, streakWeek: 6, tier: '🥇 GOLD' },
+  { rank: 6, username: 'ccarella', totalTYSM: 1560, streakWeek: 5, tier: '🥇 GOLD' },
+  { rank: 7, username: 'ace', totalTYSM: 1230, streakWeek: 4, tier: '🥇 GOLD' },
+  { rank: 8, username: 'brenner', totalTYSM: 980, streakWeek: 4, tier: '🥈 SILVER' },
+  { rank: 9, username: 'phil', totalTYSM: 750, streakWeek: 3, tier: '🥈 SILVER' },
+  { rank: 10, username: 'sarah', totalTYSM: 620, streakWeek: 3, tier: '🥈 SILVER' },
+];
+
 // Check if scores are balanced (within 0.1 difference)
 function isBalanced(neynar: number, quotient: number) {
   return Math.abs(neynar - quotient) <= 0.1;
@@ -319,7 +333,6 @@ function LiveClaimsTab() {
   const poolPercentage = ((mockPool.remainingPool / mockPool.totalPool) * 100).toFixed(1);
 
   const openTxInBrowser = (txHash: string) => {
-    // Expand mock hash to full format for demo
     const fullHash = txHash.replace('...', '0'.repeat(54));
     window.open(`https://basescan.org/tx/${fullHash}`, '_blank');
   };
@@ -336,7 +349,6 @@ function LiveClaimsTab() {
           <p className="text-xs opacity-50">of {mockPool.totalPool.toLocaleString()} $TYSM</p>
         </div>
 
-        {/* Pool Progress Bar */}
         <div className="w-full h-4 bg-gray-700 rounded-full overflow-hidden mb-3">
           <div
             className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all"
@@ -420,6 +432,103 @@ function LiveClaimsTab() {
   );
 }
 
+function LeaderboardTab() {
+  // Mock current user rank
+  const myRank = { rank: 42, username: 'alice', totalTYSM: 98, streakWeek: 2, tier: '🥇 GOLD' };
+
+  const getRankStyle = (rank: number) => {
+    if (rank === 1) return 'bg-yellow-500/30 border-yellow-400';
+    if (rank === 2) return 'bg-gray-400/30 border-gray-300';
+    if (rank === 3) return 'bg-orange-500/30 border-orange-400';
+    return 'bg-black/20 border-transparent';
+  };
+
+  const getRankBadge = (rank: number) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return `#${rank}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* My Rank Card */}
+      <SketchCard padding="md">
+        <SketchHeading level={6}>Your Ranking</SketchHeading>
+        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-purple-500/20 border border-purple-400">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center font-bold">
+              #{myRank.rank}
+            </div>
+            <div>
+              <p className="font-bold">@{myRank.username}</p>
+              <p className="text-xs opacity-60">{myRank.tier}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-bold text-green-400">{myRank.totalTYSM}</p>
+            <p className="text-xs opacity-50">Week {myRank.streakWeek} streak</p>
+          </div>
+        </div>
+      </SketchCard>
+
+      {/* Top 10 Leaderboard */}
+      <SketchCard padding="md">
+        <div className="flex items-center justify-between mb-3">
+          <SketchHeading level={6}>Top Claimers</SketchHeading>
+          <p className="text-xs opacity-50">All Time</p>
+        </div>
+
+        <div className="space-y-2">
+          {mockLeaderboard.map((user) => (
+            <div
+              key={user.rank}
+              className={`flex items-center justify-between p-3 rounded-lg border ${getRankStyle(user.rank)}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 text-center font-bold text-lg">
+                  {getRankBadge(user.rank)}
+                </div>
+                <img
+                  src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`}
+                  alt={user.username}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <p className="font-medium text-sm">@{user.username}</p>
+                  <p className="text-xs opacity-50">{user.tier}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-green-400 font-bold">{user.totalTYSM.toLocaleString()}</p>
+                <p className="text-xs opacity-50">W{user.streakWeek}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SketchCard>
+
+      {/* Stats */}
+      <SketchCard padding="sm">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="p-2 rounded bg-black/20">
+            <p className="text-lg font-bold text-yellow-400">12</p>
+            <p className="text-xs opacity-60">Max Week</p>
+          </div>
+          <div className="p-2 rounded bg-black/20">
+            <p className="text-lg font-bold text-green-400">4,850</p>
+            <p className="text-xs opacity-60">Top $TYSM</p>
+          </div>
+          <div className="p-2 rounded bg-black/20">
+            <p className="text-lg font-bold text-purple-400">3,847</p>
+            <p className="text-xs opacity-60">Claimers</p>
+          </div>
+        </div>
+      </SketchCard>
+    </div>
+  );
+}
+
 export function MiniApp() {
   return (
     <SketchMiniLayout
@@ -427,7 +536,8 @@ export function MiniApp() {
       mode="tabs"
       tabs={[
         { label: '🎁 Check-in', content: <CheckInTab /> },
-        { label: '📡 Live Claims', content: <LiveClaimsTab /> },
+        { label: '📡 Live', content: <LiveClaimsTab /> },
+        { label: '🏆 Leaderboard', content: <LeaderboardTab /> },
       ]}
     />
   );
