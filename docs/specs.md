@@ -1,29 +1,29 @@
-# Requirements
+# Requirements - TYSM Counter
 
-> **Created**: [timestamp]
-> **Last Updated**: [timestamp]
+> **Created**: 2024-01-28
+> **Last Updated**: 2024-01-28
 
 ---
 
 ## App Overview
 
-| Field               | Value                                     |
-| ------------------- | ----------------------------------------- |
-| **Type**            | [app category - game, tool, social, etc.] |
-| **Target Audience** | [who will use this]                       |
-| **Core Experience** | [what's the main thing users do]          |
+| Field               | Value                                                    |
+| ------------------- | -------------------------------------------------------- |
+| **Type**            | Rewards / Check-in App                                   |
+| **Target Audience** | Farcaster users who want to earn $TYSM tokens            |
+| **Core Experience** | Daily onchain check-in to earn streak-based $TYSM rewards |
 
 ---
 
 ## Visual Style
 
-| Field               | Value                                                   |
-| ------------------- | ------------------------------------------------------- |
-| **Vibe**            | [playful, minimal, professional, bold, game-like, etc.] |
-| **Colors**          | [color preferences or theme direction]                  |
-| **Style Direction** | [any specific visual references or descriptions]        |
+| Field               | Value                           |
+| ------------------- | ------------------------------- |
+| **Vibe**            | Professional, clean, crypto     |
+| **Colors**          | TBD (to be decided in theming)  |
+| **Style Direction** | Similar to Degen Counter        |
 
-**User's Words**: "[capture exact phrases user used to describe the vibe]"
+**User's Words**: "buat seperti degen counter"
 
 ---
 
@@ -31,88 +31,85 @@
 
 ### Must-Have (Phase 3 Priority: High)
 
-- [ ] **[Feature Name]**: Description of what it does
-- [ ] **[Feature Name]**: Description of what it does
+- [x] **Score Balance Check**: Neynar Score & Quotient Score must be balanced (≤10% difference) to qualify
+- [x] **Tier System**: LEGENDARY, DIAMOND, GOLD, SILVER, BRONZE based on balanced average score
+- [x] **Daily Onchain Check-in**: Button → Confirm popup → Transaction → Success popup with tx hash
+- [x] **Streak Reward System**: Daily reward = Day × Week Multiplier
+- [x] **Week Bonus**: 7 × Week Multiplier on completing 7 days
+- [x] **1 Month Milestones**: Day 29 (+500), Day 30 (+1000) one-time bonuses
+- [x] **Streak Reset**: Miss a day = reset to Week 1, Day 1
+- [x] **Countdown Timer**: Shows time until next check-in (00:00 UTC reset)
+- [x] **Streak Reminder**: Warning when <1 hour before reset
+- [x] **Live Claims Tab**: Pool stats + live feed of claims with tx hashes
+- [x] **Leaderboard Tab**: Top 10 claimers + user's rank
+- [x] **My Progress**: Week 1-4 progress bars + milestone tracking
+- [x] **How Streaks Work**: Explanation of reward system
 
 ### Nice-to-Have (Phase 3 Priority: Medium)
 
-- [ ] **[Feature Name]**: Description of what it does
-- [ ] **[Feature Name]**: Description of what it does
+- [ ] **Notification Reminder**: Push notification before streak reset
 
 ### Future Considerations (Not in Current Scope)
 
-- **[Feature Name]**: Description (why it's future/not now)
+- **More Milestones**: Additional milestones after 1 month (user wants 1 month only for now)
 
 ---
 
 ## Data Requirements
 
-| Field                 | Value                                                         |
-| --------------------- | ------------------------------------------------------------- |
-| **Persistence**       | [Yes/No - does any data need to persist across sessions?]     |
-| **What Needs Saving** | [scores, preferences, user content, history, etc.]            |
-| **User-Specific**     | [Yes/No - is data per-user or global?]                        |
-| **Authentication**    | [How users are identified - Farcaster login, anonymous, etc.] |
+| Field                 | Value                                                   |
+| --------------------- | ------------------------------------------------------- |
+| **Persistence**       | Yes - streak data, claim history, balances              |
+| **What Needs Saving** | streak day/week, total days, $TYSM balance, claim history |
+| **User-Specific**     | Yes - per-user streak and balance                       |
+| **Authentication**    | Farcaster login + wallet for onchain transactions       |
 
 ---
 
 ## Sharing Configuration
 
-| Field                      | Value                                                            |
-| -------------------------- | ---------------------------------------------------------------- |
-| **Share Button Placement** | [Where the share button is located]                              |
-| **shareButtonTitle**       | [Action text - e.g., "Play Now", "Try It", "Check Results"]      |
-| **Personalization Data**   | [What data is included in share - score, username, result, etc.] |
+| Field                      | Value                                              |
+| -------------------------- | -------------------------------------------------- |
+| **Share Button Placement** | After successful check-in (claim success state)    |
+| **shareButtonTitle**       | "Claim $TYSM"                                      |
+| **Personalization Data**   | Streak day, week, tier, $TYSM earned               |
 
 ---
 
 ## Technical Constraints
 
-| Field                    | Value                                     |
-| ------------------------ | ----------------------------------------- |
-| **User Skill Level**     | [Beginner / Intermediate / Advanced]      |
-| **Platform Focus**       | [Mobile-first, desktop, both]             |
-| **Special Requirements** | [Any specific constraints or preferences] |
+| Field                    | Value                                          |
+| ------------------------ | ---------------------------------------------- |
+| **User Skill Level**     | Beginner (non-dev user)                        |
+| **Platform Focus**       | Mobile-first (Farcaster mini app)              |
+| **Special Requirements** | Onchain transactions on Base Network           |
 
 ---
 
 ## Design Decisions & Rationale
 
-| Decision           | Rationale                  | Phase          |
-| ------------------ | -------------------------- | -------------- |
-| [What was decided] | [Why this choice was made] | [When decided] |
-
-_Example: "Single die only | Keep scope small for beginner user | Phase 1"_
+| Decision                          | Rationale                              | Phase   |
+| --------------------------------- | -------------------------------------- | ------- |
+| Remove grid 7 days display        | Keep UI clean and simple               | Phase 1 |
+| Popup flow for check-in           | Better UX than inline confirmation     | Phase 1 |
+| No + sign in reward displays      | User preference for cleaner numbers    | Phase 1 |
+| Milestones only Day 29 & 30       | 1 month focus, can expand later        | Phase 1 |
+| Streak continues up to 1 year     | Multiplier keeps growing indefinitely  | Phase 1 |
 
 ---
 
 ## Open Questions
 
-- [ ] [Question that needs answering before implementation]
-- [ ] [Question that user wants to defer]
+- [x] ~~How many milestones?~~ → Day 29 (500) and Day 30 (1000) only
+- [x] ~~Week 5+ behavior?~~ → Multiplier continues growing, streak up to 1 year
 
 ---
 
 ## Change Log
 
-| Timestamp   | Phase     | Description                           |
-| ----------- | --------- | ------------------------------------- |
-| [timestamp] | [Phase #] | [Description of what changed and why] |
-
----
-
-## How to Use This File
-
-**For Agents:**
-
-- Read this file at the start of each phase to stay aligned with user intent
-- Update when requirements change or clarify during development
-- Reference "Must-Have" features when prioritizing Phase 3 work
-- Keep "User's Words" exact - helps maintain the vibe
-- Update sharing configuration after Phase 1 requirements review
-
-**For Users:**
-
-- This is YOUR spec - make sure it matches your vision
-- Update it anytime your priorities change
-- Use "Nice-to-Have" to park ideas without committing now
+| Timestamp  | Phase   | Description                                    |
+| ---------- | ------- | ---------------------------------------------- |
+| 2024-01-28 | Phase 1 | Initial sketch created                         |
+| 2024-01-28 | Phase 1 | Added popup flow for check-in                  |
+| 2024-01-28 | Phase 1 | Removed grid 7 days, simplified UI             |
+| 2024-01-28 | Phase 1 | User approved sketch, ready for theming        |
