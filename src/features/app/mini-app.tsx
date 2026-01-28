@@ -422,7 +422,7 @@ function CheckInTab() {
                   <span className="text-xs opacity-50">Day {milestone.day}</span>
                 </div>
                 <span className={`font-bold ${achieved ? 'text-green-400' : isNext ? 'text-yellow-400' : ''}`}>
-                  +{milestone.bonus} $TYSM
+                  {milestone.bonus} $TYSM
                 </span>
               </div>
             );
@@ -522,7 +522,7 @@ function CheckInTab() {
                       <span className="text-sm">{milestone.label}</span>
                     </div>
                     <span className={`font-bold ${achieved ? 'text-green-400' : 'opacity-50'}`}>
-                      +{milestone.bonus} $TYSM
+                      {milestone.bonus} $TYSM
                     </span>
                   </div>
                 );
