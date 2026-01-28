@@ -71,11 +71,8 @@ const mockClaimHistory = [
 ];
 
 // Milestone rewards (30 day streak bonuses)
+// Only Day 29 and Day 30 get milestone bonuses
 const MILESTONES = [
-  { day: 7, bonus: 50, label: '1 Week (1x)' },
-  { day: 14, bonus: 100, label: '2 Weeks (2x)' },
-  { day: 21, bonus: 200, label: '3 Weeks (3x)' },
-  { day: 28, bonus: 300, label: '4 Weeks (4x)' },
   { day: 29, bonus: 500, label: 'Day 29' },
   { day: 30, bonus: 1000, label: '30 Days! 🎉' },
 ];
@@ -505,7 +502,7 @@ function CheckInTab() {
             </div>
             <div className="p-2 rounded bg-green-500/20 border border-green-400/50">
               <p className="font-bold text-green-400">🎉 30 Day Total</p>
-              <p className="sketch-text opacity-70">35 + 70 + 105 + 140 + milestones = 2,200+ $TYSM</p>
+              <p className="sketch-text opacity-70">350 weekly + 500 (D29) + 1000 (D30) = 1,850+ $TYSM</p>
             </div>
             <div className="p-2 rounded bg-red-500/20 border border-red-400/50">
               <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
