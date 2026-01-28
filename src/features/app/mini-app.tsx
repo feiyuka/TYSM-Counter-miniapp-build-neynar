@@ -23,13 +23,13 @@ const mockScores = {
   quotientScore: 0.68,
 };
 
-// Mock onchain data
+// Mock onchain data - fresh user on Week 1, Day 3
 const mockOnchain = {
-  tysmBalance: 98,
+  tysmBalance: 6, // 1+2+3 = 6 $TYSM so far
   lastCheckIn: '2024-01-14',
   streakDay: 3,
-  streakWeek: 2,
-  totalStreakDays: 10, // Total consecutive days (for milestone tracking)
+  streakWeek: 1, // Week 1 (fresh user)
+  totalStreakDays: 3, // Total consecutive days (for milestone tracking)
 };
 
 // Mock pool & live claims data
@@ -63,11 +63,11 @@ const mockLeaderboard = [
   { rank: 10, username: 'sarah', totalTYSM: 620, streakWeek: 3, tier: '🥈 SILVER' },
 ];
 
-// Mock claim history for stats - only shows COMPLETED weeks
-// User is currently on Week 2, Day 3 (totalStreakDays: 10)
-// So only Week 1 is fully completed
-const mockClaimHistory = [
-  { week: 1, claimed: 35, completed: true }, // Week 1 completed: 35 $TYSM
+// Mock onchain shows user is on Week 2, Day 3
+// But for fresh user demo, let's show Week 1 in progress
+// Change mockOnchain to Week 1, Day 3 for better demo
+const mockClaimHistory: { week: number; claimed: number; completed: boolean }[] = [
+  // Empty - no completed weeks yet (user is still on Week 1)
 ];
 
 // Milestone rewards (1 month streak bonuses)
@@ -447,41 +447,86 @@ function CheckInTab() {
 
       {showStats && (
         <SketchCard padding="md">
-          <SketchHeading level={6}>My Claim History</SketchHeading>
+          <SketchHeading level={6}>My Progress</SketchHeading>
 
-          {/* Completed Weeks */}
-          {mockClaimHistory.length > 0 ? (
-            <div className="mt-3 space-y-2">
-              {mockClaimHistory.map((week) => (
-                <div key={week.week} className="flex items-center gap-2">
-                  <p className="text-xs opacity-60 w-16">Week {week.week}</p>
+          {/* Week 1-4 Progress */}
+          <div className="mt-3 space-y-2">
+            {[1, 2, 3, 4].map((week) => {
+              const isCurrentWeek = week === onchain.streakWeek;
+              const isCompleted = week < onchain.streakWeek;
+              const isFuture = week > onchain.streakWeek;
+              const maxReward = 28 * week + 7 * week; // (1+2+3+4+5+6+7)*multiplier + bonus
+              const completedWeekData = mockClaimHistory.find((h) => h.week === week);
+              const currentProgress = isCurrentWeek
+                ? Array.from({ length: onchain.streakDay }, (_, i) => (i + 1) * week).reduce((a, b) => a + b, 0)
+                : 0;
+
+              return (
+                <div key={week} className="flex items-center gap-2">
+                  <p className={`text-xs w-16 ${isCurrentWeek ? 'text-purple-400 font-bold' : isFuture ? 'opacity-30' : 'opacity-60'}`}>
+                    Week {week}
+                  </p>
                   <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{ width: `${(week.claimed / 140) * 100}%` }}
-                    />
+                    {isCompleted && completedWeekData && (
+                      <div
+                        className="h-full bg-green-500"
+                        style={{ width: `${(completedWeekData.claimed / maxReward) * 100}%` }}
+                      />
+                    )}
+                    {isCurrentWeek && (
+                      <div
+                        className="h-full bg-purple-500"
+                        style={{ width: `${(currentProgress / maxReward) * 100}%` }}
+                      />
+                    )}
                   </div>
-                  <p className="text-sm font-bold text-green-400 w-16 text-right">{week.claimed}</p>
+                  <p className={`text-sm font-bold w-20 text-right ${
+                    isCompleted ? 'text-green-400' : isCurrentWeek ? 'text-purple-400' : 'opacity-30'
+                  }`}>
+                    {isCompleted && completedWeekData
+                      ? `${completedWeekData.claimed}/${maxReward}`
+                      : isCurrentWeek
+                      ? `${currentProgress}/${maxReward}`
+                      : `0/${maxReward}`}
+                  </p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-3 text-sm opacity-50 text-center">No completed weeks yet</p>
-          )}
+              );
+            })}
+          </div>
 
-          {/* Current Week Progress */}
+          {/* Current Week Status */}
           <div className="mt-3 p-2 rounded bg-purple-500/20 border border-purple-400/50">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-purple-400 font-bold">Week {onchain.streakWeek} (In Progress)</p>
-              <p className="text-xs opacity-60">Day {onchain.streakDay}/7</p>
+              <p className="text-xs text-purple-400 font-bold">Week {onchain.streakWeek} • Day {onchain.streakDay}/7</p>
+              <p className="text-xs opacity-60">{onchain.streakWeek}x Multiplier</p>
             </div>
-            <div className="mt-2 flex items-center gap-2">
-              <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-purple-500"
-                  style={{ width: `${(onchain.streakDay / 7) * 100}%` }}
-                />
-              </div>
+          </div>
+
+          {/* 1 Month Milestones */}
+          <div className="mt-4">
+            <p className="text-xs font-bold text-yellow-400 mb-2">🎯 1 Month Milestones</p>
+            <div className="space-y-2">
+              {MILESTONES.map((milestone) => {
+                const achieved = onchain.totalStreakDays >= milestone.day;
+                return (
+                  <div
+                    key={milestone.day}
+                    className={`flex items-center justify-between p-2 rounded ${
+                      achieved
+                        ? 'bg-green-500/20 border border-green-400'
+                        : 'bg-black/20 opacity-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{achieved ? '✅' : '🔒'}</span>
+                      <span className="text-sm">{milestone.label}</span>
+                    </div>
+                    <span className={`font-bold ${achieved ? 'text-green-400' : 'opacity-50'}`}>
+                      +{milestone.bonus} $TYSM
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
