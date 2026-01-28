@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   SketchMiniLayout,
   SketchButton,
@@ -29,6 +29,7 @@ const mockOnchain = {
   lastCheckIn: '2024-01-14',
   streakDay: 3,
   streakWeek: 2,
+  totalStreakDays: 10, // Total consecutive days (for milestone tracking)
 };
 
 // Mock pool & live claims data
@@ -62,6 +63,22 @@ const mockLeaderboard = [
   { rank: 10, username: 'sarah', totalTYSM: 620, streakWeek: 3, tier: '🥈 SILVER' },
 ];
 
+// Mock claim history for stats
+const mockClaimHistory = [
+  { week: 1, claimed: 35 },
+  { week: 2, claimed: 42 },
+  { week: 3, claimed: 21 },
+];
+
+// Milestone rewards (30 day streak bonuses)
+const MILESTONES = [
+  { day: 7, bonus: 50, label: '1 Week' },
+  { day: 14, bonus: 100, label: '2 Weeks' },
+  { day: 21, bonus: 200, label: '3 Weeks' },
+  { day: 29, bonus: 500, label: 'Day 29' },
+  { day: 30, bonus: 1000, label: '30 Days! 🎉' },
+];
+
 // Check if scores are balanced (within 0.1 difference)
 function isBalanced(neynar: number, quotient: number) {
   return Math.abs(neynar - quotient) <= 0.1;
@@ -78,12 +95,34 @@ function getTier(neynar: number, quotient: number) {
   return { name: '🥉 BRONZE', color: 'text-orange-400' };
 }
 
+// Calculate time until next check-in (00:00 UTC)
+function getTimeUntilReset() {
+  const now = new Date();
+  const tomorrow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+  const diff = tomorrow.getTime() - now.getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  return { hours, minutes, seconds, total: diff };
+}
+
 function CheckInTab() {
   const [onchain, setOnchain] = useState(mockOnchain);
   const [showHistory, setShowHistory] = useState(false);
+  const [showMilestones, setShowMilestones] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [txPending, setTxPending] = useState(false);
   const [todayClaimed, setTodayClaimed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(getTimeUntilReset());
+
+  // Countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilReset());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const balanced = isBalanced(mockScores.neynarScore, mockScores.quotientScore);
   const tier = getTier(mockScores.neynarScore, mockScores.quotientScore);
@@ -92,6 +131,10 @@ function CheckInTab() {
   const todayReward = onchain.streakDay * onchain.streakWeek;
   const isLastDayOfWeek = onchain.streakDay === 7;
   const weekBonus = isLastDayOfWeek ? 7 * onchain.streakWeek : 0;
+
+  // Check if today is a milestone day
+  const nextMilestone = MILESTONES.find((m) => m.day > onchain.totalStreakDays);
+  const todayMilestone = MILESTONES.find((m) => m.day === onchain.totalStreakDays + 1);
 
   const handleOnchainCheckIn = async () => {
     setTxPending(true);
@@ -102,10 +145,11 @@ function CheckInTab() {
     setTxHash(mockTxHash);
     setOnchain((prev) => ({
       ...prev,
-      tysmBalance: prev.tysmBalance + todayReward + weekBonus,
+      tysmBalance: prev.tysmBalance + todayReward + weekBonus + (todayMilestone?.bonus || 0),
       lastCheckIn: new Date().toISOString().split('T')[0],
       streakDay: isLastDayOfWeek ? 1 : prev.streakDay + 1,
       streakWeek: isLastDayOfWeek ? prev.streakWeek + 1 : prev.streakWeek,
+      totalStreakDays: prev.totalStreakDays + 1,
     }));
     setTxPending(false);
     setTodayClaimed(true);
@@ -145,6 +189,49 @@ function CheckInTab() {
           </div>
         </div>
       </SketchCard>
+
+      {/* Countdown Timer - Next Check-in */}
+      {todayClaimed && (
+        <SketchCard padding="sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⏰</span>
+              <p className="text-sm opacity-70">Next check-in in</p>
+            </div>
+            <div className="flex gap-2 font-mono">
+              <div className="bg-purple-500/30 px-2 py-1 rounded text-center">
+                <p className="text-lg font-bold">{String(countdown.hours).padStart(2, '0')}</p>
+                <p className="text-xs opacity-50">hr</p>
+              </div>
+              <p className="text-lg font-bold self-start mt-1">:</p>
+              <div className="bg-purple-500/30 px-2 py-1 rounded text-center">
+                <p className="text-lg font-bold">{String(countdown.minutes).padStart(2, '0')}</p>
+                <p className="text-xs opacity-50">min</p>
+              </div>
+              <p className="text-lg font-bold self-start mt-1">:</p>
+              <div className="bg-purple-500/30 px-2 py-1 rounded text-center">
+                <p className="text-lg font-bold">{String(countdown.seconds).padStart(2, '0')}</p>
+                <p className="text-xs opacity-50">sec</p>
+              </div>
+            </div>
+          </div>
+        </SketchCard>
+      )}
+
+      {/* Streak Reminder Warning */}
+      {!todayClaimed && countdown.total < 3600000 && (
+        <SketchCard padding="sm">
+          <div className="flex items-center gap-3 text-yellow-400">
+            <span className="text-2xl animate-bounce">🔔</span>
+            <div>
+              <p className="font-bold">Don't lose your streak!</p>
+              <p className="text-xs opacity-70">
+                Only {countdown.hours}h {countdown.minutes}m left to check in today
+              </p>
+            </div>
+          </div>
+        </SketchCard>
+      )}
 
       {/* Score Balance Check */}
       <SketchCard padding="md">
@@ -236,6 +323,15 @@ function CheckInTab() {
           <p className="text-xs opacity-50">Complete all 7 days to claim!</p>
         </div>
 
+        {/* Milestone Bonus Alert */}
+        {todayMilestone && !todayClaimed && (
+          <div className="text-center p-3 rounded-lg bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border border-yellow-400 mb-4 animate-pulse">
+            <p className="text-xs opacity-70">🎯 MILESTONE BONUS TODAY!</p>
+            <p className="text-xl font-bold text-yellow-400">+{todayMilestone.bonus} $TYSM</p>
+            <p className="text-xs opacity-60">{todayMilestone.label} Streak Achievement</p>
+          </div>
+        )}
+
         <div className="text-center p-2 rounded-lg bg-red-500/10 border border-red-400/30 mb-4">
           <p className="text-xs text-red-400">⚠️ Miss a day = Reset to Day 1</p>
         </div>
@@ -246,7 +342,10 @@ function CheckInTab() {
               <p className="sketch-text text-sm mb-2">Today's Reward</p>
               <p className="text-3xl font-bold text-green-400 mb-1">+{todayReward} $TYSM</p>
               {isLastDayOfWeek && (
-                <p className="text-sm text-yellow-400 mb-2">+ {weekBonus} bonus!</p>
+                <p className="text-sm text-yellow-400 mb-1">+ {weekBonus} week bonus!</p>
+              )}
+              {todayMilestone && (
+                <p className="text-sm text-orange-400 mb-2">+ {todayMilestone.bonus} milestone bonus!</p>
               )}
               <SketchButton variant="primary" onClick={handleOnchainCheckIn}>
                 {txPending ? (
@@ -288,7 +387,97 @@ function CheckInTab() {
         )}
       </SketchCard>
 
-      {/* Streak History Toggle */}
+      {/* 30 Day Milestone Progress */}
+      <SketchCard padding="md">
+        <div className="flex items-center justify-between mb-3">
+          <SketchHeading level={6}>30 Day Milestones</SketchHeading>
+          <p className="text-sm font-bold text-purple-400">{onchain.totalStreakDays}/30</p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-3">
+          <div
+            className="h-full bg-gradient-to-r from-purple-500 to-yellow-400 transition-all"
+            style={{ width: `${(onchain.totalStreakDays / 30) * 100}%` }}
+          />
+        </div>
+
+        {/* Milestone Markers */}
+        <div className="space-y-2">
+          {MILESTONES.map((milestone) => {
+            const achieved = onchain.totalStreakDays >= milestone.day;
+            const isNext = nextMilestone?.day === milestone.day;
+            return (
+              <div
+                key={milestone.day}
+                className={`flex items-center justify-between p-2 rounded ${
+                  achieved
+                    ? 'bg-green-500/20 border border-green-400'
+                    : isNext
+                    ? 'bg-yellow-500/20 border border-yellow-400'
+                    : 'bg-black/20 opacity-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span>{achieved ? '✅' : isNext ? '🎯' : '⬜'}</span>
+                  <span className="text-sm font-medium">{milestone.label}</span>
+                  <span className="text-xs opacity-50">Day {milestone.day}</span>
+                </div>
+                <span className={`font-bold ${achieved ? 'text-green-400' : isNext ? 'text-yellow-400' : ''}`}>
+                  +{milestone.bonus} $TYSM
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {nextMilestone && (
+          <p className="text-xs text-center opacity-50 mt-3">
+            {nextMilestone.day - onchain.totalStreakDays} days until next milestone!
+          </p>
+        )}
+      </SketchCard>
+
+      {/* Personal Stats */}
+      <SketchButton variant="outline" onClick={() => setShowStats(!showStats)}>
+        {showStats ? 'Hide My Stats' : '📊 View My Stats'}
+      </SketchButton>
+
+      {showStats && (
+        <SketchCard padding="md">
+          <SketchHeading level={6}>My Claim History</SketchHeading>
+          <div className="mt-3 space-y-2">
+            {mockClaimHistory.map((week) => (
+              <div key={week.week} className="flex items-center gap-2">
+                <p className="text-xs opacity-60 w-16">Week {week.week}</p>
+                <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-500"
+                    style={{ width: `${(week.claimed / 140) * 100}%` }}
+                  />
+                </div>
+                <p className="text-sm font-bold text-green-400 w-16 text-right">{week.claimed}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="p-2 rounded bg-black/20">
+              <p className="text-lg font-bold text-green-400">{onchain.tysmBalance}</p>
+              <p className="text-xs opacity-60">Total Earned</p>
+            </div>
+            <div className="p-2 rounded bg-black/20">
+              <p className="text-lg font-bold text-purple-400">{onchain.totalStreakDays}</p>
+              <p className="text-xs opacity-60">Total Days</p>
+            </div>
+            <div className="p-2 rounded bg-black/20">
+              <p className="text-lg font-bold text-yellow-400">{onchain.streakWeek}</p>
+              <p className="text-xs opacity-60">Best Week</p>
+            </div>
+          </div>
+        </SketchCard>
+      )}
+
+      {/* Streak Info Toggle */}
       <SketchButton variant="outline" onClick={() => setShowHistory(!showHistory)}>
         {showHistory ? 'Hide Streak Info' : 'How Streaks Work'}
       </SketchButton>
@@ -433,7 +622,6 @@ function LiveClaimsTab() {
 }
 
 function LeaderboardTab() {
-  // Mock current user rank
   const myRank = { rank: 42, username: 'alice', totalTYSM: 98, streakWeek: 2, tier: '🥇 GOLD' };
 
   const getRankStyle = (rank: number) => {
