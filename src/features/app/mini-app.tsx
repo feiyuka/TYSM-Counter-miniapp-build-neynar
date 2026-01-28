@@ -52,6 +52,7 @@ export function MiniApp() {
   const [showHistory, setShowHistory] = useState(false);
   const [txPending, setTxPending] = useState(false);
   const [todayClaimed, setTodayClaimed] = useState(false);
+  const [txHash, setTxHash] = useState<string | null>(null);
 
   const balanced = isBalanced(mockScores.neynarScore, mockScores.quotientScore);
   const tier = getTier(mockScores.neynarScore, mockScores.quotientScore);
@@ -67,6 +68,11 @@ export function MiniApp() {
     setTxPending(true);
     // Simulate blockchain transaction
     await new Promise((r) => setTimeout(r, 2000));
+    // Mock transaction hash
+    const mockTxHash = '0x' + Array.from({ length: 64 }, () =>
+      Math.floor(Math.random() * 16).toString(16)
+    ).join('');
+    setTxHash(mockTxHash);
     setOnchain((prev) => ({
       ...prev,
       tysmBalance: prev.tysmBalance + todayReward + weekBonus,
@@ -245,7 +251,18 @@ export function MiniApp() {
             <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400">
               <p className="text-green-400 font-bold text-lg">✅ Claimed Onchain!</p>
               <p className="sketch-text text-sm opacity-70">+{todayReward} $TYSM sent to wallet</p>
-              <p className="sketch-text text-xs opacity-50 mt-2">Come back tomorrow!</p>
+              {txHash && (
+                <div className="mt-3 p-2 bg-black/30 rounded">
+                  <p className="text-xs opacity-50 mb-1">Transaction Hash</p>
+                  <p className="text-xs font-mono text-green-300 break-all">
+                    {txHash.slice(0, 10)}...{txHash.slice(-8)}
+                  </p>
+                  <button className="mt-2 text-xs text-blue-400 underline">
+                    View on BaseScan →
+                  </button>
+                </div>
+              )}
+              <p className="sketch-text text-xs opacity-50 mt-3">Come back tomorrow!</p>
             </div>
           )
         ) : (
