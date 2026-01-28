@@ -25,11 +25,28 @@ const mockScores = {
 
 // Mock onchain data
 const mockOnchain = {
-  tysmBalance: 98, // Token balance in wallet
-  lastCheckIn: '2024-01-14', // Last onchain check-in
-  streakDay: 3, // Current streak day (resets to 1 if missed)
-  streakWeek: 2, // Current week multiplier
+  tysmBalance: 98,
+  lastCheckIn: '2024-01-14',
+  streakDay: 3,
+  streakWeek: 2,
 };
+
+// Mock pool & live claims data
+const mockPool = {
+  totalPool: 1000000,
+  remainingPool: 847523,
+  totalClaimed: 152477,
+  totalClaimers: 3847,
+};
+
+// Mock live claims feed
+const mockLiveClaims = [
+  { username: 'dwr.eth', amount: 14, time: '2s ago', txHash: '0xabc123...' },
+  { username: 'vitalik', amount: 21, time: '15s ago', txHash: '0xdef456...' },
+  { username: 'jessepollak', amount: 8, time: '32s ago', txHash: '0xghi789...' },
+  { username: 'linda', amount: 6, time: '1m ago', txHash: '0xjkl012...' },
+  { username: 'ted', amount: 12, time: '2m ago', txHash: '0xmno345...' },
+];
 
 // Check if scores are balanced (within 0.1 difference)
 function isBalanced(neynar: number, quotient: number) {
@@ -47,7 +64,7 @@ function getTier(neynar: number, quotient: number) {
   return { name: '🥉 BRONZE', color: 'text-orange-400' };
 }
 
-export function MiniApp() {
+function CheckInTab() {
   const [onchain, setOnchain] = useState(mockOnchain);
   const [showHistory, setShowHistory] = useState(false);
   const [txPending, setTxPending] = useState(false);
@@ -58,17 +75,13 @@ export function MiniApp() {
   const tier = getTier(mockScores.neynarScore, mockScores.quotientScore);
   const difference = Math.abs(mockScores.neynarScore - mockScores.quotientScore);
 
-  // Calculate today's reward: day * week multiplier
   const todayReward = onchain.streakDay * onchain.streakWeek;
-  // Week streak bonus = 7 * week multiplier
   const isLastDayOfWeek = onchain.streakDay === 7;
   const weekBonus = isLastDayOfWeek ? 7 * onchain.streakWeek : 0;
 
   const handleOnchainCheckIn = async () => {
     setTxPending(true);
-    // Simulate blockchain transaction
     await new Promise((r) => setTimeout(r, 2000));
-    // Mock transaction hash
     const mockTxHash = '0x' + Array.from({ length: 64 }, () =>
       Math.floor(Math.random() * 16).toString(16)
     ).join('');
@@ -84,7 +97,12 @@ export function MiniApp() {
     setTodayClaimed(true);
   };
 
-  // Generate week preview
+  const openTxInBrowser = () => {
+    if (txHash) {
+      window.open(`https://basescan.org/tx/${txHash}`, '_blank');
+    }
+  };
+
   const weekDays = Array.from({ length: 7 }, (_, i) => {
     const day = i + 1;
     const reward = day * onchain.streakWeek;
@@ -94,7 +112,7 @@ export function MiniApp() {
   });
 
   return (
-    <SketchMiniLayout title="TYSM Counter" mode="scroll">
+    <div className="space-y-4">
       {/* User Profile with Wallet */}
       <SketchCard padding="md">
         <div className="flex items-center gap-3">
@@ -111,17 +129,6 @@ export function MiniApp() {
             <p className="text-2xl font-bold text-green-400">{onchain.tysmBalance}</p>
             <p className="text-xs opacity-60">$TYSM Balance</p>
           </div>
-        </div>
-      </SketchCard>
-
-      {/* Onchain Status */}
-      <SketchCard padding="sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <p className="text-xs opacity-70">Base Network</p>
-          </div>
-          <p className="text-xs font-mono opacity-50">Contract: 0xTYSM...TOKEN</p>
         </div>
       </SketchCard>
 
@@ -143,7 +150,6 @@ export function MiniApp() {
           </div>
         </div>
 
-        {/* Balance Status */}
         <div className={`mt-4 p-3 rounded-lg text-center ${
           balanced ? 'bg-green-500/20 border border-green-400' : 'bg-red-500/20 border border-red-400'
         }`}>
@@ -164,7 +170,6 @@ export function MiniApp() {
           )}
         </div>
 
-        {/* Tier Display */}
         {tier ? (
           <div className="mt-3 text-center">
             <p className="text-xs opacity-60">Your Tier</p>
@@ -191,7 +196,6 @@ export function MiniApp() {
           </div>
         </div>
 
-        {/* Week Progress */}
         <div className="grid grid-cols-7 gap-1 mb-4">
           {weekDays.map(({ day, reward, isPast, isToday }) => (
             <div
@@ -212,19 +216,16 @@ export function MiniApp() {
           ))}
         </div>
 
-        {/* Week Bonus Indicator */}
         <div className="text-center p-2 rounded-lg bg-yellow-500/20 border border-yellow-400/50 mb-4">
           <p className="text-xs opacity-70">Week {onchain.streakWeek} Streak Bonus</p>
           <p className="text-lg font-bold text-yellow-400">+{7 * onchain.streakWeek} $TYSM</p>
           <p className="text-xs opacity-50">Complete all 7 days to claim!</p>
         </div>
 
-        {/* Streak Reset Warning */}
         <div className="text-center p-2 rounded-lg bg-red-500/10 border border-red-400/30 mb-4">
           <p className="text-xs text-red-400">⚠️ Miss a day = Reset to Day 1</p>
         </div>
 
-        {/* Today's Reward & Onchain Check-in Button */}
         {balanced ? (
           !todayClaimed ? (
             <div className="text-center">
@@ -233,10 +234,7 @@ export function MiniApp() {
               {isLastDayOfWeek && (
                 <p className="text-sm text-yellow-400 mb-2">+ {weekBonus} bonus!</p>
               )}
-              <SketchButton
-                variant="primary"
-                onClick={handleOnchainCheckIn}
-              >
+              <SketchButton variant="primary" onClick={handleOnchainCheckIn}>
                 {txPending ? (
                   <span className="flex items-center justify-center gap-2">
                     <span className="animate-spin">⏳</span> Confirming tx...
@@ -257,7 +255,10 @@ export function MiniApp() {
                   <p className="text-xs font-mono text-green-300 break-all">
                     {txHash.slice(0, 10)}...{txHash.slice(-8)}
                   </p>
-                  <button className="mt-2 text-xs text-blue-400 underline">
+                  <button
+                    onClick={openTxInBrowser}
+                    className="mt-2 text-xs text-blue-400 underline"
+                  >
                     View on BaseScan →
                   </button>
                 </div>
@@ -308,10 +309,126 @@ export function MiniApp() {
 
       {/* Share Button */}
       {todayClaimed && (
-        <div className="mt-2">
-          <SketchButton variant="secondary">Share My Streak</SketchButton>
-        </div>
+        <SketchButton variant="secondary">Share My Streak</SketchButton>
       )}
-    </SketchMiniLayout>
+    </div>
+  );
+}
+
+function LiveClaimsTab() {
+  const poolPercentage = ((mockPool.remainingPool / mockPool.totalPool) * 100).toFixed(1);
+
+  const openTxInBrowser = (txHash: string) => {
+    // Expand mock hash to full format for demo
+    const fullHash = txHash.replace('...', '0'.repeat(54));
+    window.open(`https://basescan.org/tx/${fullHash}`, '_blank');
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Pool Stats */}
+      <SketchCard padding="md">
+        <div className="text-center mb-4">
+          <p className="text-xs opacity-60 mb-1">$TYSM Reward Pool</p>
+          <p className="text-3xl font-bold text-green-400">
+            {mockPool.remainingPool.toLocaleString()}
+          </p>
+          <p className="text-xs opacity-50">of {mockPool.totalPool.toLocaleString()} $TYSM</p>
+        </div>
+
+        {/* Pool Progress Bar */}
+        <div className="w-full h-4 bg-gray-700 rounded-full overflow-hidden mb-3">
+          <div
+            className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all"
+            style={{ width: `${poolPercentage}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div className="p-2 rounded bg-black/20">
+            <p className="text-lg font-bold text-yellow-400">{mockPool.totalClaimed.toLocaleString()}</p>
+            <p className="text-xs opacity-60">Total Claimed</p>
+          </div>
+          <div className="p-2 rounded bg-black/20">
+            <p className="text-lg font-bold text-purple-400">{mockPool.totalClaimers.toLocaleString()}</p>
+            <p className="text-xs opacity-60">Total Claimers</p>
+          </div>
+        </div>
+      </SketchCard>
+
+      {/* Live Claims Feed */}
+      <SketchCard padding="md">
+        <div className="flex items-center justify-between mb-3">
+          <SketchHeading level={6}>Live Claims</SketchHeading>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <p className="text-xs text-red-400">LIVE</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {mockLiveClaims.map((claim, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <img
+                  src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
+                  alt={claim.username}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div>
+                  <p className="font-medium text-sm">@{claim.username}</p>
+                  <p className="text-xs opacity-50">{claim.time}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-green-400 font-bold">+{claim.amount} $TYSM</p>
+                <button
+                  onClick={() => openTxInBrowser(claim.txHash)}
+                  className="text-xs text-blue-400 underline"
+                >
+                  {claim.txHash}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 text-center">
+          <p className="text-xs opacity-50">Showing latest 5 claims</p>
+        </div>
+      </SketchCard>
+
+      {/* Pool Info */}
+      <SketchCard padding="sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <p className="text-xs opacity-70">Base Network</p>
+          </div>
+          <button
+            onClick={() => window.open('https://basescan.org/token/0xTYSMTOKEN', '_blank')}
+            className="text-xs text-blue-400 underline"
+          >
+            View Contract →
+          </button>
+        </div>
+      </SketchCard>
+    </div>
+  );
+}
+
+export function MiniApp() {
+  return (
+    <SketchMiniLayout
+      title="TYSM Counter"
+      mode="tabs"
+      tabs={[
+        { label: '🎁 Check-in', content: <CheckInTab /> },
+        { label: '📡 Live Claims', content: <LiveClaimsTab /> },
+      ]}
+    />
   );
 }
