@@ -72,9 +72,10 @@ const mockClaimHistory = [
 
 // Milestone rewards (30 day streak bonuses)
 const MILESTONES = [
-  { day: 7, bonus: 50, label: '1 Week' },
-  { day: 14, bonus: 100, label: '2 Weeks' },
-  { day: 21, bonus: 200, label: '3 Weeks' },
+  { day: 7, bonus: 50, label: '1 Week (1x)' },
+  { day: 14, bonus: 100, label: '2 Weeks (2x)' },
+  { day: 21, bonus: 200, label: '3 Weeks (3x)' },
+  { day: 28, bonus: 300, label: '4 Weeks (4x)' },
   { day: 29, bonus: 500, label: 'Day 29' },
   { day: 30, bonus: 1000, label: '30 Days! 🎉' },
 ];
@@ -501,6 +502,10 @@ function CheckInTab() {
             <div className="p-2 rounded bg-black/20">
               <p className="font-bold text-purple-400">Week 4 (4x)</p>
               <p className="sketch-text opacity-70">4+8+12+16+20+24+28 = 112 + 28 bonus = 140 $TYSM</p>
+            </div>
+            <div className="p-2 rounded bg-black/20">
+              <p className="font-bold text-purple-400">Week 5+ (5x, 6x, ...)</p>
+              <p className="sketch-text opacity-70">Multiplier terus naik setiap minggu!</p>
             </div>
             <div className="p-2 rounded bg-red-500/20 border border-red-400/50">
               <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
