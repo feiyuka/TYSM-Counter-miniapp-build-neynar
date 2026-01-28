@@ -506,7 +506,7 @@ function CheckInTab() {
             </div>
             <div className="p-2 rounded bg-purple-500/20 border border-purple-400/50">
               <p className="font-bold text-purple-400">♾️ Week 5, 6, 7... ∞</p>
-              <p className="sketch-text opacity-70">Multiplier terus naik! Streak bisa sampai 1 tahun!</p>
+              <p className="sketch-text opacity-70">Multiplier keeps growing! Streak up to 1 year!</p>
             </div>
             <div className="p-2 rounded bg-green-500/20 border border-green-400/50">
               <p className="font-bold text-green-400">🎯 1 Month Milestone</p>
