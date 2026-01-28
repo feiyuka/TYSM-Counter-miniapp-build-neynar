@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "readyToPublish": false,
+  "currentPhase": 1,
+  "startedAt": "2026-01-28T21:42:18.885Z",
+  "lastUpdatedAt": "2026-01-28T21:43:02.370Z",
+  "completedAt": null,
+  "phases": {
+    "1": {
+      "name": "planning",
+      "displayName": "Planning Your App",
+      "status": "in_progress",
+      "tasks": {
+        "sketch-created": "completed",
+        "user-approved": "pending",
+        "specs-documented": "pending"
+      }
+    },
+    "2": {
+      "name": "theming",
+      "displayName": "Theming & Styling",
+      "status": "pending",
+      "tasks": {
+        "preferences-gathered": "pending",
+        "style-brief-created": "pending",
+        "app-settings-updated": "pending",
+        "assets-generated": "pending",
+        "theme-updated": "pending",
+        "user-approved": "pending"
+      }
+    },
+    "3": {
+      "name": "structural-foundation",
+      "displayName": "Building the Foundation",
+      "status": "pending",
+      "tasks": {
+        "types-extracted": "pending",
+        "mocks-created": "pending",
+        "layout-converted": "pending",
+        "components-extracted": "pending",
+        "validation-passed": "pending"
+      }
+    },
+    "4": {
+      "name": "feature-planning",
+      "displayName": "Planning the Details",
+      "status": "pending",
+      "tasks": {
+        "mocks-analyzed": "pending",
+        "wiring-plan-created": "pending",
+        "features-populated": "pending"
+      }
+    },
+    "5": {
+      "name": "feature-wiring",
+      "displayName": "Bringing It to Life",
+      "status": "pending",
+      "tasks": {
+        "all-features-wired": "pending",
+        "share-button-wired": "pending",
+        "mocks-file-empty": "pending"
+      },
+      "features": {}
+    },
+    "6": {
+      "name": "post-launch",
+      "displayName": null,
+      "status": "pending",
+      "tasks": {}
+    }
+  },
+  "metadata": {}
+}
