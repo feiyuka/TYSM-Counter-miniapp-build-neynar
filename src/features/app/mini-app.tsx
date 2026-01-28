@@ -237,6 +237,10 @@ export function MiniApp() {
               <p className="font-bold text-purple-400">Week 3 (3x)</p>
               <p className="sketch-text opacity-70">3+6+9+12+15+18+21 = 84 + 21 bonus = 105 TYSM</p>
             </div>
+            <div className="p-2 rounded bg-black/20">
+              <p className="font-bold text-purple-400">Week 4 (4x)</p>
+              <p className="sketch-text opacity-70">4+8+12+16+20+24+28 = 112 + 28 bonus = 140 TYSM</p>
+            </div>
             <p className="sketch-text text-xs opacity-50 mt-2">
               Miss a day? Streak resets to Week 1, Day 1!
             </p>
