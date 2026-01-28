@@ -113,6 +113,9 @@ function CheckInTab() {
   const [todayClaimed, setTodayClaimed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilReset());
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [claimedReward, setClaimedReward] = useState(0);
 
   // Countdown timer
   useEffect(() => {
@@ -134,16 +137,23 @@ function CheckInTab() {
   const nextMilestone = MILESTONES.find((m) => m.day > onchain.totalStreakDays);
   const todayMilestone = MILESTONES.find((m) => m.day === onchain.totalStreakDays + 1);
 
-  const handleOnchainCheckIn = async () => {
+  const handleCheckInClick = () => {
+    setShowConfirmPopup(true);
+  };
+
+  const handleConfirmCheckIn = async () => {
+    setShowConfirmPopup(false);
     setTxPending(true);
     await new Promise((r) => setTimeout(r, 2000));
     const mockTxHash = '0x' + Array.from({ length: 64 }, () =>
       Math.floor(Math.random() * 16).toString(16)
     ).join('');
     setTxHash(mockTxHash);
+    const totalReward = todayReward + weekBonus + (todayMilestone?.bonus || 0);
+    setClaimedReward(totalReward);
     setOnchain((prev) => ({
       ...prev,
-      tysmBalance: prev.tysmBalance + todayReward + weekBonus + (todayMilestone?.bonus || 0),
+      tysmBalance: prev.tysmBalance + totalReward,
       lastCheckIn: new Date().toISOString().split('T')[0],
       streakDay: isLastDayOfWeek ? 1 : prev.streakDay + 1,
       streakWeek: isLastDayOfWeek ? prev.streakWeek + 1 : prev.streakWeek,
@@ -151,6 +161,7 @@ function CheckInTab() {
     }));
     setTxPending(false);
     setTodayClaimed(true);
+    setShowSuccessPopup(true);
   };
 
   const openTxInBrowser = () => {
@@ -309,59 +320,86 @@ function CheckInTab() {
             >
               <p className="text-xs opacity-70">D{day}</p>
               <p className={`text-sm font-bold ${isPast ? 'text-green-400' : isToday ? 'text-purple-400' : ''}`}>
-                {isPast ? '✓' : `+${reward}`}
+                {isPast ? '✓' : reward}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="text-center p-2 rounded-lg bg-yellow-500/20 border border-yellow-400/50 mb-4">
-          <p className="text-xs opacity-70">Week {onchain.streakWeek} Streak Bonus</p>
-          <p className="text-lg font-bold text-yellow-400">+{7 * onchain.streakWeek} $TYSM</p>
-          <p className="text-xs opacity-50">Complete all 7 days to claim!</p>
-        </div>
-
-        {/* Milestone Bonus Alert */}
-        {todayMilestone && !todayClaimed && (
-          <div className="text-center p-3 rounded-lg bg-gradient-to-r from-yellow-500/30 to-orange-500/30 border border-yellow-400 mb-4 animate-pulse">
-            <p className="text-xs opacity-70">🎯 MILESTONE BONUS TODAY!</p>
-            <p className="text-xl font-bold text-yellow-400">+{todayMilestone.bonus} $TYSM</p>
-            <p className="text-xs opacity-60">{todayMilestone.label} Streak Achievement</p>
-          </div>
-        )}
-
-        <div className="text-center p-2 rounded-lg bg-red-500/10 border border-red-400/30 mb-4">
-          <p className="text-xs text-red-400">⚠️ Miss a day = Reset to Day 1</p>
-        </div>
-
         {balanced ? (
           !todayClaimed ? (
             <div className="text-center">
-              <p className="sketch-text text-sm mb-2">Today's Reward</p>
-              <p className="text-3xl font-bold text-green-400 mb-1">+{todayReward} $TYSM</p>
-              {isLastDayOfWeek && (
-                <p className="text-sm text-yellow-400 mb-1">+ {weekBonus} week bonus!</p>
+              {txPending ? (
+                <div className="p-4">
+                  <span className="text-4xl animate-spin inline-block">⏳</span>
+                  <p className="text-sm opacity-70 mt-2">Confirming transaction...</p>
+                </div>
+              ) : (
+                <SketchButton variant="primary" onClick={handleCheckInClick}>
+                  🔗 Check In
+                </SketchButton>
               )}
-              {todayMilestone && (
-                <p className="text-sm text-orange-400 mb-2">+ {todayMilestone.bonus} milestone bonus!</p>
-              )}
-              <SketchButton variant="primary" onClick={handleOnchainCheckIn}>
-                {txPending ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span> Confirming tx...
-                  </span>
-                ) : (
-                  `🔗 Check In & Claim $TYSM`
-                )}
-              </SketchButton>
-              <p className="text-xs opacity-50 mt-2">Requires wallet signature</p>
             </div>
           ) : (
             <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400">
-              <p className="text-green-400 font-bold text-lg">✅ Claimed Onchain!</p>
-              <p className="sketch-text text-sm opacity-70">+{todayReward} $TYSM sent to wallet</p>
+              <p className="text-green-400 font-bold text-lg">✅ Checked In!</p>
+              <p className="sketch-text text-xs opacity-50 mt-1">Come back tomorrow</p>
+            </div>
+          )
+        ) : (
+          <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400">
+            <p className="text-red-400 font-bold">🚫 Check-in Locked</p>
+            <p className="sketch-text text-sm opacity-70">Balance your scores to unlock</p>
+          </div>
+        )}
+      </SketchCard>
+
+      {/* Confirm Check-in Popup */}
+      {showConfirmPopup && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <SketchCard padding="md">
+            <div className="text-center">
+              <p className="text-4xl mb-3">🔗</p>
+              <SketchHeading level={5}>Check In Onchain?</SketchHeading>
+              <p className="sketch-text text-sm opacity-70 mt-2 mb-4">
+                This will send a transaction to Base Network
+              </p>
+              <div className="p-3 rounded-lg bg-purple-500/20 mb-4">
+                <p className="text-xs opacity-60">Today's Reward</p>
+                <p className="text-2xl font-bold text-green-400">{todayReward} $TYSM</p>
+                {isLastDayOfWeek && (
+                  <p className="text-sm text-yellow-400">{weekBonus} week bonus</p>
+                )}
+                {todayMilestone && (
+                  <p className="text-sm text-orange-400">{todayMilestone.bonus} milestone bonus</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <SketchButton variant="outline" onClick={() => setShowConfirmPopup(false)}>
+                  Cancel
+                </SketchButton>
+                <SketchButton variant="primary" onClick={handleConfirmCheckIn}>
+                  Confirm
+                </SketchButton>
+              </div>
+            </div>
+          </SketchCard>
+        </div>
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <SketchCard padding="md">
+            <div className="text-center">
+              <p className="text-5xl mb-3">🎉</p>
+              <SketchHeading level={5}>Claim Successful!</SketchHeading>
+              <div className="p-4 rounded-lg bg-green-500/20 border border-green-400 my-4">
+                <p className="text-3xl font-bold text-green-400">{claimedReward} $TYSM</p>
+                <p className="text-xs opacity-60 mt-1">sent to your wallet</p>
+              </div>
               {txHash && (
-                <div className="mt-3 p-2 bg-black/30 rounded">
+                <div className="p-2 bg-black/30 rounded mb-4">
                   <p className="text-xs opacity-50 mb-1">Transaction Hash</p>
                   <p className="text-xs font-mono text-green-300 break-all">
                     {txHash.slice(0, 10)}...{txHash.slice(-8)}
@@ -374,16 +412,13 @@ function CheckInTab() {
                   </button>
                 </div>
               )}
-              <p className="sketch-text text-xs opacity-50 mt-3">Come back tomorrow!</p>
+              <SketchButton variant="primary" onClick={() => setShowSuccessPopup(false)}>
+                Done
+              </SketchButton>
             </div>
-          )
-        ) : (
-          <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400">
-            <p className="text-red-400 font-bold">🚫 Check-in Locked</p>
-            <p className="sketch-text text-sm opacity-70">Balance your scores to unlock daily rewards</p>
-          </div>
-        )}
-      </SketchCard>
+          </SketchCard>
+        </div>
+      )}
 
       {/* 1 Month Milestone Progress */}
       <SketchCard padding="md">
