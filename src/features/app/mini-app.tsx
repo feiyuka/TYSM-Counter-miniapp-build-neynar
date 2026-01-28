@@ -63,11 +63,11 @@ const mockLeaderboard = [
   { rank: 10, username: 'sarah', totalTYSM: 620, streakWeek: 3, tier: '🥈 SILVER' },
 ];
 
-// Mock claim history for stats
+// Mock claim history for stats - only shows COMPLETED weeks
+// User is currently on Week 2, Day 3 (totalStreakDays: 10)
+// So only Week 1 is fully completed
 const mockClaimHistory = [
-  { week: 1, claimed: 35 },
-  { week: 2, claimed: 42 },
-  { week: 3, claimed: 21 },
+  { week: 1, claimed: 35, completed: true }, // Week 1 completed: 35 $TYSM
 ];
 
 // Milestone rewards (1 month streak bonuses)
@@ -448,32 +448,56 @@ function CheckInTab() {
       {showStats && (
         <SketchCard padding="md">
           <SketchHeading level={6}>My Claim History</SketchHeading>
-          <div className="mt-3 space-y-2">
-            {mockClaimHistory.map((week) => (
-              <div key={week.week} className="flex items-center gap-2">
-                <p className="text-xs opacity-60 w-16">Week {week.week}</p>
-                <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-green-500"
-                    style={{ width: `${(week.claimed / 140) * 100}%` }}
-                  />
+
+          {/* Completed Weeks */}
+          {mockClaimHistory.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {mockClaimHistory.map((week) => (
+                <div key={week.week} className="flex items-center gap-2">
+                  <p className="text-xs opacity-60 w-16">Week {week.week}</p>
+                  <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{ width: `${(week.claimed / 140) * 100}%` }}
+                    />
+                  </div>
+                  <p className="text-sm font-bold text-green-400 w-16 text-right">{week.claimed}</p>
                 </div>
-                <p className="text-sm font-bold text-green-400 w-16 text-right">{week.claimed}</p>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm opacity-50 text-center">No completed weeks yet</p>
+          )}
+
+          {/* Current Week Progress */}
+          <div className="mt-3 p-2 rounded bg-purple-500/20 border border-purple-400/50">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-purple-400 font-bold">Week {onchain.streakWeek} (In Progress)</p>
+              <p className="text-xs opacity-60">Day {onchain.streakDay}/7</p>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-purple-500"
+                  style={{ width: `${(onchain.streakDay / 7) * 100}%` }}
+                />
               </div>
-            ))}
+            </div>
           </div>
+
+          {/* Stats Summary */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <div className="p-2 rounded bg-black/20">
               <p className="text-lg font-bold text-green-400">{onchain.tysmBalance}</p>
-              <p className="text-xs opacity-60">Total Earned</p>
+              <p className="text-xs opacity-60">Total $TYSM</p>
             </div>
             <div className="p-2 rounded bg-black/20">
               <p className="text-lg font-bold text-purple-400">{onchain.totalStreakDays}</p>
-              <p className="text-xs opacity-60">Total Days</p>
+              <p className="text-xs opacity-60">Streak Days</p>
             </div>
             <div className="p-2 rounded bg-black/20">
               <p className="text-lg font-bold text-yellow-400">{onchain.streakWeek}</p>
-              <p className="text-xs opacity-60">Best Week</p>
+              <p className="text-xs opacity-60">Current Week</p>
             </div>
           </div>
         </SketchCard>
