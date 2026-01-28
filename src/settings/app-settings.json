@@ -1,13 +1,13 @@
 {
-  "name": "replace-this",
-  "shortName": "replace-this",
-  "subtitle": "replace-this",
-  "description": "replace-this",
-  "shortDescription": "replace-this",
+  "name": "TYSM Counter",
+  "shortName": "TYSM",
+  "subtitle": "Earn $TYSM with daily streaks",
+  "description": "Daily onchain check-in app to earn $TYSM tokens. Build streaks, climb tiers, and claim rewards on Base Network.",
+  "shortDescription": "Daily check-in to earn $TYSM tokens",
   "primaryCategory": "utility",
-  "tags": [],
-  "splashBackgroundColor": "#000000",
-  "tagline": "replace-this",
+  "tags": ["crypto", "rewards", "streaks", "base"],
+  "splashBackgroundColor": "#0A0A0A",
+  "tagline": "Stack your streaks, claim your $TYSM",
   "requiredChains": ["eip155:8453", "eip155:1"],
-  "shareButtonTitle": "Launch App"
+  "shareButtonTitle": "Claim $TYSM"
 }
