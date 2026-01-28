@@ -70,11 +70,11 @@ const mockClaimHistory = [
   { week: 3, claimed: 21 },
 ];
 
-// Milestone rewards (30 day streak bonuses)
-// Only Day 29 and Day 30 get milestone bonuses
+// Milestone rewards (1 month streak bonuses)
+// These are one-time bonuses at the end of first month
 const MILESTONES = [
   { day: 29, bonus: 500, label: 'Day 29' },
-  { day: 30, bonus: 1000, label: '30 Days! 🎉' },
+  { day: 30, bonus: 1000, label: '1 Month! 🎉' },
 ];
 
 // Check if scores are balanced (within 0.1 difference)
@@ -385,18 +385,18 @@ function CheckInTab() {
         )}
       </SketchCard>
 
-      {/* 30 Day Milestone Progress */}
+      {/* 1 Month Milestone Progress */}
       <SketchCard padding="md">
         <div className="flex items-center justify-between mb-3">
-          <SketchHeading level={6}>30 Day Milestones</SketchHeading>
-          <p className="text-sm font-bold text-purple-400">{onchain.totalStreakDays}/30</p>
+          <SketchHeading level={6}>1 Month Milestones</SketchHeading>
+          <p className="text-sm font-bold text-purple-400">Day {onchain.totalStreakDays}</p>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar - capped at 30 for display */}
         <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-3">
           <div
             className="h-full bg-gradient-to-r from-purple-500 to-yellow-400 transition-all"
-            style={{ width: `${(onchain.totalStreakDays / 30) * 100}%` }}
+            style={{ width: `${Math.min((onchain.totalStreakDays / 30) * 100, 100)}%` }}
           />
         </div>
 
@@ -429,9 +429,13 @@ function CheckInTab() {
           })}
         </div>
 
-        {nextMilestone && (
+        {nextMilestone ? (
           <p className="text-xs text-center opacity-50 mt-3">
             {nextMilestone.day - onchain.totalStreakDays} days until next milestone!
+          </p>
+        ) : (
+          <p className="text-xs text-center text-green-400 mt-3">
+            🎉 All milestones achieved! Keep your streak going!
           </p>
         )}
       </SketchCard>
@@ -500,9 +504,13 @@ function CheckInTab() {
               <p className="font-bold text-purple-400">Week 4 (4x)</p>
               <p className="sketch-text opacity-70">4+8+12+16+20+24+28 = 112 + 28 bonus = 140 $TYSM</p>
             </div>
+            <div className="p-2 rounded bg-purple-500/20 border border-purple-400/50">
+              <p className="font-bold text-purple-400">♾️ Week 5, 6, 7... ∞</p>
+              <p className="sketch-text opacity-70">Multiplier terus naik! Streak bisa sampai 1 tahun!</p>
+            </div>
             <div className="p-2 rounded bg-green-500/20 border border-green-400/50">
-              <p className="font-bold text-green-400">🎉 30 Day Total</p>
-              <p className="sketch-text opacity-70">350 weekly + 500 (D29) + 1000 (D30) = 1,850+ $TYSM</p>
+              <p className="font-bold text-green-400">🎯 1 Month Milestone</p>
+              <p className="sketch-text opacity-70">Day 29: +500 | Day 30: +1000 $TYSM (one-time bonus)</p>
             </div>
             <div className="p-2 rounded bg-red-500/20 border border-red-400/50">
               <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
