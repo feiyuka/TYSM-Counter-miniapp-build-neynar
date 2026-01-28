@@ -503,9 +503,9 @@ function CheckInTab() {
               <p className="font-bold text-purple-400">Week 4 (4x)</p>
               <p className="sketch-text opacity-70">4+8+12+16+20+24+28 = 112 + 28 bonus = 140 $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-black/20">
-              <p className="font-bold text-purple-400">Week 5+ (5x, 6x, ...)</p>
-              <p className="sketch-text opacity-70">Multiplier terus naik setiap minggu!</p>
+            <div className="p-2 rounded bg-green-500/20 border border-green-400/50">
+              <p className="font-bold text-green-400">🎉 30 Day Total</p>
+              <p className="sketch-text opacity-70">35 + 70 + 105 + 140 + milestones = 2,200+ $TYSM</p>
             </div>
             <div className="p-2 rounded bg-red-500/20 border border-red-400/50">
               <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
