@@ -181,7 +181,7 @@ function CheckInTab() {
       {/* Help Icon - Top Right */}
       <button
         onClick={() => setShowStreakInfo(true)}
-        className="absolute -top-10 right-0 w-8 h-8 rounded-full border-2 border-amber-400 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors"
+        className="absolute -top-10 right-0 w-8 h-8 rounded-full border border-amber-400/60 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors"
       >
         ❓
       </button>
@@ -191,12 +191,12 @@ function CheckInTab() {
         onClick={() => setShowProfilePopup(true)}
         className="w-full text-left"
       >
-        <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl hover:bg-amber-500/10 transition-colors">
+        <SketchCard padding="md" className="border border-amber-400/70 rounded-xl hover:bg-amber-500/10 transition-colors">
           <div className="flex items-center gap-3">
             <img
               src={mockUser.pfpUrl}
               alt={mockUser.displayName}
-              className="w-12 h-12 rounded-full border-2 border-amber-400"
+              className="w-12 h-12 rounded-full border border-amber-400/60"
             />
             <div className="flex-1">
               <p className="font-bold">{mockUser.displayName}</p>
@@ -213,7 +213,7 @@ function CheckInTab() {
 
       {/* Countdown Timer - Next Check-in */}
       {todayClaimed && (
-        <SketchCard padding="sm" className="border-[3px] border-blue-400 rounded-xl">
+        <SketchCard padding="sm" className="border border-blue-400/70 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">⏰</span>
@@ -241,7 +241,7 @@ function CheckInTab() {
 
       {/* Streak Reminder Warning */}
       {!todayClaimed && countdown.total < 3600000 && (
-        <SketchCard padding="sm" className="border-[3px] border-yellow-400 rounded-xl">
+        <SketchCard padding="sm" className="border border-yellow-400/70 rounded-xl">
           <div className="flex items-center gap-3 text-yellow-400">
             <span className="text-2xl animate-bounce">🔔</span>
             <div>
@@ -255,7 +255,7 @@ function CheckInTab() {
       )}
 
       {/* Daily Onchain Check-in - MOVED UP */}
-      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
+      <SketchCard padding="md" className="border border-amber-400/70 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <div>
             <SketchHeading level={6}>Daily Check-in</SketchHeading>
@@ -278,20 +278,20 @@ function CheckInTab() {
               ) : (
                 <button
                   onClick={handleCheckInClick}
-                  className="w-full py-4 rounded-xl border-[3px] border-amber-400 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors"
+                  className="w-full py-4 rounded-lg border-amber-400/70 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors"
                 >
                   🔥 Check In
                 </button>
               )}
             </div>
           ) : (
-            <div className="text-center p-4 bg-green-500/20 rounded-lg border-2 border-green-400">
+            <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400/60">
               <p className="text-green-400 font-bold text-lg">✅ Checked In!</p>
               <p className="sketch-text text-xs opacity-50 mt-1">Come back tomorrow</p>
             </div>
           )
         ) : (
-          <div className="text-center p-4 bg-red-500/20 rounded-lg border-2 border-red-400">
+          <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400/60">
             <p className="text-red-400 font-bold">🚫 Check-in Locked</p>
             <p className="sketch-text text-sm opacity-70">Balance your scores to unlock</p>
           </div>
@@ -416,7 +416,7 @@ function CheckInTab() {
       </SketchCard>
 
       {/* 1 Month Milestone Progress */}
-      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
+      <SketchCard padding="md" className="border border-amber-400/70 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>1 Month Milestones</SketchHeading>
           <p className="text-sm font-bold text-amber-400">Day {onchain.totalStreakDays}</p>
@@ -440,10 +440,10 @@ function CheckInTab() {
                 key={milestone.day}
                 className={`flex items-center justify-between p-2 rounded ${
                   achieved
-                    ? 'bg-green-500/20 border-2 border-green-400'
+                    ? 'bg-green-500/20 border border-green-400/60'
                     : isNext
-                    ? 'bg-yellow-500/20 border-2 border-yellow-400'
-                    : 'bg-black/20 border-2 border-gray-500/50 opacity-50'
+                    ? 'bg-yellow-500/20 border border-yellow-400/60'
+                    : 'bg-black/20 border border-gray-500/40 opacity-50'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -473,7 +473,7 @@ function CheckInTab() {
       {/* Profile Stats Popup */}
       {showProfilePopup && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-2xl border-[3px] border-blue-400 max-h-[80vh] overflow-y-auto w-full max-w-sm">
+          <div className="bg-gray-900 rounded-2xl border border-blue-400/70 max-h-[80vh] overflow-y-auto w-full max-w-sm">
             <div className="p-4">
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
@@ -487,11 +487,11 @@ function CheckInTab() {
               </div>
 
               {/* Profile Info */}
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/20 border-2 border-amber-400 mb-4">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/20 border border-amber-400/60 mb-4">
                 <img
                   src={mockUser.pfpUrl}
                   alt={mockUser.displayName}
-                  className="w-12 h-12 rounded-full border-2 border-amber-400"
+                  className="w-12 h-12 rounded-full border border-amber-400/60"
                 />
                 <div className="flex-1">
                   <p className="font-bold">{mockUser.displayName}</p>
@@ -501,22 +501,22 @@ function CheckInTab() {
 
               {/* Stats Summary */}
               <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
                   <p className="text-lg font-bold text-amber-400">{onchain.tysmBalance}</p>
                   <p className="text-xs opacity-60">Total $TYSM</p>
                 </div>
-                <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
+                <div className="p-2 rounded bg-black/20 border border-blue-400/60/60">
                   <p className="text-lg font-bold text-blue-400">{onchain.totalStreakDays}</p>
                   <p className="text-xs opacity-60">Streak Days</p>
                 </div>
-                <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
+                <div className="p-2 rounded bg-black/20 border border-yellow-400/60/60">
                   <p className="text-lg font-bold text-yellow-400">{onchain.streakWeek}</p>
                   <p className="text-xs opacity-60">Current Week</p>
                 </div>
               </div>
 
               {/* Current Week Status */}
-              <div className="p-2 rounded bg-amber-500/20 border-2 border-amber-400 mb-4">
+              <div className="p-2 rounded bg-amber-500/20 border border-amber-400/60 mb-4">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-amber-400 font-bold">Week {onchain.streakWeek} • Day {onchain.streakDay}/7</p>
                   <p className="text-xs opacity-60">{onchain.streakWeek}x Multiplier</p>
@@ -579,8 +579,8 @@ function CheckInTab() {
                       key={milestone.day}
                       className={`flex items-center justify-between p-2 rounded ${
                         achieved
-                          ? 'bg-green-500/20 border-2 border-green-400'
-                          : 'bg-black/20 border-2 border-gray-500/50 opacity-50'
+                          ? 'bg-green-500/20 border border-green-400/60'
+                          : 'bg-black/20 border border-gray-500/40 opacity-50'
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -602,7 +602,7 @@ function CheckInTab() {
       {/* Streak Info Popup */}
       {showStreakInfo && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-2xl border-[3px] border-amber-400 max-h-[80vh] overflow-y-auto w-full max-w-sm">
+          <div className="bg-gray-900 rounded-2xl border border-amber-400/70 max-h-[80vh] overflow-y-auto w-full max-w-sm">
             <div className="p-4">
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
@@ -616,31 +616,31 @@ function CheckInTab() {
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
                   <p className="font-bold text-amber-400">Week 1 (1x)</p>
                   <p className="sketch-text opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 $TYSM</p>
                 </div>
-                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
                   <p className="font-bold text-amber-400">Week 2 (2x)</p>
                   <p className="sketch-text opacity-70">2, 4, 6, 8, 10, 12, 14 = 56 (14 bonus) = 70 $TYSM</p>
                 </div>
-                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
                   <p className="font-bold text-amber-400">Week 3 (3x)</p>
                   <p className="sketch-text opacity-70">3, 6, 9, 12, 15, 18, 21 = 84 (21 bonus) = 105 $TYSM</p>
                 </div>
-                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
                   <p className="font-bold text-amber-400">Week 4 (4x)</p>
                   <p className="sketch-text opacity-70">4, 8, 12, 16, 20, 24, 28 = 112 (28 bonus) = 140 $TYSM</p>
                 </div>
-                <div className="p-2 rounded bg-amber-500/20 border-2 border-amber-400">
+                <div className="p-2 rounded bg-amber-500/20 border border-amber-400/60">
                   <p className="font-bold text-amber-400">♾️ Week 5, 6, 7... ∞</p>
                   <p className="sketch-text opacity-70">Multiplier keeps growing! Streak up to 1 year!</p>
                 </div>
-                <div className="p-2 rounded bg-green-500/20 border-2 border-green-400">
+                <div className="p-2 rounded bg-green-500/20 border border-green-400/60">
                   <p className="font-bold text-green-400">🎯 1 Month Milestone</p>
                   <p className="sketch-text opacity-70">Day 29: 500 | Day 30: 1000 $TYSM (one-time bonus)</p>
                 </div>
-                <div className="p-2 rounded bg-red-500/20 border-2 border-red-400">
+                <div className="p-2 rounded bg-red-500/20 border border-red-400/60">
                   <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
                   <p className="sketch-text opacity-70">Streak resets to Week 1, Day 1!</p>
                 </div>
@@ -669,7 +669,7 @@ function LiveClaimsTab() {
   return (
     <div className="space-y-4">
       {/* Pool Stats */}
-      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
+      <SketchCard padding="md" className="border border-amber-400/70 rounded-xl">
         <div className="text-center mb-4">
           <p className="text-xs opacity-60 mb-1">$TYSM Reward Pool</p>
           <p className="text-3xl font-bold text-amber-400">
@@ -686,11 +686,11 @@ function LiveClaimsTab() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-center">
-          <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
+          <div className="p-2 rounded bg-black/20 border border-yellow-400/60/60">
             <p className="text-lg font-bold text-yellow-400">{mockPool.totalClaimed.toLocaleString()}</p>
             <p className="text-xs opacity-60">Total Claimed</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
+          <div className="p-2 rounded bg-black/20 border border-blue-400/60/60">
             <p className="text-lg font-bold text-blue-400">{mockPool.totalClaimers.toLocaleString()}</p>
             <p className="text-xs opacity-60">Total Claimers</p>
           </div>
@@ -698,7 +698,7 @@ function LiveClaimsTab() {
       </SketchCard>
 
       {/* Live Claims Feed */}
-      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
+      <SketchCard padding="md" className="border border-blue-400/70 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>Live Claims</SketchHeading>
           <div className="flex items-center gap-2">
@@ -711,7 +711,7 @@ function LiveClaimsTab() {
           {mockLiveClaims.map((claim, i) => (
             <div
               key={i}
-              className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border-2 border-amber-400/60"
+              className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border border-amber-400/60/60"
             >
               <div className="flex items-center gap-3">
                 <img
@@ -743,7 +743,7 @@ function LiveClaimsTab() {
       </SketchCard>
 
       {/* Pool Info */}
-      <SketchCard padding="sm" className="border-[3px] border-green-400 rounded-xl">
+      <SketchCard padding="sm" className="border border-green-400/70 rounded-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -781,9 +781,9 @@ function LeaderboardTab() {
   return (
     <div className="space-y-4">
       {/* My Rank Card */}
-      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
+      <SketchCard padding="md" className="border border-amber-400/70 rounded-xl">
         <SketchHeading level={6}>Your Ranking</SketchHeading>
-        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-amber-500/20 border-2 border-amber-400">
+        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-amber-500/20 border border-amber-400/60">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-500/30 flex items-center justify-center font-bold text-amber-400">
               #{myRank.rank}
@@ -801,7 +801,7 @@ function LeaderboardTab() {
       </SketchCard>
 
       {/* Top 10 Leaderboard */}
-      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
+      <SketchCard padding="md" className="border border-blue-400/70 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>Top Claimers</SketchHeading>
           <p className="text-xs opacity-50">All Time</p>
@@ -837,17 +837,17 @@ function LeaderboardTab() {
       </SketchCard>
 
       {/* Stats */}
-      <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
+      <SketchCard padding="sm" className="border border-amber-400/70 rounded-xl">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
+          <div className="p-2 rounded bg-black/20 border border-yellow-400/60/60">
             <p className="text-lg font-bold text-yellow-400">12</p>
             <p className="text-xs opacity-60">Max Week</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+          <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
             <p className="text-lg font-bold text-amber-400">4,850</p>
             <p className="text-xs opacity-60">Top $TYSM</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
+          <div className="p-2 rounded bg-black/20 border border-blue-400/60/60">
             <p className="text-lg font-bold text-blue-400">3,847</p>
             <p className="text-xs opacity-60">Claimers</p>
           </div>
@@ -864,7 +864,7 @@ function CustomHeader() {
       <img
         src="/app-logo.png"
         alt="TYSM"
-        className="w-10 h-10 rounded-full border-[3px] border-amber-400"
+        className="w-10 h-10 rounded-full border border-amber-400/70"
       />
       <h1 className="text-xl font-bold text-amber-400">TYSM Counter</h1>
     </div>
@@ -888,12 +888,12 @@ export function MiniApp() {
       </div>
 
       {/* Bottom Tab Navigation */}
-      <div className="flex gap-2 p-2 border-t-[3px] border-amber-400 bg-black/90">
+      <div className="flex gap-2 p-2 border-t border-amber-400/70 bg-black/90">
         {tabs.map((tab, index) => (
           <button
             key={index}
             onClick={() => setActiveTab(index)}
-            className={`flex-1 py-3 text-sm font-bold transition-colors rounded-xl border-2 ${
+            className={`flex-1 py-3 text-sm font-bold transition-colors rounded-lg border ${
               activeTab === index
                 ? 'bg-amber-500/30 text-amber-400 border-amber-400'
                 : 'text-gray-400 border-gray-600 hover:bg-amber-500/10 hover:border-amber-400/50'
