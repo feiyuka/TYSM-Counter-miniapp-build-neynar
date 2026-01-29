@@ -112,6 +112,7 @@ function CheckInTab() {
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [claimedReward, setClaimedReward] = useState(0);
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
 
   // Countdown timer
   useEffect(() => {
@@ -176,24 +177,30 @@ function CheckInTab() {
 
   return (
     <div className="space-y-4">
-      {/* User Profile with Wallet */}
-      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
-        <div className="flex items-center gap-3">
-          <img
-            src={mockUser.pfpUrl}
-            alt={mockUser.displayName}
-            className="w-12 h-12 rounded-full border-2 border-amber-400"
-          />
-          <div className="flex-1">
-            <p className="font-bold">{mockUser.displayName}</p>
-            <p className="sketch-text text-xs opacity-70 font-mono">{mockUser.walletAddress}</p>
+      {/* User Profile with Wallet - Clickable */}
+      <button
+        onClick={() => setShowProfilePopup(true)}
+        className="w-full text-left"
+      >
+        <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl hover:bg-amber-500/10 transition-colors">
+          <div className="flex items-center gap-3">
+            <img
+              src={mockUser.pfpUrl}
+              alt={mockUser.displayName}
+              className="w-12 h-12 rounded-full border-2 border-amber-400"
+            />
+            <div className="flex-1">
+              <p className="font-bold">{mockUser.displayName}</p>
+              <p className="sketch-text text-xs opacity-70 font-mono">{mockUser.walletAddress}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-amber-400">{onchain.tysmBalance}</p>
+              <p className="text-xs opacity-60">$TYSM Balance</p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-amber-400">{onchain.tysmBalance}</p>
-            <p className="text-xs opacity-60">$TYSM Balance</p>
-          </div>
-        </div>
-      </SketchCard>
+          <p className="text-xs text-center text-blue-400 mt-2">Tap to view stats →</p>
+        </SketchCard>
+      </button>
 
       {/* Countdown Timer - Next Check-in */}
       {todayClaimed && (
@@ -454,107 +461,134 @@ function CheckInTab() {
         )}
       </SketchCard>
 
-      {/* Personal Stats - Always Visible */}
-      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
-        <SketchHeading level={6}>📊 My Stats</SketchHeading>
+      {/* Profile Stats Popup */}
+      {showProfilePopup && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl border-[3px] border-blue-400 max-h-[80vh] overflow-y-auto w-full max-w-sm">
+            <div className="p-4">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <SketchHeading level={6}>📊 My Stats</SketchHeading>
+                <button
+                  onClick={() => setShowProfilePopup(false)}
+                  className="text-gray-400 hover:text-white text-xl"
+                >
+                  ✕
+                </button>
+              </div>
 
-          {/* Week 1-4 Progress */}
-          <div className="mt-3 space-y-2">
-            {[1, 2, 3, 4].map((week) => {
-              const isCurrentWeek = week === onchain.streakWeek;
-              const isCompleted = week < onchain.streakWeek;
-              const isFuture = week > onchain.streakWeek;
-              const maxReward = 28 * week + 7 * week; // (1+2+3+4+5+6+7)*multiplier + bonus
-              const completedWeekData = mockClaimHistory.find((h) => h.week === week);
-              const currentProgress = isCurrentWeek
-                ? Array.from({ length: onchain.streakDay }, (_, i) => (i + 1) * week).reduce((a, b) => a + b, 0)
-                : 0;
-
-              return (
-                <div key={week} className="flex items-center gap-2">
-                  <p className={`text-xs w-16 ${isCurrentWeek ? 'text-amber-400 font-bold' : isFuture ? 'opacity-30' : 'opacity-60'}`}>
-                    Week {week}
-                  </p>
-                  <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
-                    {isCompleted && completedWeekData && (
-                      <div
-                        className="h-full bg-green-500"
-                        style={{ width: `${(completedWeekData.claimed / maxReward) * 100}%` }}
-                      />
-                    )}
-                    {isCurrentWeek && (
-                      <div
-                        className="h-full bg-amber-500"
-                        style={{ width: `${(currentProgress / maxReward) * 100}%` }}
-                      />
-                    )}
-                  </div>
-                  <p className={`text-sm font-bold w-20 text-right ${
-                    isCompleted ? 'text-green-400' : isCurrentWeek ? 'text-amber-400' : 'opacity-30'
-                  }`}>
-                    {isCompleted && completedWeekData
-                      ? `${completedWeekData.claimed}/${maxReward}`
-                      : isCurrentWeek
-                      ? `${currentProgress}/${maxReward}`
-                      : `0/${maxReward}`}
-                  </p>
+              {/* Profile Info */}
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/20 border-2 border-amber-400 mb-4">
+                <img
+                  src={mockUser.pfpUrl}
+                  alt={mockUser.displayName}
+                  className="w-12 h-12 rounded-full border-2 border-amber-400"
+                />
+                <div className="flex-1">
+                  <p className="font-bold">{mockUser.displayName}</p>
+                  <p className="text-xs opacity-70 font-mono">{mockUser.walletAddress}</p>
                 </div>
-              );
-            })}
-          </div>
+              </div>
 
-          {/* Current Week Status */}
-          <div className="mt-3 p-2 rounded bg-amber-500/20 border border-amber-400/50">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-amber-400 font-bold">Week {onchain.streakWeek} • Day {onchain.streakDay}/7</p>
-              <p className="text-xs opacity-60">{onchain.streakWeek}x Multiplier</p>
-            </div>
-          </div>
+              {/* Stats Summary */}
+              <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                  <p className="text-lg font-bold text-amber-400">{onchain.tysmBalance}</p>
+                  <p className="text-xs opacity-60">Total $TYSM</p>
+                </div>
+                <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
+                  <p className="text-lg font-bold text-blue-400">{onchain.totalStreakDays}</p>
+                  <p className="text-xs opacity-60">Streak Days</p>
+                </div>
+                <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
+                  <p className="text-lg font-bold text-yellow-400">{onchain.streakWeek}</p>
+                  <p className="text-xs opacity-60">Current Week</p>
+                </div>
+              </div>
 
-          {/* 1 Month Milestones */}
-          <div className="mt-4">
-            <p className="text-xs font-bold text-yellow-400 mb-2">🎯 1 Month Milestones</p>
-            <div className="space-y-2">
-              {MILESTONES.map((milestone) => {
-                const achieved = onchain.totalStreakDays >= milestone.day;
-                return (
-                  <div
-                    key={milestone.day}
-                    className={`flex items-center justify-between p-2 rounded ${
-                      achieved
-                        ? 'bg-green-500/20 border-2 border-green-400'
-                        : 'bg-black/20 border-2 border-gray-500/50 opacity-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>{achieved ? '✅' : '🔒'}</span>
-                      <span className="text-sm">{milestone.label}</span>
+              {/* Current Week Status */}
+              <div className="p-2 rounded bg-amber-500/20 border-2 border-amber-400 mb-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-amber-400 font-bold">Week {onchain.streakWeek} • Day {onchain.streakDay}/7</p>
+                  <p className="text-xs opacity-60">{onchain.streakWeek}x Multiplier</p>
+                </div>
+              </div>
+
+              {/* Week 1-4 Progress */}
+              <p className="text-xs font-bold text-blue-400 mb-2">📈 Weekly Progress</p>
+              <div className="space-y-2 mb-4">
+                {[1, 2, 3, 4].map((week) => {
+                  const isCurrentWeek = week === onchain.streakWeek;
+                  const isCompleted = week < onchain.streakWeek;
+                  const isFuture = week > onchain.streakWeek;
+                  const maxReward = 28 * week + 7 * week;
+                  const completedWeekData = mockClaimHistory.find((h) => h.week === week);
+                  const currentProgress = isCurrentWeek
+                    ? Array.from({ length: onchain.streakDay }, (_, i) => (i + 1) * week).reduce((a, b) => a + b, 0)
+                    : 0;
+
+                  return (
+                    <div key={week} className="flex items-center gap-2">
+                      <p className={`text-xs w-16 ${isCurrentWeek ? 'text-amber-400 font-bold' : isFuture ? 'opacity-30' : 'opacity-60'}`}>
+                        Week {week}
+                      </p>
+                      <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
+                        {isCompleted && completedWeekData && (
+                          <div
+                            className="h-full bg-green-500"
+                            style={{ width: `${(completedWeekData.claimed / maxReward) * 100}%` }}
+                          />
+                        )}
+                        {isCurrentWeek && (
+                          <div
+                            className="h-full bg-amber-500"
+                            style={{ width: `${(currentProgress / maxReward) * 100}%` }}
+                          />
+                        )}
+                      </div>
+                      <p className={`text-sm font-bold w-20 text-right ${
+                        isCompleted ? 'text-green-400' : isCurrentWeek ? 'text-amber-400' : 'opacity-30'
+                      }`}>
+                        {isCompleted && completedWeekData
+                          ? `${completedWeekData.claimed}/${maxReward}`
+                          : isCurrentWeek
+                          ? `${currentProgress}/${maxReward}`
+                          : `0/${maxReward}`}
+                      </p>
                     </div>
-                    <span className={`font-bold ${achieved ? 'text-green-400' : 'opacity-50'}`}>
-                      {milestone.bonus} $TYSM
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                  );
+                })}
+              </div>
 
-          {/* Stats Summary */}
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
-              <p className="text-lg font-bold text-amber-400">{onchain.tysmBalance}</p>
-              <p className="text-xs opacity-60">Total $TYSM</p>
-            </div>
-            <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
-              <p className="text-lg font-bold text-blue-400">{onchain.totalStreakDays}</p>
-              <p className="text-xs opacity-60">Streak Days</p>
-            </div>
-            <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
-              <p className="text-lg font-bold text-yellow-400">{onchain.streakWeek}</p>
-              <p className="text-xs opacity-60">Current Week</p>
+              {/* 1 Month Milestones */}
+              <p className="text-xs font-bold text-yellow-400 mb-2">🎯 1 Month Milestones</p>
+              <div className="space-y-2">
+                {MILESTONES.map((milestone) => {
+                  const achieved = onchain.totalStreakDays >= milestone.day;
+                  return (
+                    <div
+                      key={milestone.day}
+                      className={`flex items-center justify-between p-2 rounded ${
+                        achieved
+                          ? 'bg-green-500/20 border-2 border-green-400'
+                          : 'bg-black/20 border-2 border-gray-500/50 opacity-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{achieved ? '✅' : '🔒'}</span>
+                        <span className="text-sm">{milestone.label}</span>
+                      </div>
+                      <span className={`font-bold ${achieved ? 'text-green-400' : 'opacity-50'}`}>
+                        {milestone.bonus} $TYSM
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </SketchCard>
+        </div>
+      )}
 
       {/* Streak Info - Always Visible */}
       <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
