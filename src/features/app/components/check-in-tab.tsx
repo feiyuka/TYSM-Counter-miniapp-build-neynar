@@ -5,6 +5,8 @@ import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/api-hooks';
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
+import { formatUnits } from 'viem';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
 import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
@@ -14,9 +16,11 @@ import {
   canCheckInToday,
 } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
+import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
+  const { address: walletAddress } = useAccount();
 
   // Fetch real Neynar Score from API with experimental features
   const { data: neynarUser, isLoading: scoreLoading } = useUser(
@@ -30,7 +34,6 @@ export function CheckInTab() {
 
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
-  const [txPending, setTxPending] = useState(false);
   const [todayClaimed, setTodayClaimed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilReset());
@@ -39,6 +42,45 @@ export function CheckInTab() {
   const [claimedReward, setClaimedReward] = useState(0);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
+
+  // Wagmi hooks for contract interaction
+  const { writeContract, data: txData, isPending: txPending, error: txError } = useWriteContract();
+  const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({
+    hash: txData,
+  });
+
+  // Read contract: check if user can check in
+  const { data: canCheckInData, refetch: refetchCanCheckIn } = useReadContract({
+    address: TYSM_CHECKIN_ADDRESS,
+    abi: TYSM_CHECKIN_ABI,
+    functionName: 'canCheckIn',
+    args: walletAddress ? [walletAddress] : undefined,
+    query: { enabled: !!walletAddress },
+  });
+
+  // Read contract: preview reward
+  const { data: previewRewardData } = useReadContract({
+    address: TYSM_CHECKIN_ADDRESS,
+    abi: TYSM_CHECKIN_ABI,
+    functionName: 'previewReward',
+    args: walletAddress ? [walletAddress] : undefined,
+    query: { enabled: !!walletAddress },
+  });
+
+  // Read contract: get user streak from contract
+  const { data: contractStreakData, refetch: refetchContractStreak } = useReadContract({
+    address: TYSM_CHECKIN_ADDRESS,
+    abi: TYSM_CHECKIN_ABI,
+    functionName: 'getUserStreak',
+    args: walletAddress ? [walletAddress] : undefined,
+    query: { enabled: !!walletAddress },
+  });
+
+  // Parse contract data
+  const canCheckInOnchain = canCheckInData?.[0] ?? true;
+  const timeRemainingOnchain = canCheckInData?.[1] ? Number(canCheckInData[1]) : 0;
+  const willResetOnchain = canCheckInData?.[2] ?? false;
+  const previewReward = previewRewardData ? Number(formatUnits(previewRewardData, 18)) : 0;
 
   // Load user streak from database
   const loadStreak = useCallback(async () => {
@@ -95,51 +137,57 @@ export function CheckInTab() {
   };
 
   const handleConfirmCheckIn = async () => {
-    if (!user) return;
+    if (!user || !walletAddress) return;
 
     setShowConfirmPopup(false);
-    setTxPending(true);
+    setClaimedReward(previewReward);
 
     try {
-      // Perform check-in
-      const result = await performCheckIn(user.fid, user.username || 'user');
-
-      if (!result.success) {
-        console.error('Check-in failed:', result.error);
-        setTxPending(false);
-        return;
-      }
-
-      // Generate mock tx hash (in production, this would be a real onchain tx)
-      const mockTxHash = '0x' + Array.from({ length: 64 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
-
-      setTxHash(mockTxHash);
-      setClaimedReward(result.reward || 0);
-
-      // Save claim to database
-      await saveClaim(user.fid, user.username || 'user', result.reward || 0, mockTxHash);
-
-      // Update local state
-      if (result.streak) {
-        setStreak({
-          tysmBalance: result.streak.tysmBalance,
-          lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
-          streakDay: result.streak.streakDay,
-          streakWeek: result.streak.streakWeek,
-          totalStreakDays: result.streak.totalStreakDays,
-        });
-      }
-
-      setTxPending(false);
-      setTodayClaimed(true);
-      setShowSuccessPopup(true);
+      // Send onchain transaction to contract
+      writeContract({
+        address: TYSM_CHECKIN_ADDRESS,
+        abi: TYSM_CHECKIN_ABI,
+        functionName: 'checkIn',
+      });
     } catch (error) {
       console.error('Check-in error:', error);
-      setTxPending(false);
     }
   };
+
+  // Handle transaction success
+  useEffect(() => {
+    const handleTxSuccess = async () => {
+      if (txSuccess && txData && user) {
+        setTxHash(txData);
+
+        // Also update database for leaderboard
+        const result = await performCheckIn(user.fid, user.username || 'user');
+
+        // Save claim to database with real tx hash
+        await saveClaim(user.fid, user.username || 'user', claimedReward, txData);
+
+        // Update local state from database
+        if (result.streak) {
+          setStreak({
+            tysmBalance: result.streak.tysmBalance,
+            lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
+            streakDay: result.streak.streakDay,
+            streakWeek: result.streak.streakWeek,
+            totalStreakDays: result.streak.totalStreakDays,
+          });
+        }
+
+        // Refetch contract data
+        refetchCanCheckIn();
+        refetchContractStreak();
+
+        setTodayClaimed(true);
+        setShowSuccessPopup(true);
+      }
+    };
+
+    handleTxSuccess();
+  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak]);
 
   const openTxInBrowser = () => {
     if (txHash) {
@@ -281,26 +329,44 @@ export function CheckInTab() {
           </div>
 
           {eligible ? (
-            !todayClaimed ? (
+            !todayClaimed && canCheckInOnchain ? (
               <div className="text-center">
-                {txPending ? (
+                {txPending || txConfirming ? (
                   <div className="p-4">
                     <span className="text-4xl animate-spin inline-block">⏳</span>
-                    <P className="text-sm opacity-70 mt-2">Confirming transaction...</P>
+                    <P className="text-sm opacity-70 mt-2">
+                      {txPending ? 'Confirm in wallet...' : 'Confirming on Base...'}
+                    </P>
+                  </div>
+                ) : txError ? (
+                  <div className="p-4">
+                    <P className="text-red-400 font-bold">❌ Transaction Failed</P>
+                    <P className="text-xs opacity-70 mt-1">{txError.message?.slice(0, 50)}...</P>
+                    <button
+                      onClick={handleCheckInClick}
+                      className="mt-3 px-4 py-2 rounded-lg bg-amber-500/30 text-amber-400 font-bold hover:bg-amber-500/50 transition-colors"
+                    >
+                      Try Again
+                    </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={handleCheckInClick}
-                    className="w-full py-4 rounded-lg border-amber-400/70 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors"
-                  >
-                    🔥 Check In
-                  </button>
+                  <>
+                    <button
+                      onClick={handleCheckInClick}
+                      className="w-full py-4 rounded-lg border-amber-400/70 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors"
+                    >
+                      🔥 Check In & Claim {previewReward} TYSM
+                    </button>
+                    {willResetOnchain && (
+                      <P className="text-yellow-400 text-xs mt-2">⚠️ Streak will reset - you missed a day!</P>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
               <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400/60">
                 <P className="text-green-400 font-bold text-lg">✅ Checked In!</P>
-                <P className="text-xs opacity-50 mt-1">Come back tomorrow</P>
+                <P className="text-xs opacity-50 mt-1">Come back in {Math.floor(timeRemainingOnchain / 3600)}h {Math.floor((timeRemainingOnchain % 3600) / 60)}m</P>
               </div>
             )
           ) : (
@@ -324,15 +390,15 @@ export function CheckInTab() {
                   This will send a transaction to Base Network
                 </P>
                 <div className="p-3 rounded-lg bg-amber-500/20 mb-4">
-                  <P className="text-xs opacity-60">Today's Reward</P>
-                  <P className="text-2xl font-bold text-amber-400">{todayReward} TYSM</P>
-                  {isLastDayOfWeek && (
-                    <P className="text-sm text-yellow-400">{weekBonus} week bonus</P>
-                  )}
-                  {todayMilestone && (
-                    <P className="text-sm text-orange-400">{todayMilestone.bonus} milestone bonus</P>
+                  <P className="text-xs opacity-60">You will receive</P>
+                  <P className="text-2xl font-bold text-amber-400">{previewReward} TYSM</P>
+                  {willResetOnchain && (
+                    <P className="text-sm text-yellow-400">⚠️ Streak will reset</P>
                   )}
                 </div>
+                <P className="text-xs opacity-50 mb-4">
+                  Requires small gas fee (~$0.01)
+                </P>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setShowConfirmPopup(false)}>
                     Cancel
