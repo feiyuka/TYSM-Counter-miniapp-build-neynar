@@ -41,7 +41,7 @@ export function MiniApp() {
         {renderTabContent()}
 
         {/* Footer Credit */}
-        <div className="text-center py-4 mt-4">
+        <div className="text-center py-4 mt-4 space-y-2">
           <a
             href="https://warpcast.com/feiyuka"
             target="_blank"
@@ -50,6 +50,22 @@ export function MiniApp() {
           >
             Built with 💙 by @feiyuka
           </a>
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="text-xs text-gray-600">on</span>
+            <a
+              href="https://neynar.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-400 transition-colors"
+            >
+              <img
+                src="https://neynar.com/favicon.ico"
+                alt="Neynar"
+                className="w-3.5 h-3.5"
+              />
+              Neynar App Studio
+            </a>
+          </div>
         </div>
       </div>
 
