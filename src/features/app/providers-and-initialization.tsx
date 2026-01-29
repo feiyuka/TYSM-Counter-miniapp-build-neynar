@@ -21,12 +21,13 @@ export function ProvidersAndInitialization({
     <JotaiProvider>
       <QueryClientProvider client={queryClient}>
         {/* LLMs: Add additional providers between here */}
-        <NeynarWagmiProvider />
-        {/* and here */}
-        {/* LLMs: Do not remove, initialization must be last, before children */}
-        <InitializeFarcasterMiniApp />
-        {children}
-        {/* End Do not remove */}
+        <NeynarWagmiProvider>
+          {/* and here */}
+          {/* LLMs: Do not remove, initialization must be last, before children */}
+          <InitializeFarcasterMiniApp />
+          {children}
+          {/* End Do not remove */}
+        </NeynarWagmiProvider>
       </QueryClientProvider>
     </JotaiProvider>
   );
