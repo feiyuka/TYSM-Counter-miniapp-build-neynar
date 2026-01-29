@@ -4,25 +4,34 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { ShareButton } from '@/neynar-farcaster-sdk/mini';
+import { useUser } from '@/neynar-web-sdk/api-hooks';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
 import { isBalanced, getTier, getTimeUntilReset } from '@/features/app/utils';
 import {
-  getUserStreak,
   getOrCreateUserStreak,
   performCheckIn,
   canCheckInToday,
 } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
 
-// Mock scores for now - will be replaced with Neynar API in future
-const MOCK_SCORES = {
-  neynarScore: 0.72,
-  quotientScore: 0.68,
-};
+// Quotient Score is not available via Neynar API yet - using mock
+const MOCK_QUOTIENT_SCORE = 0.68;
 
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
+
+  // Fetch real Neynar Score from API with experimental features
+  const { data: neynarUser, isLoading: scoreLoading } = useUser(
+    user?.fid ?? 0,
+    { x_neynar_experimental: true },
+    { enabled: !!user?.fid }
+  );
+
+  // Real Neynar Score from API (0-1 range)
+  const neynarScore = neynarUser?.neynar_user_score ?? 0;
+  // Quotient Score - mock for now (API not available yet)
+  const quotientScore = MOCK_QUOTIENT_SCORE;
 
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
@@ -75,9 +84,9 @@ export function CheckInTab() {
     return () => clearInterval(timer);
   }, []);
 
-  const balanced = isBalanced(MOCK_SCORES.neynarScore, MOCK_SCORES.quotientScore);
-  const tier = getTier(MOCK_SCORES.neynarScore, MOCK_SCORES.quotientScore);
-  const difference = Math.abs(MOCK_SCORES.neynarScore - MOCK_SCORES.quotientScore);
+  const balanced = isBalanced(neynarScore, quotientScore);
+  const tier = getTier(neynarScore, quotientScore);
+  const difference = Math.abs(neynarScore - quotientScore);
 
   const todayReward = (streak?.streakDay || 1) * (streak?.streakWeek || 1);
   const isLastDayOfWeek = (streak?.streakDay || 1) === 7;
@@ -145,7 +154,7 @@ export function CheckInTab() {
   };
 
   // Loading state
-  if (userLoading || streakLoading) {
+  if (userLoading || streakLoading || scoreLoading) {
     return (
       <div className="space-y-4 relative">
         <Card className="border border-amber-400/70 rounded-xl animate-pulse">
@@ -387,13 +396,13 @@ export function CheckInTab() {
             <div className="text-center p-2 rounded-md bg-amber-500/20 border border-amber-400/40">
               <P className="text-xs opacity-70">Neynar Score</P>
               <P className="text-xl font-bold text-amber-400">
-                {MOCK_SCORES.neynarScore.toFixed(2)}
+                {neynarScore.toFixed(2)}
               </P>
             </div>
             <div className="text-center p-2 rounded-md bg-blue-500/20 border border-blue-400/40">
               <P className="text-xs opacity-70">Quotient Score</P>
               <P className="text-xl font-bold text-blue-400">
-                {MOCK_SCORES.quotientScore.toFixed(2)}
+                {quotientScore.toFixed(2)}
               </P>
             </div>
           </div>
