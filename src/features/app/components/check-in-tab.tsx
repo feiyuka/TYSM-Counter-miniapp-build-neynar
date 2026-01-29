@@ -234,11 +234,10 @@ export function CheckInTab() {
 
       setTodayClaimed(true);
 
-      // Auto compose cast after successful claim - simple text only, no embed URL
+      // Auto compose cast after successful claim - pure text only
       try {
         await sdk.actions.composeCast({
-          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily on TYSM Counter!`,
-          embeds: [],
+          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥`,
         });
       } catch (shareError) {
         console.log('Share cancelled or failed:', shareError);
