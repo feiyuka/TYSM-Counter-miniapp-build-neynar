@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * @title TYSMCheckIn
  * @notice Daily check-in contract with automatic $TYSM token rewards
- * @dev No external imports - self-contained for easy Remix deployment
+ * @dev Contract holds TYSM balance directly - no approval needed
  */
 contract TYSMCheckIn {
     // =============================================================
@@ -12,7 +12,7 @@ contract TYSMCheckIn {
     // =============================================================
 
     interface IERC20 {
-        function transferFrom(address from, address to, uint256 amount) external returns (bool);
+        function transfer(address to, uint256 amount) external returns (bool);
         function balanceOf(address account) external view returns (uint256);
     }
 
@@ -28,13 +28,13 @@ contract TYSMCheckIn {
         uint256 timestamp
     );
     event StreakReset(address indexed user, uint256 timestamp);
+    event FundsWithdrawn(address indexed to, uint256 amount);
 
     // =============================================================
     //                           STORAGE
     // =============================================================
 
     IERC20 public immutable tysmToken;
-    address public immutable poolWallet;
     address public owner;
 
     struct UserStreak {
@@ -57,10 +57,18 @@ contract TYSMCheckIn {
     //                         CONSTRUCTOR
     // =============================================================
 
-    constructor(address _tysmToken, address _poolWallet) {
+    constructor(address _tysmToken) {
         tysmToken = IERC20(_tysmToken);
-        poolWallet = _poolWallet;
         owner = msg.sender;
+    }
+
+    // =============================================================
+    //                         MODIFIERS
+    // =============================================================
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
     }
 
     // =============================================================
@@ -92,7 +100,7 @@ contract TYSMCheckIn {
         streak.totalEarned += reward;
 
         if (reward > 0) {
-            require(tysmToken.transferFrom(poolWallet, msg.sender, reward), "Reward transfer failed");
+            require(tysmToken.transfer(msg.sender, reward), "Reward transfer failed");
         }
 
         emit CheckIn(msg.sender, streak.streakDay, streak.streakWeek, reward, block.timestamp);
@@ -104,6 +112,22 @@ contract TYSMCheckIn {
         if (totalDays == 29) reward += DAY_29_BONUS;
         else if (totalDays == 30) reward += DAY_30_BONUS;
         return reward * (10 ** TYSM_DECIMALS);
+    }
+
+    // =============================================================
+    //                      OWNER FUNCTIONS
+    // =============================================================
+
+    /// @notice Withdraw TYSM tokens from contract (owner only)
+    function withdrawFunds(address to, uint256 amount) external onlyOwner {
+        require(tysmToken.transfer(to, amount), "Withdraw failed");
+        emit FundsWithdrawn(to, amount);
+    }
+
+    /// @notice Transfer ownership
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid address");
+        owner = newOwner;
     }
 
     // =============================================================
@@ -141,7 +165,15 @@ contract TYSMCheckIn {
         return _calculateReward(day, week, totalDays);
     }
 
+    /// @notice Check contract's TYSM balance (pool balance)
     function poolBalance() external view returns (uint256) {
-        return tysmToken.balanceOf(poolWallet);
+        return tysmToken.balanceOf(address(this));
     }
+
+    // =============================================================
+    //                      RECEIVE FUNCTION
+    // =============================================================
+
+    /// @notice Allow contract to receive ETH (for gas if needed)
+    receive() external payable {}
 }
