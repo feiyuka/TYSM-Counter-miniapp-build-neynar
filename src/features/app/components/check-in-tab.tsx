@@ -18,8 +18,8 @@ import {
 import { saveClaim } from '@/db/actions/claim-actions';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 
-// Constants
-const APP_URL = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
+// Constants - Use Warpcast mini app deep link format
+const APP_URL = 'https://warpcast.com/~/frames/launch?domain=miniapp-generator-fid-544548-260128213922530.neynar.app';
 
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
