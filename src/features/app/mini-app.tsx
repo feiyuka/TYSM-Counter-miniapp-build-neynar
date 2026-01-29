@@ -43,12 +43,12 @@ export function MiniApp() {
         {/* Footer Credit */}
         <div className="text-center py-4 mt-4 space-y-1">
           <div className="flex items-center justify-center gap-1.5">
-            <span className="text-xs text-gray-500">Built with 💙 on</span>
+            <span className="text-xs text-gray-400">Built with 💙 on</span>
             <a
               href="https://neynar.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-400 transition-colors"
+              className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors font-medium"
             >
               <img
                 src="https://neynar.com/favicon.ico"
@@ -62,7 +62,7 @@ export function MiniApp() {
             href="https://warpcast.com/feiyuka"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-gray-500 hover:text-amber-400 transition-colors"
+            className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
           >
             by @feiyuka
           </a>
