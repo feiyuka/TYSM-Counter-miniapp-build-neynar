@@ -30,7 +30,7 @@ export function CheckInTab() {
   );
 
   // Real Neynar Score from API (0-1 range)
-  const neynarScore = neynarUser?.neynar_user_score ?? 0;
+  const neynarScore = neynarUser?.experimental?.neynar_user_score ?? 0;
 
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);

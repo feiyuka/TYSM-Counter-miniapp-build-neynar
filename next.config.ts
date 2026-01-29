@@ -24,9 +24,6 @@ const nextConfig: NextConfig = {
   },
   devIndicators: false,
   reactCompiler: true,
-  turbopack: {
-    root: "/monorepo/packages/service.miniapp-generator/",
-  },
 };
 
 export default nextConfig;
