@@ -301,7 +301,10 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Help Icon */}
+      {/* Share Icon - Top Left */}
+      <button onClick={handleShareApp} className="absolute -top-10 left-0 w-8 h-8 rounded-full border border-purple-400/60 bg-purple-500/30 text-purple-300 font-bold flex items-center justify-center hover:bg-purple-500/50 transition-colors text-sm">📤</button>
+
+      {/* Help Icon - Top Right */}
       <button onClick={() => setShowStreakInfo(true)} className="absolute -top-10 right-0 w-8 h-8 rounded-full border border-amber-400/60 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors">❓</button>
 
       {/* User Profile */}
@@ -622,14 +625,6 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Share App Button */}
-      <Card className="border border-purple-400/70 rounded-xl">
-        <CardContent className="p-4">
-          <button onClick={handleShareApp} className="w-full py-3 rounded-lg bg-purple-500/30 border border-purple-400/60 text-purple-300 font-bold hover:bg-purple-500/50 transition-colors flex items-center justify-center gap-2">
-            <span>📤</span> Share App
-          </button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
