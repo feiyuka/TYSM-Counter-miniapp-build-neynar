@@ -113,6 +113,7 @@ function CheckInTab() {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [claimedReward, setClaimedReward] = useState(0);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
+  const [showStreakInfo, setShowStreakInfo] = useState(false);
 
   // Countdown timer
   useEffect(() => {
@@ -590,10 +591,20 @@ function CheckInTab() {
         </div>
       )}
 
-      {/* Streak Info - Always Visible */}
-      <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
-        <SketchHeading level={6}>❓ How Streaks Work</SketchHeading>
-          <div className="mt-2 space-y-2 text-sm">
+      {/* Streak Info - Toggle Button */}
+      <button
+        onClick={() => setShowStreakInfo(!showStreakInfo)}
+        className="w-full p-3 rounded-xl border-[3px] border-amber-400 bg-amber-500/20 text-amber-400 font-bold hover:bg-amber-500/30 transition-colors flex items-center justify-center gap-2"
+      >
+        <span>❓</span>
+        <span>{showStreakInfo ? 'Hide Streak Info' : 'How Streaks Work'}</span>
+        <span>{showStreakInfo ? '▲' : '▼'}</span>
+      </button>
+
+      {/* Streak Info Content - Collapsible */}
+      {showStreakInfo && (
+        <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
+          <div className="space-y-2 text-sm">
             <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="font-bold text-amber-400">Week 1 (1x)</p>
               <p className="sketch-text opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 $TYSM</p>
@@ -624,6 +635,7 @@ function CheckInTab() {
             </div>
           </div>
         </SketchCard>
+      )}
 
       {/* Share Button */}
       {todayClaimed && (
