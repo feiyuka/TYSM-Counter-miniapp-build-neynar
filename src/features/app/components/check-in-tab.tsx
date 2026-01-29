@@ -234,10 +234,12 @@ export function CheckInTab() {
 
       setTodayClaimed(true);
 
-      // Auto compose cast after successful claim - pure text only
+      // Auto compose cast after successful claim with app link
       try {
+        const appUrl = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
         await sdk.actions.composeCast({
-          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥`,
+          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
+          embeds: [appUrl],
         });
       } catch (shareError) {
         console.log('Share cancelled or failed:', shareError);
