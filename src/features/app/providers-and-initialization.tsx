@@ -7,7 +7,7 @@ import {
   InitializeFarcasterMiniApp,
   useInitializeFarcasterApp,
 } from "@/neynar-farcaster-sdk/mini";
-import { NeynarWagmiProvider } from "@/neynar-web-sdk/blockchain";
+import { NeynarWagmiProvider } from "@/neynar-web-sdk/src/blockchain";
 
 export function ProvidersAndInitialization({
   children,
