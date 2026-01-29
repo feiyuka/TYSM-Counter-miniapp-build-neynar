@@ -5,18 +5,18 @@
   --font-mono: var(--font-geist-mono);
   --font-sketch: var(--font-caveat), var(--font-patrick-hand), cursive;
 
-  /* Cyber Gold Cyberpunk Theme */
-  --primary: #F7B32B;         /* Gold gradient start */
-  --primary-alt: #FFD700;     /* Gold gradient end */
-  --accent-1: #00FFFF;        /* Neon Cyan */
-  --accent-2: #FF0080;        /* Hot Pink */
-  --accent-3: #8B00FF;        /* Electric Purple */
-  --background: #0A0A0A;      /* Deep Black */
-  --foreground: #FFFFFF;      /* White for high contrast */
+  /* TYSM Brand Color Scheme */
+  --primary: #F7B32B;         /* TYSM Gold Coin */
+  --primary-alt: #FFD700;     /* Bright Gold Highlights */
+  --accent-1: #00FFFF;        /* Neon Cyan Glow */
+  --accent-2: #2563EB;        /* Royal Blue Accent */
+  --accent-3: #1E3A8A;        /* TYSM Blue (Logo Outer Ring) */
+  --background: #0A0A0A;      /* Deep Black Background */
+  --foreground: #FFFFFF;      /* White for High Contrast */
 
   /* Sketch effect variables */
   --sketch-roughness: 2px;
-  --sketch-shadow: 3px 3px 0px rgba(255, 179, 0, 0.3);
+  --sketch-shadow: 3px 3px 0px rgba(247, 179, 43, 0.3);
   --sketch-border: 2px solid var(--primary);
 }
 
@@ -24,16 +24,13 @@
   --primary: #F7B32B;
   --primary-alt: #FFD700;
   --accent-1: #00FFFF;
-  --accent-2: #FF0080;
-  --accent-3: #8B00FF;
+  --accent-2: #2563EB;
+  --accent-3: #1E3A8A;
   --background: #0A0A0A;
   --foreground: #FFFFFF;
 }
 
-/* Rest of the existing CSS remains the same */
-/* ... (paste the entire previous CSS content here) */
-
-/* Additional Cyberpunk Glow Effects */
+/* Cyberpunk Glow Effects */
 .cyber-glow {
   box-shadow:
     0 0 10px var(--accent-1),
@@ -68,7 +65,7 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(255, 179, 0, 0.05) 2px,
-      rgba(255, 179, 0, 0.05) 4px
+      rgba(247, 179, 43, 0.05) 2px,
+      rgba(247, 179, 43, 0.05) 4px
     );
 }

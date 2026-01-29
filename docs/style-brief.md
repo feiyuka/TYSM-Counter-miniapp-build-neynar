@@ -1,38 +1,42 @@
 # Branding Brief - TYSM Counter
 
-> Theme: **"Cyber Gold"** - Cyberpunk meets Retro with Glitch Art
+> Theme: **"Cyber Gold & Blue"** - Cyberpunk meets Retro with $TYSM branding
 
-## Color Scheme
+## Color Scheme (Based on $TYSM Logo)
 
 | Color | Hex | Usage |
 |-------|-----|-------|
-| **Gold** | `#FFD700` | Primary - $TYSM branding, highlights |
-| **Deep Gold** | `#F7B32B` | Secondary gold, buttons |
+| **TYSM Gold** | `#F7B32B` | Primary - coin, highlights, buttons |
+| **Bright Gold** | `#FFD700` | Accents, glow effects |
+| **TYSM Blue** | `#1E3A8A` | Secondary - borders, rings |
+| **Royal Blue** | `#2563EB` | Accent blue, highlights |
 | **Black** | `#0A0A0A` | Background |
-| **Neon Cyan** | `#00FFFF` | Accent, glow effects |
-| **Hot Pink** | `#FF0080` | Secondary accent |
-| **Electric Purple** | `#8B00FF` | Highlights, borders |
+| **Neon Cyan** | `#00FFFF` | Glow effects (cyberpunk accent) |
+
+## Logo Elements
+
+- 🙏 Praying hands icon (Thank You So Much)
+- Gold coin with blue outer ring
+- Clean, bold design
 
 ## Visual Style
 
 - **Dark mode** with deep black background
 - **Cyberpunk/Retro** aesthetic
+- **Gold & Blue** color combination from $TYSM logo
 - **Neon glow effects** on buttons and highlights
-- **Scanline overlay** for CRT retro feel
 - **Glitch animations** on headings
-- **Sharp geometric shapes** with neon borders
 
 ## Effects & Animations
 
-- Glow pulse on Check In button
+- Gold glow pulse on Check In button
 - Glitch flicker on title
-- Scanline sweep effect
-- Neon border animations
-- Text shadow with cyan/pink for depth
+- Blue neon border animations
+- Text shadow with gold/cyan for depth
 
 ## Inspiration
 
-- $TYSM token gold branding
+- $TYSM token logo (praying hands, gold & blue)
 - Howlers NFT community
-- 80s arcade aesthetic
+- Cyberpunk aesthetic
 - Crypto dashboard meets retro gaming
