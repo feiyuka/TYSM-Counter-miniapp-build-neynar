@@ -7,16 +7,13 @@ import { ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/api-hooks';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
-import { isBalanced, getTier, getTimeUntilReset } from '@/features/app/utils';
+import { meetsMinimumScore, getTier, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
 import {
   getOrCreateUserStreak,
   performCheckIn,
   canCheckInToday,
 } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
-
-// Quotient Score is not available via Neynar API yet - using mock
-const MOCK_QUOTIENT_SCORE = 0.68;
 
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
@@ -30,8 +27,6 @@ export function CheckInTab() {
 
   // Real Neynar Score from API (0-1 range)
   const neynarScore = neynarUser?.neynar_user_score ?? 0;
-  // Quotient Score - mock for now (API not available yet)
-  const quotientScore = MOCK_QUOTIENT_SCORE;
 
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
@@ -84,9 +79,9 @@ export function CheckInTab() {
     return () => clearInterval(timer);
   }, []);
 
-  const balanced = isBalanced(neynarScore, quotientScore);
-  const tier = getTier(neynarScore, quotientScore);
-  const difference = Math.abs(neynarScore - quotientScore);
+  // Check if user meets minimum score threshold (anti-farming)
+  const eligible = meetsMinimumScore(neynarScore);
+  const tier = getTier(neynarScore);
 
   const todayReward = (streak?.streakDay || 1) * (streak?.streakWeek || 1);
   const isLastDayOfWeek = (streak?.streakDay || 1) === 7;
@@ -286,7 +281,7 @@ export function CheckInTab() {
             </div>
           </div>
 
-          {balanced ? (
+          {eligible ? (
             !todayClaimed ? (
               <div className="text-center">
                 {txPending ? (
@@ -312,7 +307,7 @@ export function CheckInTab() {
           ) : (
             <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400/60">
               <P className="text-red-400 font-bold">🚫 Check-in Locked</P>
-              <P className="text-sm opacity-70">Balance your scores to unlock</P>
+              <P className="text-sm opacity-70">Neynar Score must be ≥{MIN_NEYNAR_SCORE}</P>
             </div>
           )}
         </CardContent>
@@ -388,45 +383,43 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Score Balance Check */}
-      <Card className="border border-blue-400/50 rounded-lg">
+      {/* Neynar Score Check */}
+      <Card className="border border-amber-400/50 rounded-lg">
         <CardContent className="p-3">
-          <H6>Score Balance</H6>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="text-center p-2 rounded-md bg-amber-500/20 border border-amber-400/40">
-              <P className="text-xs opacity-70">Neynar Score</P>
-              <P className="text-xl font-bold text-amber-400">
-                {neynarScore.toFixed(2)}
-              </P>
-            </div>
-            <div className="text-center p-2 rounded-md bg-blue-500/20 border border-blue-400/40">
-              <P className="text-xs opacity-70">Quotient Score</P>
-              <P className="text-xl font-bold text-blue-400">
-                {quotientScore.toFixed(2)}
-              </P>
-            </div>
+          <H6>Neynar Score</H6>
+
+          {/* Score Display */}
+          <div className="mt-2 text-center p-3 rounded-md bg-amber-500/20 border border-amber-400/40">
+            <P className="text-3xl font-bold text-amber-400">
+              {neynarScore.toFixed(2)}
+            </P>
+            <P className="text-xs opacity-60 mt-1">
+              Minimum required: {MIN_NEYNAR_SCORE}
+            </P>
           </div>
 
+          {/* Eligibility Status */}
           <div className={`mt-2 p-2 rounded-md text-center ${
-            balanced ? 'bg-green-500/20 border border-green-400/50' : 'bg-red-500/20 border border-red-400/50'
+            eligible ? 'bg-green-500/20 border border-green-400/50' : 'bg-red-500/20 border border-red-400/50'
           }`}>
-            {balanced ? (
+            {eligible ? (
               <>
-                <P className="text-green-400 font-bold">✅ BALANCED</P>
+                <P className="text-green-400 font-bold">✅ ELIGIBLE</P>
                 <P className="text-sm opacity-70">
-                  Difference: {(difference * 100).toFixed(1)}% (max 10%)
+                  You can check in daily!
                 </P>
               </>
             ) : (
               <>
-                <P className="text-red-400 font-bold">❌ NOT BALANCED</P>
+                <P className="text-red-400 font-bold">❌ NOT ELIGIBLE</P>
                 <P className="text-sm opacity-70">
-                  Difference: {(difference * 100).toFixed(1)}% — needs ≤10%
+                  Score too low — improve your Farcaster activity
                 </P>
               </>
             )}
           </div>
 
+          {/* Tier Display */}
           {tier ? (
             <div className="mt-2 text-center">
               <P className="text-xs opacity-60">Your Tier</P>
@@ -435,7 +428,7 @@ export function CheckInTab() {
           ) : (
             <div className="mt-2 text-center">
               <P className="text-xs opacity-60">Your Tier</P>
-              <P className="text-sm font-bold text-gray-500">⚠️ No Tier (Unbalanced)</P>
+              <P className="text-sm font-bold text-gray-500">⚠️ No Tier (Score too low)</P>
             </div>
           )}
         </CardContent>
