@@ -177,7 +177,15 @@ function CheckInTab() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* Help Icon - Top Right */}
+      <button
+        onClick={() => setShowStreakInfo(true)}
+        className="absolute -top-10 right-0 w-8 h-8 rounded-full border-2 border-amber-400 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors"
+      >
+        ❓
+      </button>
+
       {/* User Profile with Wallet - Clickable */}
       <button
         onClick={() => setShowProfilePopup(true)}
@@ -591,50 +599,55 @@ function CheckInTab() {
         </div>
       )}
 
-      {/* Streak Info - Toggle Button */}
-      <button
-        onClick={() => setShowStreakInfo(!showStreakInfo)}
-        className="w-full p-3 rounded-xl border-[3px] border-amber-400 bg-amber-500/20 text-amber-400 font-bold hover:bg-amber-500/30 transition-colors flex items-center justify-center gap-2"
-      >
-        <span>❓</span>
-        <span>{showStreakInfo ? 'Hide Streak Info' : 'How Streaks Work'}</span>
-        <span>{showStreakInfo ? '▲' : '▼'}</span>
-      </button>
-
-      {/* Streak Info Content - Collapsible */}
+      {/* Streak Info Popup */}
       {showStreakInfo && (
-        <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
-          <div className="space-y-2 text-sm">
-            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
-              <p className="font-bold text-amber-400">Week 1 (1x)</p>
-              <p className="sketch-text opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 $TYSM</p>
-            </div>
-            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
-              <p className="font-bold text-amber-400">Week 2 (2x)</p>
-              <p className="sketch-text opacity-70">2, 4, 6, 8, 10, 12, 14 = 56 (14 bonus) = 70 $TYSM</p>
-            </div>
-            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
-              <p className="font-bold text-amber-400">Week 3 (3x)</p>
-              <p className="sketch-text opacity-70">3, 6, 9, 12, 15, 18, 21 = 84 (21 bonus) = 105 $TYSM</p>
-            </div>
-            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
-              <p className="font-bold text-amber-400">Week 4 (4x)</p>
-              <p className="sketch-text opacity-70">4, 8, 12, 16, 20, 24, 28 = 112 (28 bonus) = 140 $TYSM</p>
-            </div>
-            <div className="p-2 rounded bg-amber-500/20 border-2 border-amber-400">
-              <p className="font-bold text-amber-400">♾️ Week 5, 6, 7... ∞</p>
-              <p className="sketch-text opacity-70">Multiplier keeps growing! Streak up to 1 year!</p>
-            </div>
-            <div className="p-2 rounded bg-green-500/20 border-2 border-green-400">
-              <p className="font-bold text-green-400">🎯 1 Month Milestone</p>
-              <p className="sketch-text opacity-70">Day 29: 500 | Day 30: 1000 $TYSM (one-time bonus)</p>
-            </div>
-            <div className="p-2 rounded bg-red-500/20 border-2 border-red-400">
-              <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
-              <p className="sketch-text opacity-70">Streak resets to Week 1, Day 1!</p>
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl border-[3px] border-amber-400 max-h-[80vh] overflow-y-auto w-full max-w-sm">
+            <div className="p-4">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <SketchHeading level={6}>❓ How Streaks Work</SketchHeading>
+                <button
+                  onClick={() => setShowStreakInfo(false)}
+                  className="text-gray-400 hover:text-white text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                  <p className="font-bold text-amber-400">Week 1 (1x)</p>
+                  <p className="sketch-text opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 $TYSM</p>
+                </div>
+                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                  <p className="font-bold text-amber-400">Week 2 (2x)</p>
+                  <p className="sketch-text opacity-70">2, 4, 6, 8, 10, 12, 14 = 56 (14 bonus) = 70 $TYSM</p>
+                </div>
+                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                  <p className="font-bold text-amber-400">Week 3 (3x)</p>
+                  <p className="sketch-text opacity-70">3, 6, 9, 12, 15, 18, 21 = 84 (21 bonus) = 105 $TYSM</p>
+                </div>
+                <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
+                  <p className="font-bold text-amber-400">Week 4 (4x)</p>
+                  <p className="sketch-text opacity-70">4, 8, 12, 16, 20, 24, 28 = 112 (28 bonus) = 140 $TYSM</p>
+                </div>
+                <div className="p-2 rounded bg-amber-500/20 border-2 border-amber-400">
+                  <p className="font-bold text-amber-400">♾️ Week 5, 6, 7... ∞</p>
+                  <p className="sketch-text opacity-70">Multiplier keeps growing! Streak up to 1 year!</p>
+                </div>
+                <div className="p-2 rounded bg-green-500/20 border-2 border-green-400">
+                  <p className="font-bold text-green-400">🎯 1 Month Milestone</p>
+                  <p className="sketch-text opacity-70">Day 29: 500 | Day 30: 1000 $TYSM (one-time bonus)</p>
+                </div>
+                <div className="p-2 rounded bg-red-500/20 border-2 border-red-400">
+                  <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
+                  <p className="sketch-text opacity-70">Streak resets to Week 1, Day 1!</p>
+                </div>
+              </div>
             </div>
           </div>
-        </SketchCard>
+        </div>
       )}
 
       {/* Share Button */}
