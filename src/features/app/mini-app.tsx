@@ -882,12 +882,30 @@ export function MiniApp() {
 
   return (
     <div className="h-dvh flex flex-col bg-black text-white relative overflow-hidden">
-      {/* Background Logo - Bottom Left */}
-      <img
-        src="/1769648461618.png"
-        alt=""
-        className="absolute -bottom-20 -left-20 w-80 h-80 opacity-10 rotate-12 pointer-events-none"
-      />
+      {/* Background Logo - Bottom Left with Luxury Effects */}
+      <div className="absolute -bottom-32 -left-32 w-[400px] h-[400px] rotate-[25deg] pointer-events-none">
+        {/* Outer Glow */}
+        <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-3xl animate-pulse" />
+        {/* Inner Glow */}
+        <div className="absolute inset-8 rounded-full bg-amber-500/15 blur-2xl" />
+        {/* Sparkle Effects */}
+        <div className="absolute top-10 right-10 w-3 h-3 bg-amber-300 rounded-full animate-ping opacity-60" />
+        <div className="absolute bottom-20 left-16 w-2 h-2 bg-yellow-300 rounded-full animate-ping opacity-40" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute top-1/3 right-20 w-2 h-2 bg-white rounded-full animate-ping opacity-50" style={{ animationDelay: '1s' }} />
+        {/* Logo Frame with Border */}
+        <div className="absolute inset-12 rounded-full border-2 border-amber-400/30 shadow-[0_0_60px_rgba(251,191,36,0.3)]">
+          <div className="absolute inset-2 rounded-full border border-amber-300/20" />
+          <img
+            src="/1769648461618.png"
+            alt=""
+            className="w-full h-full rounded-full object-cover opacity-15"
+          />
+        </div>
+        {/* Shimmer Effect */}
+        <div className="absolute inset-12 rounded-full overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
+        </div>
+      </div>
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-4 relative z-10">
