@@ -234,16 +234,11 @@ export function CheckInTab() {
 
       setTodayClaimed(true);
 
-      // Auto compose cast after successful claim
+      // Auto compose cast after successful claim - simple text only, no embed URL
       try {
-        await share({
-          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily 👇`,
-          queryParams: {
-            tysmBalance: (updatedStreak?.tysmBalance || 0).toString(),
-            streakDay: (updatedStreak?.streakDay || 1).toString(),
-            streakWeek: (updatedStreak?.streakWeek || 1).toString(),
-            username: user?.username || 'Player',
-          },
+        await sdk.actions.composeCast({
+          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily on TYSM Counter!`,
+          embeds: [],
         });
       } catch (shareError) {
         console.log('Share cancelled or failed:', shareError);
@@ -782,22 +777,7 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Share Button */}
-      {todayClaimed && (
-        <ShareButton
-          text={`I just claimed ${claimedReward.toLocaleString()} TYSM on day ${streak?.totalStreakDays || 0}! Week ${streak?.streakWeek || 1} streak 🔥`}
-          queryParams={{
-            tysmBalance: (streak?.tysmBalance || 0).toString(),
-            streakDay: (streak?.streakDay || 1).toString(),
-            streakWeek: (streak?.streakWeek || 1).toString(),
-            username: user?.username || 'Player',
-          }}
-          variant="secondary"
-          className="w-full"
-        >
-          Share My Streak
-        </ShareButton>
-      )}
+      {/* Share Button - removed, auto share after claim */}
     </div>
   );
 }
