@@ -778,7 +778,30 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Share Button - removed, auto share after claim */}
+      {/* Share App Button */}
+      <Card className="border border-purple-400/70 rounded-xl">
+        <CardContent className="p-4">
+          <button
+            onClick={async () => {
+              try {
+                const appUrl = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
+                const shareText = streak && streak.totalStreakDays > 0
+                  ? `I'm on a ${streak.totalStreakDays} day streak earning $TYSM! 🔥\n\nJoin me:`
+                  : `Earn $TYSM tokens with daily check-ins! 🎁\n\nTry it:`;
+                await sdk.actions.composeCast({
+                  text: shareText,
+                  embeds: [appUrl] as [string],
+                });
+              } catch (err) {
+                console.log('Share cancelled:', err);
+              }
+            }}
+            className="w-full py-3 rounded-lg bg-purple-500/30 border border-purple-400/60 text-purple-300 font-bold hover:bg-purple-500/50 transition-colors flex items-center justify-center gap-2"
+          >
+            <span>📤</span> Share App
+          </button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
