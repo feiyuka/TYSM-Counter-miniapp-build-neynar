@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
@@ -17,6 +17,9 @@ import {
 } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
+
+// Constants
+const APP_URL = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
 
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
@@ -53,25 +56,18 @@ export function CheckInTab() {
     if (user && typeof window !== 'undefined') {
       const hasAddedApp = localStorage.getItem(`tysm_app_added_${user.fid}`);
       if (!hasAddedApp) {
-        // Show popup after a short delay
-        const timer = setTimeout(() => {
-          setShowAddAppPopup(true);
-        }, 1500);
+        const timer = setTimeout(() => setShowAddAppPopup(true), 1500);
         return () => clearTimeout(timer);
       }
     }
   }, [user]);
 
   // Handle Add App + Enable Notifications
-  const handleAddApp = async () => {
+  const handleAddApp = useCallback(async () => {
     if (!user) return;
     setIsAddingApp(true);
-
     try {
-      // Request to add mini app to user's favorites
       await sdk.actions.addMiniApp();
-
-      // Mark as added in localStorage
       localStorage.setItem(`tysm_app_added_${user.fid}`, 'true');
       setShowAddAppPopup(false);
     } catch (error) {
@@ -79,20 +75,16 @@ export function CheckInTab() {
     } finally {
       setIsAddingApp(false);
     }
-  };
+  }, [user]);
 
-  const handleSkipAddApp = () => {
-    if (user) {
-      localStorage.setItem(`tysm_app_added_${user.fid}`, 'skipped');
-    }
+  const handleSkipAddApp = useCallback(() => {
+    if (user) localStorage.setItem(`tysm_app_added_${user.fid}`, 'skipped');
     setShowAddAppPopup(false);
-  };
+  }, [user]);
 
   // Wagmi hooks for contract interaction
   const { writeContract, data: txData, isPending: txPending, error: txError } = useWriteContract();
-  const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({
-    hash: txData,
-  });
+  const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txData });
 
   // Read contract: check if user can check in
   const { data: canCheckInData, refetch: refetchCanCheckIn } = useReadContract({
@@ -121,16 +113,17 @@ export function CheckInTab() {
     query: { enabled: !!walletAddress },
   });
 
-  // Parse contract data
-  const canCheckInOnchain = canCheckInData?.[0] ?? true;
-  const timeRemainingOnchain = canCheckInData?.[1] ? Number(canCheckInData[1]) : 0;
-  const willResetOnchain = canCheckInData?.[2] ?? false;
-  const previewReward = previewRewardData ? Number(formatUnits(previewRewardData, 18)) : 0;
+  // Parse contract data - memoized
+  const contractData = useMemo(() => ({
+    canCheckInOnchain: canCheckInData?.[0] ?? true,
+    timeRemainingOnchain: canCheckInData?.[1] ? Number(canCheckInData[1]) : 0,
+    willResetOnchain: canCheckInData?.[2] ?? false,
+    previewReward: previewRewardData ? Number(formatUnits(previewRewardData, 18)) : 0,
+  }), [canCheckInData, previewRewardData]);
 
   // Load user streak from database
   const loadStreak = useCallback(async () => {
     if (!user) return;
-
     setStreakLoading(true);
     try {
       const existingStreak = await getOrCreateUserStreak(user.fid, user.username || 'user');
@@ -142,8 +135,6 @@ export function CheckInTab() {
           streakWeek: existingStreak.streakWeek,
           totalStreakDays: existingStreak.totalStreakDays,
         });
-
-        // Check if already claimed today
         const canCheck = await canCheckInToday(user.fid);
         setTodayClaimed(!canCheck);
       }
@@ -154,36 +145,30 @@ export function CheckInTab() {
     }
   }, [user]);
 
-  useEffect(() => {
-    loadStreak();
-  }, [loadStreak]);
+  useEffect(() => { loadStreak(); }, [loadStreak]);
 
-  // Countdown timer
+  // Countdown timer - optimized with longer interval
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(getTimeUntilReset());
-    }, 1000);
+    const timer = setInterval(() => setCountdown(getTimeUntilReset()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Check if user meets minimum score threshold (anti-farming)
-  const eligible = meetsMinimumScore(neynarScore);
+  // Check if user meets minimum score threshold
+  const eligible = useMemo(() => meetsMinimumScore(neynarScore), [neynarScore]);
 
   // Check if today is a milestone day
-  const nextMilestone = MILESTONES.find((m) => m.day > (streak?.totalStreakDays || 0));
+  const nextMilestone = useMemo(() =>
+    MILESTONES.find((m) => m.day > (streak?.totalStreakDays || 0)),
+    [streak?.totalStreakDays]
+  );
 
-  const handleCheckInClick = () => {
-    setShowConfirmPopup(true);
-  };
+  const handleCheckInClick = useCallback(() => setShowConfirmPopup(true), []);
 
-  const handleConfirmCheckIn = async () => {
+  const handleConfirmCheckIn = useCallback(async () => {
     if (!user || !walletAddress) return;
-
     setShowConfirmPopup(false);
-    setClaimedReward(previewReward);
-
+    setClaimedReward(contractData.previewReward);
     try {
-      // Send onchain transaction to contract
       writeContract({
         address: TYSM_CHECKIN_ADDRESS,
         abi: TYSM_CHECKIN_ABI,
@@ -192,81 +177,76 @@ export function CheckInTab() {
     } catch (error) {
       console.error('Check-in error:', error);
     }
-  };
+  }, [user, walletAddress, contractData.previewReward, writeContract]);
 
   // Handle transaction success
   useEffect(() => {
     const handleTxSuccess = async () => {
-      // Prevent double execution using ref
-      if (!txSuccess || !txData || !user || txProcessedRef.current === txData) {
-        return;
-      }
+      if (!txSuccess || !txData || !user || txProcessedRef.current === txData) return;
 
-      // Mark this transaction as processed
       txProcessedRef.current = txData;
       setTxHash(txData);
 
-      // Also update database for leaderboard
       const result = await performCheckIn(user.fid, user.username || 'user');
-
-      // Save claim to database with real tx hash
       await saveClaim(user.fid, user.username || 'user', claimedReward, txData);
 
-      // Update local state from database
-      let updatedStreak = streak;
       if (result.streak) {
-        updatedStreak = {
+        setStreak({
           tysmBalance: result.streak.tysmBalance,
           lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
           streakDay: result.streak.streakDay,
           streakWeek: result.streak.streakWeek,
           totalStreakDays: result.streak.totalStreakDays,
-        };
-        setStreak(updatedStreak);
+        });
       }
 
-      // Refetch contract data
       refetchCanCheckIn();
       refetchContractStreak();
-
       setTodayClaimed(true);
 
-      // Auto compose cast after successful claim with app link
+      // Auto compose cast
       try {
-        const appUrl = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
         await sdk.actions.composeCast({
-          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
-          embeds: [appUrl] as [string],
+          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${result.streak?.totalStreakDays || 1}! Week ${result.streak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
+          embeds: [APP_URL] as [string],
         });
-      } catch (shareError) {
-        console.log('Share cancelled or failed:', shareError);
+      } catch (err) {
+        console.log('Share cancelled:', err);
       }
 
       setShowSuccessPopup(true);
     };
 
     handleTxSuccess();
-  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak, streak]);
+  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak]);
 
-  const openTxInBrowser = () => {
-    if (txHash) {
-      window.open(`https://basescan.org/tx/${txHash}`, '_blank');
+  const openTxInBrowser = useCallback(() => {
+    if (txHash) window.open(`https://basescan.org/tx/${txHash}`, '_blank');
+  }, [txHash]);
+
+  const handleShareApp = useCallback(async () => {
+    try {
+      const shareText = streak && streak.totalStreakDays > 0
+        ? `I'm on a ${streak.totalStreakDays} day streak earning $TYSM! 🔥\n\nJoin me:`
+        : `Earn $TYSM tokens with daily check-ins! 🎁\n\nTry it:`;
+      await sdk.actions.composeCast({
+        text: shareText,
+        embeds: [APP_URL] as [string],
+      });
+    } catch (err) {
+      console.log('Share cancelled:', err);
     }
-  };
+  }, [streak]);
 
   // Loading state
   if (userLoading || streakLoading || scoreLoading) {
     return (
       <div className="space-y-4 relative">
         <Card className="border border-amber-400/70 rounded-xl animate-pulse">
-          <CardContent className="p-4">
-            <div className="h-20 bg-amber-500/20 rounded"></div>
-          </CardContent>
+          <CardContent className="p-4"><div className="h-20 bg-amber-500/20 rounded" /></CardContent>
         </Card>
         <Card className="border border-amber-400/70 rounded-xl animate-pulse">
-          <CardContent className="p-4">
-            <div className="h-32 bg-amber-500/20 rounded"></div>
-          </CardContent>
+          <CardContent className="p-4"><div className="h-32 bg-amber-500/20 rounded" /></CardContent>
         </Card>
       </div>
     );
@@ -280,14 +260,14 @@ export function CheckInTab() {
           <CardContent className="p-6 text-center">
             <P className="text-4xl mb-3">🔐</P>
             <H6>Connect to Farcaster</H6>
-            <P className="text-sm opacity-70 mt-2">
-              Open this app in Farcaster to start earning TYSM tokens!
-            </P>
+            <P className="text-sm opacity-70 mt-2">Open this app in Farcaster to start earning TYSM tokens!</P>
           </CardContent>
         </Card>
       </div>
     );
   }
+
+  const { canCheckInOnchain, timeRemainingOnchain, willResetOnchain, previewReward } = contractData;
 
   return (
     <div className="space-y-4 relative">
@@ -299,30 +279,21 @@ export function CheckInTab() {
               <div className="text-center">
                 <P className="text-5xl mb-3">🔔</P>
                 <H6>Stay Updated!</H6>
-                <P className="text-sm opacity-70 mt-2 mb-4">
-                  Add TYSM Counter to your favorites and enable daily reminders so you never miss a check-in!
-                </P>
+                <P className="text-sm opacity-70 mt-2 mb-4">Add TYSM Counter to your favorites and enable daily reminders!</P>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center gap-2 p-2 rounded bg-amber-500/20 border border-amber-400/60">
-                    <span>📱</span>
-                    <P className="text-sm text-left">Quick access from your apps</P>
+                    <span>📱</span><P className="text-sm text-left">Quick access from your apps</P>
                   </div>
                   <div className="flex items-center gap-2 p-2 rounded bg-blue-500/20 border border-blue-400/60">
-                    <span>🔔</span>
-                    <P className="text-sm text-left">Daily notification reminders</P>
+                    <span>🔔</span><P className="text-sm text-left">Daily notification reminders</P>
                   </div>
                   <div className="flex items-center gap-2 p-2 rounded bg-green-500/20 border border-green-400/60">
-                    <span>🔥</span>
-                    <P className="text-sm text-left">Never lose your streak!</P>
+                    <span>🔥</span><P className="text-sm text-left">Never lose your streak!</P>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleSkipAddApp} disabled={isAddingApp}>
-                    Maybe Later
-                  </Button>
-                  <Button onClick={handleAddApp} disabled={isAddingApp}>
-                    {isAddingApp ? '⏳ Adding...' : '✅ Add App'}
-                  </Button>
+                  <Button variant="outline" onClick={handleSkipAddApp} disabled={isAddingApp}>Maybe Later</Button>
+                  <Button onClick={handleAddApp} disabled={isAddingApp}>{isAddingApp ? '⏳ Adding...' : '✅ Add App'}</Button>
                 </div>
               </div>
             </CardContent>
@@ -330,27 +301,15 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Help Icon - Top Right */}
-      <button
-        onClick={() => setShowStreakInfo(true)}
-        className="absolute -top-10 right-0 w-8 h-8 rounded-full border border-amber-400/60 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors"
-      >
-        ❓
-      </button>
+      {/* Help Icon */}
+      <button onClick={() => setShowStreakInfo(true)} className="absolute -top-10 right-0 w-8 h-8 rounded-full border border-amber-400/60 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors">❓</button>
 
-      {/* User Profile with Wallet - Clickable */}
-      <button
-        onClick={() => setShowProfilePopup(true)}
-        className="w-full text-left"
-      >
+      {/* User Profile */}
+      <button onClick={() => setShowProfilePopup(true)} className="w-full text-left">
         <Card className="border border-amber-400/70 rounded-xl hover:bg-amber-500/10 transition-colors">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <img
-                src={user.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`}
-                alt={user.displayName || user.username}
-                className="w-12 h-12 rounded-full border border-amber-400/60"
-              />
+              <img src={user.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`} alt={user.displayName || user.username} className="w-12 h-12 rounded-full border border-amber-400/60" />
               <div className="flex-1">
                 <P className="font-bold">{user.displayName || user.username}</P>
                 <P className="text-xs opacity-70 font-mono">FID: {user.fid}</P>
@@ -365,7 +324,7 @@ export function CheckInTab() {
         </Card>
       </button>
 
-      {/* Countdown Timer - Next Check-in */}
+      {/* Countdown Timer */}
       {todayClaimed && (
         <Card className="border border-blue-400/70 rounded-xl">
           <CardContent className="p-3">
@@ -403,16 +362,14 @@ export function CheckInTab() {
               <span className="text-2xl animate-bounce">🔔</span>
               <div>
                 <P className="font-bold">Don't lose your streak!</P>
-                <P className="text-xs opacity-70">
-                  Only {countdown.hours}h {countdown.minutes}m left to check in today
-                </P>
+                <P className="text-xs opacity-70">Only {countdown.hours}h {countdown.minutes}m left to check in today</P>
               </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Daily Onchain Check-in */}
+      {/* Daily Check-in */}
       <Card className="border border-amber-400/70 rounded-xl">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
@@ -432,32 +389,18 @@ export function CheckInTab() {
                 {txPending || txConfirming ? (
                   <div className="p-4">
                     <span className="text-4xl animate-spin inline-block">⏳</span>
-                    <P className="text-sm opacity-70 mt-2">
-                      {txPending ? 'Confirm in wallet...' : 'Confirming on Base...'}
-                    </P>
+                    <P className="text-sm opacity-70 mt-2">{txPending ? 'Confirm in wallet...' : 'Confirming on Base...'}</P>
                   </div>
                 ) : txError ? (
                   <div className="p-4">
                     <P className="text-red-400 font-bold">❌ Transaction Failed</P>
                     <P className="text-xs opacity-70 mt-1">{txError.message?.slice(0, 50)}...</P>
-                    <button
-                      onClick={handleCheckInClick}
-                      className="mt-3 px-4 py-2 rounded-lg bg-amber-500/30 text-amber-400 font-bold hover:bg-amber-500/50 transition-colors"
-                    >
-                      Try Again
-                    </button>
+                    <button onClick={handleCheckInClick} className="mt-3 px-4 py-2 rounded-lg bg-amber-500/30 text-amber-400 font-bold hover:bg-amber-500/50 transition-colors">Try Again</button>
                   </div>
                 ) : (
                   <>
-                    <button
-                      onClick={handleCheckInClick}
-                      className="w-full py-4 rounded-lg border-amber-400/70 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors"
-                    >
-                      🔥 Check In & Claim {previewReward} TYSM
-                    </button>
-                    {willResetOnchain && (
-                      <P className="text-yellow-400 text-xs mt-2">⚠️ Streak will reset - you missed a day!</P>
-                    )}
+                    <button onClick={handleCheckInClick} className="w-full py-4 rounded-lg border-amber-400/70 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors">🔥 Check In & Claim {previewReward} TYSM</button>
+                    {willResetOnchain && <P className="text-yellow-400 text-xs mt-2">⚠️ Streak will reset - you missed a day!</P>}
                   </>
                 )}
               </div>
@@ -476,7 +419,7 @@ export function CheckInTab() {
         </CardContent>
       </Card>
 
-      {/* Confirm Check-in Popup */}
+      {/* Confirm Popup */}
       {showConfirmPopup && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <Card>
@@ -484,26 +427,16 @@ export function CheckInTab() {
               <div className="text-center">
                 <P className="text-4xl mb-3">🔗</P>
                 <H6>Check In Onchain?</H6>
-                <P className="text-sm opacity-70 mt-2 mb-4">
-                  This will send a transaction to Base Network
-                </P>
+                <P className="text-sm opacity-70 mt-2 mb-4">This will send a transaction to Base Network</P>
                 <div className="p-3 rounded-lg bg-amber-500/20 mb-4">
                   <P className="text-xs opacity-60">You will receive</P>
                   <P className="text-2xl font-bold text-amber-400">{previewReward} TYSM</P>
-                  {willResetOnchain && (
-                    <P className="text-sm text-yellow-400">⚠️ Streak will reset</P>
-                  )}
+                  {willResetOnchain && <P className="text-sm text-yellow-400">⚠️ Streak will reset</P>}
                 </div>
-                <P className="text-xs opacity-50 mb-4">
-                  Requires small gas fee (~$0.01)
-                </P>
+                <P className="text-xs opacity-50 mb-4">Requires small gas fee (~$0.01)</P>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => setShowConfirmPopup(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleConfirmCheckIn}>
-                    Confirm
-                  </Button>
+                  <Button variant="outline" onClick={() => setShowConfirmPopup(false)}>Cancel</Button>
+                  <Button onClick={handleConfirmCheckIn}>Confirm</Button>
                 </div>
               </div>
             </CardContent>
@@ -526,117 +459,65 @@ export function CheckInTab() {
                 {txHash && (
                   <div className="p-2 bg-black/30 rounded mb-4">
                     <P className="text-xs opacity-50 mb-1">Transaction Hash</P>
-                    <P className="text-xs font-mono text-green-300 break-all">
-                      {txHash.slice(0, 10)}...{txHash.slice(-8)}
-                    </P>
-                    <button
-                      onClick={openTxInBrowser}
-                      className="mt-2 text-xs text-blue-400 underline"
-                    >
-                      View on BaseScan →
-                    </button>
+                    <P className="text-xs font-mono text-green-300 break-all">{txHash.slice(0, 10)}...{txHash.slice(-8)}</P>
+                    <button onClick={openTxInBrowser} className="mt-2 text-xs text-blue-400 underline">View on BaseScan →</button>
                   </div>
                 )}
-                <Button onClick={() => setShowSuccessPopup(false)}>
-                  Done
-                </Button>
+                <Button onClick={() => setShowSuccessPopup(false)}>Done</Button>
               </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Neynar Score Check */}
+      {/* Neynar Score */}
       <Card className="border border-amber-400/50 rounded-lg">
         <CardContent className="p-3">
           <H6>Neynar Score</H6>
-
-          {/* Score Display */}
           <div className="mt-2 text-center p-3 rounded-md bg-amber-500/20 border border-amber-400/40">
-            <P className="text-3xl font-bold text-amber-400">
-              {neynarScore.toFixed(2)}
-            </P>
-            <P className="text-xs opacity-60 mt-1">
-              Minimum required: {MIN_NEYNAR_SCORE}
-            </P>
+            <P className="text-3xl font-bold text-amber-400">{neynarScore.toFixed(2)}</P>
+            <P className="text-xs opacity-60 mt-1">Minimum required: {MIN_NEYNAR_SCORE}</P>
           </div>
-
-          {/* Eligibility Status */}
-          <div className={`mt-2 p-2 rounded-md text-center ${
-            eligible ? 'bg-green-500/20 border border-green-400/50' : 'bg-red-500/20 border border-red-400/50'
-          }`}>
+          <div className={`mt-2 p-2 rounded-md text-center ${eligible ? 'bg-green-500/20 border border-green-400/50' : 'bg-red-500/20 border border-red-400/50'}`}>
             {eligible ? (
-              <>
-                <P className="text-green-400 font-bold">✅ ELIGIBLE</P>
-                <P className="text-sm opacity-70">
-                  You can check in daily!
-                </P>
-              </>
+              <><P className="text-green-400 font-bold">✅ ELIGIBLE</P><P className="text-sm opacity-70">You can check in daily!</P></>
             ) : (
-              <>
-                <P className="text-red-400 font-bold">❌ NOT ELIGIBLE</P>
-                <P className="text-sm opacity-70">
-                  Score too low — improve your Farcaster activity
-                </P>
-              </>
+              <><P className="text-red-400 font-bold">❌ NOT ELIGIBLE</P><P className="text-sm opacity-70">Score too low — improve your Farcaster activity</P></>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* 1 Month Milestone Progress */}
+      {/* Milestones */}
       <Card className="border border-amber-400/70 rounded-xl">
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <H6>1 Month Milestones</H6>
             <P className="text-sm font-bold text-amber-400">Day {streak?.totalStreakDays || 0}</P>
           </div>
-
-          {/* Progress Bar */}
           <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-3">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-amber-400 transition-all"
-              style={{ width: `${Math.min(((streak?.totalStreakDays || 0) / 30) * 100, 100)}%` }}
-            />
+            <div className="h-full bg-gradient-to-r from-blue-500 to-amber-400 transition-all" style={{ width: `${Math.min(((streak?.totalStreakDays || 0) / 30) * 100, 100)}%` }} />
           </div>
-
-          {/* Milestone Markers */}
           <div className="space-y-2">
             {MILESTONES.map((milestone) => {
               const achieved = (streak?.totalStreakDays || 0) >= milestone.day;
               const isNext = nextMilestone?.day === milestone.day;
               return (
-                <div
-                  key={milestone.day}
-                  className={`flex items-center justify-between p-2 rounded ${
-                    achieved
-                      ? 'bg-green-500/20 border border-green-400/60'
-                      : isNext
-                      ? 'bg-yellow-500/20 border border-yellow-400/60'
-                      : 'bg-black/20 border border-gray-500/40 opacity-50'
-                  }`}
-                >
+                <div key={milestone.day} className={`flex items-center justify-between p-2 rounded ${achieved ? 'bg-green-500/20 border border-green-400/60' : isNext ? 'bg-yellow-500/20 border border-yellow-400/60' : 'bg-black/20 border border-gray-500/40 opacity-50'}`}>
                   <div className="flex items-center gap-2">
                     <span>{achieved ? '✅' : isNext ? '🎯' : '⬜'}</span>
                     <span className="text-sm font-medium">{milestone.label}</span>
                     <span className="text-xs opacity-50">Day {milestone.day}</span>
                   </div>
-                  <span className={`font-bold ${achieved ? 'text-green-400' : isNext ? 'text-yellow-400' : ''}`}>
-                    {milestone.bonus} TYSM
-                  </span>
+                  <span className={`font-bold ${achieved ? 'text-green-400' : isNext ? 'text-yellow-400' : ''}`}>{milestone.bonus} TYSM</span>
                 </div>
               );
             })}
           </div>
-
           {nextMilestone ? (
-            <P className="text-xs text-center opacity-50 mt-3">
-              {nextMilestone.day - (streak?.totalStreakDays || 0)} days until next milestone!
-            </P>
+            <P className="text-xs text-center opacity-50 mt-3">{nextMilestone.day - (streak?.totalStreakDays || 0)} days until next milestone!</P>
           ) : (
-            <P className="text-xs text-center text-green-400 mt-3">
-              🎉 All milestones achieved! Keep your streak going!
-            </P>
+            <P className="text-xs text-center text-green-400 mt-3">🎉 All milestones achieved! Keep your streak going!</P>
           )}
         </CardContent>
       </Card>
@@ -646,31 +527,17 @@ export function CheckInTab() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl border border-blue-400/70 max-h-[80vh] overflow-y-auto w-full max-w-sm">
             <div className="p-4">
-              {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <H6>📊 My Stats</H6>
-                <button
-                  onClick={() => setShowProfilePopup(false)}
-                  className="text-gray-400 hover:text-white text-xl"
-                >
-                  ✕
-                </button>
+                <button onClick={() => setShowProfilePopup(false)} className="text-gray-400 hover:text-white text-xl">✕</button>
               </div>
-
-              {/* Profile Info */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/20 border border-amber-400/60 mb-4">
-                <img
-                  src={user.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`}
-                  alt={user.displayName || user.username}
-                  className="w-12 h-12 rounded-full border border-amber-400/60"
-                />
+                <img src={user.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`} alt={user.displayName || user.username} className="w-12 h-12 rounded-full border border-amber-400/60" />
                 <div className="flex-1">
                   <P className="font-bold">{user.displayName || user.username}</P>
                   <P className="text-xs opacity-70 font-mono">FID: {user.fid}</P>
                 </div>
               </div>
-
-              {/* Stats Summary */}
               <div className="grid grid-cols-3 gap-2 text-center mb-4">
                 <div className="p-2 rounded bg-black/20 border border-amber-400/60">
                   <P className="text-lg font-bold text-amber-400">{streak?.tysmBalance || 0}</P>
@@ -685,36 +552,23 @@ export function CheckInTab() {
                   <P className="text-xs opacity-60">Current Week</P>
                 </div>
               </div>
-
-              {/* Current Week Status */}
               <div className="p-2 rounded bg-amber-500/20 border border-amber-400/60 mb-4">
                 <div className="flex items-center justify-between">
                   <P className="text-xs text-amber-400 font-bold">Week {streak?.streakWeek || 1} • Day {streak?.streakDay || 1}/7</P>
                   <P className="text-xs opacity-60">{streak?.streakWeek || 1}x Multiplier</P>
                 </div>
               </div>
-
-              {/* 1 Month Milestones */}
               <P className="text-xs font-bold text-yellow-400 mb-2">🎯 1 Month Milestones</P>
               <div className="space-y-2">
                 {MILESTONES.map((milestone) => {
                   const achieved = (streak?.totalStreakDays || 0) >= milestone.day;
                   return (
-                    <div
-                      key={milestone.day}
-                      className={`flex items-center justify-between p-2 rounded ${
-                        achieved
-                          ? 'bg-green-500/20 border border-green-400/60'
-                          : 'bg-black/20 border border-gray-500/40 opacity-50'
-                      }`}
-                    >
+                    <div key={milestone.day} className={`flex items-center justify-between p-2 rounded ${achieved ? 'bg-green-500/20 border border-green-400/60' : 'bg-black/20 border border-gray-500/40 opacity-50'}`}>
                       <div className="flex items-center gap-2">
                         <span>{achieved ? '✅' : '🔒'}</span>
                         <span className="text-sm">{milestone.label}</span>
                       </div>
-                      <span className={`font-bold ${achieved ? 'text-green-400' : 'opacity-50'}`}>
-                        {milestone.bonus} TYSM
-                      </span>
+                      <span className={`font-bold ${achieved ? 'text-green-400' : 'opacity-50'}`}>{milestone.bonus} TYSM</span>
                     </div>
                   );
                 })}
@@ -729,17 +583,10 @@ export function CheckInTab() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl border border-amber-400/70 max-h-[80vh] overflow-y-auto w-full max-w-sm">
             <div className="p-4">
-              {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <H6>❓ How Streaks Work</H6>
-                <button
-                  onClick={() => setShowStreakInfo(false)}
-                  className="text-gray-400 hover:text-white text-xl"
-                >
-                  ✕
-                </button>
+                <button onClick={() => setShowStreakInfo(false)} className="text-gray-400 hover:text-white text-xl">✕</button>
               </div>
-
               <div className="space-y-2 text-sm">
                 <div className="p-2 rounded bg-black/20 border border-amber-400/60">
                   <P className="font-bold text-amber-400">Week 1 (1x)</P>
@@ -778,23 +625,7 @@ export function CheckInTab() {
       {/* Share App Button */}
       <Card className="border border-purple-400/70 rounded-xl">
         <CardContent className="p-4">
-          <button
-            onClick={async () => {
-              try {
-                const appUrl = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
-                const shareText = streak && streak.totalStreakDays > 0
-                  ? `I'm on a ${streak.totalStreakDays} day streak earning $TYSM! 🔥\n\nJoin me:`
-                  : `Earn $TYSM tokens with daily check-ins! 🎁\n\nTry it:`;
-                await sdk.actions.composeCast({
-                  text: shareText,
-                  embeds: [appUrl] as [string],
-                });
-              } catch (err) {
-                console.log('Share cancelled:', err);
-              }
-            }}
-            className="w-full py-3 rounded-lg bg-purple-500/30 border border-purple-400/60 text-purple-300 font-bold hover:bg-purple-500/50 transition-colors flex items-center justify-center gap-2"
-          >
+          <button onClick={handleShareApp} className="w-full py-3 rounded-lg bg-purple-500/30 border border-purple-400/60 text-purple-300 font-bold hover:bg-purple-500/50 transition-colors flex items-center justify-center gap-2">
             <span>📤</span> Share App
           </button>
         </CardContent>
