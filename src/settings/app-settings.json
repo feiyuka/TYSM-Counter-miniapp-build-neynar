@@ -2,7 +2,7 @@
   "name": "TYSM Counter",
   "shortName": "TYSM",
   "subtitle": "Earn TYSM with daily streaks",
-  "description": "Daily onchain check-in app to earn TYSM tokens. Build streaks, climb tiers, and claim rewards on Base Network.",
+  "description": "Daily onchain check-in app to earn TYSM tokens. Build streaks, use the week multiplier, and claim rewards on Base Network.",
   "shortDescription": "Daily check-in to earn TYSM tokens",
   "primaryCategory": "utility",
   "tags": ["crypto", "rewards", "streaks", "base"],
