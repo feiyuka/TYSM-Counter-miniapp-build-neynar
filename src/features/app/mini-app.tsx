@@ -881,9 +881,16 @@ export function MiniApp() {
   ];
 
   return (
-    <div className="h-dvh flex flex-col bg-black text-white">
+    <div className="h-dvh flex flex-col bg-black text-white relative overflow-hidden">
+      {/* Background Logo - Bottom Left */}
+      <img
+        src="/1769648461618.png"
+        alt=""
+        className="absolute -bottom-20 -left-20 w-80 h-80 opacity-10 rotate-12 pointer-events-none"
+      />
+
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 relative z-10">
         {tabs[activeTab].content}
       </div>
 
