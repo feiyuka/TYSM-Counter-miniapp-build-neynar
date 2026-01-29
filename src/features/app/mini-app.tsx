@@ -254,58 +254,7 @@ function CheckInTab() {
         </SketchCard>
       )}
 
-      {/* Score Balance Check */}
-      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
-        <SketchHeading level={6}>Score Balance</SketchHeading>
-        <div className="mt-3 grid grid-cols-2 gap-4">
-          <div className="text-center p-3 rounded-lg bg-amber-500/20 border-2 border-amber-400/60">
-            <p className="text-xs opacity-70 mb-1">Neynar Score</p>
-            <p className="text-2xl font-bold text-amber-400">
-              {mockScores.neynarScore.toFixed(2)}
-            </p>
-          </div>
-          <div className="text-center p-3 rounded-lg bg-blue-500/20 border-2 border-blue-400/60">
-            <p className="text-xs opacity-70 mb-1">Quotient Score</p>
-            <p className="text-2xl font-bold text-blue-400">
-              {mockScores.quotientScore.toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        <div className={`mt-4 p-3 rounded-lg text-center ${
-          balanced ? 'bg-green-500/20 border-2 border-green-400' : 'bg-red-500/20 border-2 border-red-400'
-        }`}>
-          {balanced ? (
-            <>
-              <p className="text-green-400 font-bold">✅ BALANCED</p>
-              <p className="sketch-text text-sm opacity-70">
-                Difference: {(difference * 100).toFixed(1)}% (max 10%)
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-red-400 font-bold">❌ NOT BALANCED</p>
-              <p className="sketch-text text-sm opacity-70">
-                Difference: {(difference * 100).toFixed(1)}% — needs ≤10%
-              </p>
-            </>
-          )}
-        </div>
-
-        {tier ? (
-          <div className="mt-3 text-center">
-            <p className="text-xs opacity-60">Your Tier</p>
-            <p className={`text-xl font-bold ${tier.color}`}>{tier.name}</p>
-          </div>
-        ) : (
-          <div className="mt-3 text-center">
-            <p className="text-xs opacity-60">Your Tier</p>
-            <p className="text-lg font-bold text-gray-500">⚠️ No Tier (Unbalanced)</p>
-          </div>
-        )}
-      </SketchCard>
-
-      {/* Daily Onchain Check-in */}
+      {/* Daily Onchain Check-in - MOVED UP */}
       <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -414,6 +363,57 @@ function CheckInTab() {
           </SketchCard>
         </div>
       )}
+
+      {/* Score Balance Check */}
+      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
+        <SketchHeading level={6}>Score Balance</SketchHeading>
+        <div className="mt-3 grid grid-cols-2 gap-4">
+          <div className="text-center p-3 rounded-lg bg-amber-500/20 border-2 border-amber-400/60">
+            <p className="text-xs opacity-70 mb-1">Neynar Score</p>
+            <p className="text-2xl font-bold text-amber-400">
+              {mockScores.neynarScore.toFixed(2)}
+            </p>
+          </div>
+          <div className="text-center p-3 rounded-lg bg-blue-500/20 border-2 border-blue-400/60">
+            <p className="text-xs opacity-70 mb-1">Quotient Score</p>
+            <p className="text-2xl font-bold text-blue-400">
+              {mockScores.quotientScore.toFixed(2)}
+            </p>
+          </div>
+        </div>
+
+        <div className={`mt-4 p-3 rounded-lg text-center ${
+          balanced ? 'bg-green-500/20 border-2 border-green-400' : 'bg-red-500/20 border-2 border-red-400'
+        }`}>
+          {balanced ? (
+            <>
+              <p className="text-green-400 font-bold">✅ BALANCED</p>
+              <p className="sketch-text text-sm opacity-70">
+                Difference: {(difference * 100).toFixed(1)}% (max 10%)
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-red-400 font-bold">❌ NOT BALANCED</p>
+              <p className="sketch-text text-sm opacity-70">
+                Difference: {(difference * 100).toFixed(1)}% — needs ≤10%
+              </p>
+            </>
+          )}
+        </div>
+
+        {tier ? (
+          <div className="mt-3 text-center">
+            <p className="text-xs opacity-60">Your Tier</p>
+            <p className={`text-xl font-bold ${tier.color}`}>{tier.name}</p>
+          </div>
+        ) : (
+          <div className="mt-3 text-center">
+            <p className="text-xs opacity-60">Your Tier</p>
+            <p className="text-lg font-bold text-gray-500">⚠️ No Tier (Unbalanced)</p>
+          </div>
+        )}
+      </SketchCard>
 
       {/* 1 Month Milestone Progress */}
       <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
