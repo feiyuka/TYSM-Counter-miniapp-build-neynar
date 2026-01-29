@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { ShareButton } from '@/neynar-farcaster-sdk/mini';
+import { useShare } from '@/neynar-farcaster-sdk/src/mini/components/share/use-share';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
+import sdk from '@farcaster/miniapp-sdk';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
 import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
@@ -21,6 +23,7 @@ import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
   const { address: walletAddress } = useAccount();
+  const { share } = useShare();
 
   // Fetch real Neynar Score from API with experimental features
   const { data: neynarUser, isLoading: scoreLoading } = useUser(
@@ -42,6 +45,51 @@ export function CheckInTab() {
   const [claimedReward, setClaimedReward] = useState(0);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
+  const [showAddAppPopup, setShowAddAppPopup] = useState(false);
+  const [isAddingApp, setIsAddingApp] = useState(false);
+
+  // Ref to prevent double execution of tx success handler
+  const txProcessedRef = useRef<string | null>(null);
+
+  // Check if user has added app before (using localStorage)
+  useEffect(() => {
+    if (user && typeof window !== 'undefined') {
+      const hasAddedApp = localStorage.getItem(`tysm_app_added_${user.fid}`);
+      if (!hasAddedApp) {
+        // Show popup after a short delay
+        const timer = setTimeout(() => {
+          setShowAddAppPopup(true);
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user]);
+
+  // Handle Add App + Enable Notifications
+  const handleAddApp = async () => {
+    if (!user) return;
+    setIsAddingApp(true);
+
+    try {
+      // Request to add mini app to user's favorites
+      await sdk.actions.addMiniApp();
+
+      // Mark as added in localStorage
+      localStorage.setItem(`tysm_app_added_${user.fid}`, 'true');
+      setShowAddAppPopup(false);
+    } catch (error) {
+      console.error('Failed to add app:', error);
+    } finally {
+      setIsAddingApp(false);
+    }
+  };
+
+  const handleSkipAddApp = () => {
+    if (user) {
+      localStorage.setItem(`tysm_app_added_${user.fid}`, 'skipped');
+    }
+    setShowAddAppPopup(false);
+  };
 
   // Wagmi hooks for contract interaction
   const { writeContract, data: txData, isPending: txPending, error: txError } = useWriteContract();
@@ -68,7 +116,7 @@ export function CheckInTab() {
   });
 
   // Read contract: get user streak from contract
-  const { data: contractStreakData, refetch: refetchContractStreak } = useReadContract({
+  const { refetch: refetchContractStreak } = useReadContract({
     address: TYSM_CHECKIN_ADDRESS,
     abi: TYSM_CHECKIN_ABI,
     functionName: 'getUserStreak',
@@ -124,13 +172,8 @@ export function CheckInTab() {
   // Check if user meets minimum score threshold (anti-farming)
   const eligible = meetsMinimumScore(neynarScore);
 
-  const todayReward = (streak?.streakDay || 1) * (streak?.streakWeek || 1);
-  const isLastDayOfWeek = (streak?.streakDay || 1) === 7;
-  const weekBonus = isLastDayOfWeek ? 7 * (streak?.streakWeek || 1) : 0;
-
   // Check if today is a milestone day
   const nextMilestone = MILESTONES.find((m) => m.day > (streak?.totalStreakDays || 0));
-  const todayMilestone = MILESTONES.find((m) => m.day === (streak?.totalStreakDays || 0) + 1);
 
   const handleCheckInClick = () => {
     setShowConfirmPopup(true);
@@ -157,37 +200,60 @@ export function CheckInTab() {
   // Handle transaction success
   useEffect(() => {
     const handleTxSuccess = async () => {
-      if (txSuccess && txData && user) {
-        setTxHash(txData);
-
-        // Also update database for leaderboard
-        const result = await performCheckIn(user.fid, user.username || 'user');
-
-        // Save claim to database with real tx hash
-        await saveClaim(user.fid, user.username || 'user', claimedReward, txData);
-
-        // Update local state from database
-        if (result.streak) {
-          setStreak({
-            tysmBalance: result.streak.tysmBalance,
-            lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
-            streakDay: result.streak.streakDay,
-            streakWeek: result.streak.streakWeek,
-            totalStreakDays: result.streak.totalStreakDays,
-          });
-        }
-
-        // Refetch contract data
-        refetchCanCheckIn();
-        refetchContractStreak();
-
-        setTodayClaimed(true);
-        setShowSuccessPopup(true);
+      // Prevent double execution using ref
+      if (!txSuccess || !txData || !user || txProcessedRef.current === txData) {
+        return;
       }
+
+      // Mark this transaction as processed
+      txProcessedRef.current = txData;
+      setTxHash(txData);
+
+      // Also update database for leaderboard
+      const result = await performCheckIn(user.fid, user.username || 'user');
+
+      // Save claim to database with real tx hash
+      await saveClaim(user.fid, user.username || 'user', claimedReward, txData);
+
+      // Update local state from database
+      let updatedStreak = streak;
+      if (result.streak) {
+        updatedStreak = {
+          tysmBalance: result.streak.tysmBalance,
+          lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
+          streakDay: result.streak.streakDay,
+          streakWeek: result.streak.streakWeek,
+          totalStreakDays: result.streak.totalStreakDays,
+        };
+        setStreak(updatedStreak);
+      }
+
+      // Refetch contract data
+      refetchCanCheckIn();
+      refetchContractStreak();
+
+      setTodayClaimed(true);
+
+      // Auto compose cast after successful claim
+      try {
+        await share({
+          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily 👇`,
+          queryParams: {
+            tysmBalance: (updatedStreak?.tysmBalance || 0).toString(),
+            streakDay: (updatedStreak?.streakDay || 1).toString(),
+            streakWeek: (updatedStreak?.streakWeek || 1).toString(),
+            username: user?.username || 'Player',
+          },
+        });
+      } catch (shareError) {
+        console.log('Share cancelled or failed:', shareError);
+      }
+
+      setShowSuccessPopup(true);
     };
 
     handleTxSuccess();
-  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak]);
+  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak, share, streak]);
 
   const openTxInBrowser = () => {
     if (txHash) {
@@ -232,6 +298,45 @@ export function CheckInTab() {
 
   return (
     <div className="space-y-4 relative">
+      {/* Add App Popup */}
+      {showAddAppPopup && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <Card>
+            <CardContent className="p-5">
+              <div className="text-center">
+                <P className="text-5xl mb-3">🔔</P>
+                <H6>Stay Updated!</H6>
+                <P className="text-sm opacity-70 mt-2 mb-4">
+                  Add TYSM Counter to your favorites and enable daily reminders so you never miss a check-in!
+                </P>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center gap-2 p-2 rounded bg-amber-500/20 border border-amber-400/60">
+                    <span>📱</span>
+                    <P className="text-sm text-left">Quick access from your apps</P>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded bg-blue-500/20 border border-blue-400/60">
+                    <span>🔔</span>
+                    <P className="text-sm text-left">Daily notification reminders</P>
+                  </div>
+                  <div className="flex items-center gap-2 p-2 rounded bg-green-500/20 border border-green-400/60">
+                    <span>🔥</span>
+                    <P className="text-sm text-left">Never lose your streak!</P>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleSkipAddApp} disabled={isAddingApp}>
+                    Maybe Later
+                  </Button>
+                  <Button onClick={handleAddApp} disabled={isAddingApp}>
+                    {isAddingApp ? '⏳ Adding...' : '✅ Add App'}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Help Icon - Top Right */}
       <button
         onClick={() => setShowStreakInfo(true)}
