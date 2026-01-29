@@ -246,13 +246,13 @@ function CheckInTab() {
       <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
         <SketchHeading level={6}>Score Balance</SketchHeading>
         <div className="mt-3 grid grid-cols-2 gap-4">
-          <div className="text-center p-3 rounded-lg bg-amber-500/20">
+          <div className="text-center p-3 rounded-lg bg-amber-500/20 border-2 border-amber-400/60">
             <p className="text-xs opacity-70 mb-1">Neynar Score</p>
             <p className="text-2xl font-bold text-amber-400">
               {mockScores.neynarScore.toFixed(2)}
             </p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-blue-500/20">
+          <div className="text-center p-3 rounded-lg bg-blue-500/20 border-2 border-blue-400/60">
             <p className="text-xs opacity-70 mb-1">Quotient Score</p>
             <p className="text-2xl font-bold text-blue-400">
               {mockScores.quotientScore.toFixed(2)}
@@ -261,7 +261,7 @@ function CheckInTab() {
         </div>
 
         <div className={`mt-4 p-3 rounded-lg text-center ${
-          balanced ? 'bg-green-500/20 border border-green-400' : 'bg-red-500/20 border border-red-400'
+          balanced ? 'bg-green-500/20 border-2 border-green-400' : 'bg-red-500/20 border-2 border-red-400'
         }`}>
           {balanced ? (
             <>
@@ -316,18 +316,18 @@ function CheckInTab() {
                 </div>
               ) : (
                 <SketchButton variant="primary" onClick={handleCheckInClick}>
-                  🔗 Check In
+                  🔥 Check In
                 </SketchButton>
               )}
             </div>
           ) : (
-            <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400">
+            <div className="text-center p-4 bg-green-500/20 rounded-lg border-2 border-green-400">
               <p className="text-green-400 font-bold text-lg">✅ Checked In!</p>
               <p className="sketch-text text-xs opacity-50 mt-1">Come back tomorrow</p>
             </div>
           )
         ) : (
-          <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400">
+          <div className="text-center p-4 bg-red-500/20 rounded-lg border-2 border-red-400">
             <p className="text-red-400 font-bold">🚫 Check-in Locked</p>
             <p className="sketch-text text-sm opacity-70">Balance your scores to unlock</p>
           </div>
@@ -456,9 +456,12 @@ function CheckInTab() {
       </SketchCard>
 
       {/* Personal Stats */}
-      <SketchButton variant="outline" onClick={() => setShowStats(!showStats)}>
+      <button
+        onClick={() => setShowStats(!showStats)}
+        className="w-full p-3 rounded-xl border-[3px] border-blue-400 bg-blue-500/20 text-blue-400 font-bold hover:bg-blue-500/30 transition-colors"
+      >
         {showStats ? 'Hide My Stats' : '📊 View My Stats'}
-      </SketchButton>
+      </button>
 
       {showStats && (
         <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
@@ -564,9 +567,12 @@ function CheckInTab() {
       )}
 
       {/* Streak Info Toggle */}
-      <SketchButton variant="outline" onClick={() => setShowHistory(!showHistory)}>
-        {showHistory ? 'Hide Streak Info' : 'How Streaks Work'}
-      </SketchButton>
+      <button
+        onClick={() => setShowHistory(!showHistory)}
+        className="w-full p-3 rounded-xl border-[3px] border-amber-400 bg-amber-500/20 text-amber-400 font-bold hover:bg-amber-500/30 transition-colors"
+      >
+        {showHistory ? 'Hide Streak Info' : '❓ How Streaks Work'}
+      </button>
 
       {showHistory && (
         <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
@@ -640,11 +646,11 @@ function LiveClaimsTab() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-center">
-          <div className="p-2 rounded bg-black/20">
+          <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
             <p className="text-lg font-bold text-yellow-400">{mockPool.totalClaimed.toLocaleString()}</p>
             <p className="text-xs opacity-60">Total Claimed</p>
           </div>
-          <div className="p-2 rounded bg-black/20">
+          <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
             <p className="text-lg font-bold text-blue-400">{mockPool.totalClaimers.toLocaleString()}</p>
             <p className="text-xs opacity-60">Total Claimers</p>
           </div>
@@ -737,7 +743,7 @@ function LeaderboardTab() {
       {/* My Rank Card */}
       <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <SketchHeading level={6}>Your Ranking</SketchHeading>
-        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-amber-500/20 border border-amber-400">
+        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-amber-500/20 border-2 border-amber-400">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-amber-500/30 flex items-center justify-center font-bold text-amber-400">
               #{myRank.rank}
@@ -793,15 +799,15 @@ function LeaderboardTab() {
       {/* Stats */}
       <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="p-2 rounded bg-black/20 border border-yellow-400/30">
+          <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
             <p className="text-lg font-bold text-yellow-400">12</p>
             <p className="text-xs opacity-60">Max Week</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border border-amber-400/30">
+          <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
             <p className="text-lg font-bold text-amber-400">4,850</p>
             <p className="text-xs opacity-60">Top $TYSM</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border border-blue-400/30">
+          <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
             <p className="text-lg font-bold text-blue-400">3,847</p>
             <p className="text-xs opacity-60">Claimers</p>
           </div>
