@@ -31,36 +31,19 @@ const mockOnchain = {
   totalStreakDays: 3, // Total consecutive days (for milestone tracking)
 };
 
-// Mock pool & live claims data
+// Mock pool & live claims data - fresh pool for new app
 const mockPool = {
   totalPool: 1000000,
-  remainingPool: 847523,
-  totalClaimed: 152477,
-  totalClaimers: 3847,
+  remainingPool: 1000000,
+  totalClaimed: 0,
+  totalClaimers: 0,
 };
 
-// Mock live claims feed
-const mockLiveClaims = [
-  { username: 'dwr.eth', amount: 14, time: '2s ago', txHash: '0xabc123...' },
-  { username: 'vitalik', amount: 21, time: '15s ago', txHash: '0xdef456...' },
-  { username: 'jessepollak', amount: 8, time: '32s ago', txHash: '0xghi789...' },
-  { username: 'linda', amount: 6, time: '1m ago', txHash: '0xjkl012...' },
-  { username: 'ted', amount: 12, time: '2m ago', txHash: '0xmno345...' },
-];
+// Mock live claims feed - empty for new app
+const mockLiveClaims: { username: string; amount: number; time: string; txHash: string }[] = [];
 
-// Mock leaderboard data
-const mockLeaderboard = [
-  { rank: 1, username: 'dwr.eth', totalTYSM: 4850, streakWeek: 12, tier: '🏆 LEGENDARY' },
-  { rank: 2, username: 'vitalik', totalTYSM: 3920, streakWeek: 10, tier: '🏆 LEGENDARY' },
-  { rank: 3, username: 'jessepollak', totalTYSM: 3100, streakWeek: 8, tier: '💎 DIAMOND' },
-  { rank: 4, username: 'linda', totalTYSM: 2450, streakWeek: 7, tier: '💎 DIAMOND' },
-  { rank: 5, username: 'ted', totalTYSM: 1890, streakWeek: 6, tier: '🥇 GOLD' },
-  { rank: 6, username: 'ccarella', totalTYSM: 1560, streakWeek: 5, tier: '🥇 GOLD' },
-  { rank: 7, username: 'ace', totalTYSM: 1230, streakWeek: 4, tier: '🥇 GOLD' },
-  { rank: 8, username: 'brenner', totalTYSM: 980, streakWeek: 4, tier: '🥈 SILVER' },
-  { rank: 9, username: 'phil', totalTYSM: 750, streakWeek: 3, tier: '🥈 SILVER' },
-  { rank: 10, username: 'sarah', totalTYSM: 620, streakWeek: 3, tier: '🥈 SILVER' },
-];
+// Mock leaderboard data - empty for new app
+const mockLeaderboard: { rank: number; username: string; totalTYSM: number; streakWeek: number; tier: string }[] = [];
 
 // Mock onchain shows user is on Week 2, Day 3
 // But for fresh user demo, let's show Week 1 in progress
@@ -707,39 +690,48 @@ function LiveClaimsTab() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          {mockLiveClaims.map((claim, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border border-amber-400/60/60"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
-                  alt={claim.username}
-                  className="w-8 h-8 rounded-full"
-                />
-                <div>
-                  <p className="font-medium text-sm">@{claim.username}</p>
-                  <p className="text-xs opacity-50">{claim.time}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-amber-400 font-bold">+{claim.amount} $TYSM</p>
-                <button
-                  onClick={() => openTxInBrowser(claim.txHash)}
-                  className="text-xs text-blue-400 underline"
+        {mockLiveClaims.length > 0 ? (
+          <>
+            <div className="space-y-2">
+              {mockLiveClaims.map((claim, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border border-amber-400/60"
                 >
-                  {claim.txHash}
-                </button>
-              </div>
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
+                      alt={claim.username}
+                      className="w-8 h-8 rounded-full"
+                    />
+                    <div>
+                      <p className="font-medium text-sm">@{claim.username}</p>
+                      <p className="text-xs opacity-50">{claim.time}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-amber-400 font-bold">+{claim.amount} $TYSM</p>
+                    <button
+                      onClick={() => openTxInBrowser(claim.txHash)}
+                      className="text-xs text-blue-400 underline"
+                    >
+                      {claim.txHash}
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        <div className="mt-4 text-center">
-          <p className="text-xs opacity-50">Showing latest 5 claims</p>
-        </div>
+            <div className="mt-4 text-center">
+              <p className="text-xs opacity-50">Showing latest 5 claims</p>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-4xl mb-3">🌟</p>
+            <p className="text-amber-400 font-bold">Be the First!</p>
+            <p className="text-sm opacity-60 mt-1">No claims yet. Start your streak and be the pioneer!</p>
+          </div>
+        )}
       </SketchCard>
 
       {/* Pool Info */}
@@ -807,48 +799,56 @@ function LeaderboardTab() {
           <p className="text-xs opacity-50">All Time</p>
         </div>
 
-        <div className="space-y-2">
-          {mockLeaderboard.map((user) => (
-            <div
-              key={user.rank}
-              className={`flex items-center justify-between p-3 rounded-lg border-2 ${getRankStyle(user.rank)}`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 text-center font-bold text-lg">
-                  {getRankBadge(user.rank)}
+        {mockLeaderboard.length > 0 ? (
+          <div className="space-y-2">
+            {mockLeaderboard.map((user) => (
+              <div
+                key={user.rank}
+                className={`flex items-center justify-between p-3 rounded-lg border-2 ${getRankStyle(user.rank)}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 text-center font-bold text-lg">
+                    {getRankBadge(user.rank)}
+                  </div>
+                  <img
+                    src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`}
+                    alt={user.username}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">@{user.username}</p>
+                    <p className="text-xs opacity-50">{user.tier}</p>
+                  </div>
                 </div>
-                <img
-                  src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`}
-                  alt={user.username}
-                  className="w-8 h-8 rounded-full"
-                />
-                <div>
-                  <p className="font-medium text-sm">@{user.username}</p>
-                  <p className="text-xs opacity-50">{user.tier}</p>
+                <div className="text-right">
+                  <p className="text-amber-400 font-bold">{user.totalTYSM.toLocaleString()}</p>
+                  <p className="text-xs opacity-50">W{user.streakWeek}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-amber-400 font-bold">{user.totalTYSM.toLocaleString()}</p>
-                <p className="text-xs opacity-50">W{user.streakWeek}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-4xl mb-3">🏆</p>
+            <p className="text-amber-400 font-bold">Leaderboard Coming Soon!</p>
+            <p className="text-sm opacity-60 mt-1">Be the first to claim and top the charts!</p>
+          </div>
+        )}
       </SketchCard>
 
       {/* Stats */}
       <SketchCard padding="sm" className="border border-amber-400/70 rounded-xl">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="p-2 rounded bg-black/20 border border-yellow-400/60/60">
-            <p className="text-lg font-bold text-yellow-400">12</p>
+          <div className="p-2 rounded bg-black/20 border border-yellow-400/60">
+            <p className="text-lg font-bold text-yellow-400">0</p>
             <p className="text-xs opacity-60">Max Week</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border border-amber-400/60/60">
-            <p className="text-lg font-bold text-amber-400">4,850</p>
+          <div className="p-2 rounded bg-black/20 border border-amber-400/60">
+            <p className="text-lg font-bold text-amber-400">0</p>
             <p className="text-xs opacity-60">Top $TYSM</p>
           </div>
-          <div className="p-2 rounded bg-black/20 border border-blue-400/60/60">
-            <p className="text-lg font-bold text-blue-400">3,847</p>
+          <div className="p-2 rounded bg-black/20 border border-blue-400/60">
+            <p className="text-lg font-bold text-blue-400">0</p>
             <p className="text-xs opacity-60">Claimers</p>
           </div>
         </div>
