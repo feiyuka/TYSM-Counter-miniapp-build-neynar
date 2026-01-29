@@ -239,7 +239,7 @@ export function CheckInTab() {
         const appUrl = 'https://miniapp-generator-fid-544548-260128213922530.neynar.app';
         await sdk.actions.composeCast({
           text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${updatedStreak?.totalStreakDays || 1}! Week ${updatedStreak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
-          embeds: [appUrl],
+          embeds: [appUrl] as [string],
         });
       } catch (shareError) {
         console.log('Share cancelled or failed:', shareError);
