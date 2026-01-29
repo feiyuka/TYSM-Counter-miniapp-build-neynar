@@ -1,15 +1,81 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
-import { MOCK_POOL, MOCK_LIVE_CLAIMS } from '@/data/mocks';
+import { getRecentClaims, getPoolStats } from '@/db/actions/claim-actions';
+
+interface PoolStats {
+  totalPool: number;
+  remainingPool: number;
+  totalClaimed: number;
+  totalClaimers: number;
+}
+
+interface LiveClaim {
+  id: string;
+  fid: number;
+  username: string;
+  amount: number;
+  txHash: string;
+  createdAt: Date;
+  time: string;
+}
 
 export function LiveClaimsTab() {
-  const poolPercentage = ((MOCK_POOL.remainingPool / MOCK_POOL.totalPool) * 100).toFixed(1);
+  const [pool, setPool] = useState<PoolStats>({
+    totalPool: 1000000,
+    remainingPool: 1000000,
+    totalClaimed: 0,
+    totalClaimers: 0,
+  });
+  const [claims, setClaims] = useState<LiveClaim[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [poolData, claimsData] = await Promise.all([
+          getPoolStats(1000000),
+          getRecentClaims(10),
+        ]);
+        setPool(poolData);
+        setClaims(claimsData as LiveClaim[]);
+      } catch (error) {
+        console.error('Failed to load live claims:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+
+    // Refresh every 30 seconds
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const poolPercentage = ((pool.remainingPool / pool.totalPool) * 100).toFixed(1);
 
   const openTxInBrowser = (txHash: string) => {
-    const fullHash = txHash.replace('...', '0'.repeat(54));
-    window.open(`https://basescan.org/tx/${fullHash}`, '_blank');
+    window.open(`https://basescan.org/tx/${txHash}`, '_blank');
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Card className="border border-amber-400/70 rounded-xl animate-pulse">
+          <CardContent className="p-4">
+            <div className="h-32 bg-amber-500/20 rounded"></div>
+          </CardContent>
+        </Card>
+        <Card className="border border-blue-400/70 rounded-xl animate-pulse">
+          <CardContent className="p-4">
+            <div className="h-48 bg-blue-500/20 rounded"></div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -17,11 +83,11 @@ export function LiveClaimsTab() {
       <Card className="border border-amber-400/70 rounded-xl">
         <CardContent className="p-4">
           <div className="text-center mb-4">
-            <P className="text-xs opacity-60 mb-1">$TYSM Reward Pool</P>
+            <P className="text-xs opacity-60 mb-1">TYSM Reward Pool</P>
             <P className="text-3xl font-bold text-amber-400">
-              {MOCK_POOL.remainingPool.toLocaleString()}
+              {pool.remainingPool.toLocaleString()}
             </P>
-            <P className="text-xs opacity-50">of {MOCK_POOL.totalPool.toLocaleString()} $TYSM</P>
+            <P className="text-xs opacity-50">of {pool.totalPool.toLocaleString()} TYSM</P>
           </div>
 
           <div className="w-full h-4 bg-gray-700 rounded-full overflow-hidden mb-3">
@@ -33,11 +99,11 @@ export function LiveClaimsTab() {
 
           <div className="grid grid-cols-2 gap-4 text-center">
             <div className="p-2 rounded bg-black/20 border border-yellow-400/60">
-              <P className="text-lg font-bold text-yellow-400">{MOCK_POOL.totalClaimed.toLocaleString()}</P>
+              <P className="text-lg font-bold text-yellow-400">{pool.totalClaimed.toLocaleString()}</P>
               <P className="text-xs opacity-60">Total Claimed</P>
             </div>
             <div className="p-2 rounded bg-black/20 border border-blue-400/60">
-              <P className="text-lg font-bold text-blue-400">{MOCK_POOL.totalClaimers.toLocaleString()}</P>
+              <P className="text-lg font-bold text-blue-400">{pool.totalClaimers.toLocaleString()}</P>
               <P className="text-xs opacity-60">Total Claimers</P>
             </div>
           </div>
@@ -55,12 +121,12 @@ export function LiveClaimsTab() {
             </div>
           </div>
 
-          {MOCK_LIVE_CLAIMS.length > 0 ? (
+          {claims.length > 0 ? (
             <>
               <div className="space-y-2">
-                {MOCK_LIVE_CLAIMS.map((claim, i) => (
+                {claims.map((claim) => (
                   <div
-                    key={i}
+                    key={claim.id}
                     className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border border-amber-400/60"
                   >
                     <div className="flex items-center gap-3">
@@ -75,19 +141,19 @@ export function LiveClaimsTab() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <P className="text-amber-400 font-bold">+{claim.amount} $TYSM</P>
+                      <P className="text-amber-400 font-bold">+{claim.amount} TYSM</P>
                       <button
                         onClick={() => openTxInBrowser(claim.txHash)}
                         className="text-xs text-blue-400 underline"
                       >
-                        {claim.txHash}
+                        {claim.txHash.slice(0, 6)}...{claim.txHash.slice(-4)}
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-4 text-center">
-                <P className="text-xs opacity-50">Showing latest 5 claims</P>
+                <P className="text-xs opacity-50">Showing latest claims • Auto-refreshes every 30s</P>
               </div>
             </>
           ) : (
@@ -109,10 +175,10 @@ export function LiveClaimsTab() {
               <P className="text-xs opacity-70">Base Network</P>
             </div>
             <button
-              onClick={() => window.open('https://basescan.org/token/0xTYSMTOKEN', '_blank')}
+              onClick={() => window.open('https://basescan.org', '_blank')}
               className="text-xs text-blue-400 underline"
             >
-              View Contract →
+              View on BaseScan →
             </button>
           </div>
         </CardContent>

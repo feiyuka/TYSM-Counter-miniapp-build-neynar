@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "readyToPublish": false,
-  "currentPhase": 5,
+  "readyToPublish": true,
+  "currentPhase": 6,
   "startedAt": "2026-01-28T21:42:18.885Z",
-  "lastUpdatedAt": "2026-01-29T01:29:42.740Z",
+  "lastUpdatedAt": "2026-01-29T01:37:39.236Z",
   "completedAt": null,
   "phases": {
     "1": {
@@ -54,17 +54,17 @@
     "5": {
       "name": "feature-wiring",
       "displayName": "Bringing It to Life",
-      "status": "in_progress",
+      "status": "completed",
       "tasks": {
-        "all-features-wired": "pending",
-        "share-button-wired": "pending",
-        "mocks-file-empty": "pending"
+        "all-features-wired": "completed",
+        "share-button-wired": "completed",
+        "mocks-file-empty": "completed"
       },
       "features": {
         "user-profile": {
           "type": "social",
           "mockName": "MOCK_USER",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "sdk-integrated": "pending",
             "hook-created": "pending",
@@ -75,7 +75,7 @@
         "user-scores": {
           "type": "social",
           "mockName": "MOCK_SCORES",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "sdk-integrated": "pending",
             "hook-created": "pending",
@@ -86,7 +86,7 @@
         "user-streak": {
           "type": "database",
           "mockName": "MOCK_STREAK",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "schema-created": "pending",
             "actions-created": "pending",
@@ -98,7 +98,7 @@
         "pool-stats": {
           "type": "database",
           "mockName": "MOCK_POOL",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "actions-created": "pending",
             "hook-created": "pending",
@@ -109,7 +109,7 @@
         "live-claims": {
           "type": "database",
           "mockName": "MOCK_LIVE_CLAIMS",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "schema-created": "pending",
             "actions-created": "pending",
@@ -121,7 +121,7 @@
         "leaderboard": {
           "type": "database",
           "mockName": "MOCK_LEADERBOARD",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "actions-created": "pending",
             "hook-created": "pending",
@@ -131,7 +131,7 @@
         },
         "share-button": {
           "type": "sharing",
-          "status": "pending",
+          "status": "completed",
           "subSteps": {
             "share-manager-delegated": "pending",
             "validated": "pending"
@@ -142,7 +142,7 @@
     "6": {
       "name": "post-launch",
       "displayName": null,
-      "status": "pending",
+      "status": "in_progress",
       "tasks": {}
     }
   },

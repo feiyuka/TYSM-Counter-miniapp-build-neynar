@@ -1,4 +1,4 @@
-import { pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, integer, timestamp } from "drizzle-orm/pg-core";
 
 /**
  * Key-Value Store Table
@@ -24,15 +24,31 @@ export const kv = pgTable("kv", {
 });
 
 /**
- * Add your custom tables below this line
- *
- * Example:
- *
- * export const gameScores = pgTable("game_scores", {
- *   id: uuid("id").primaryKey().defaultRandom(),
- *   fid: integer("fid").notNull(),
- *   score: integer("score").notNull(),
- *   username: text("username").notNull(),
- *   createdAt: timestamp("created_at").defaultNow().notNull()
- * });
+ * User Streaks Table
+ * Tracks each user's daily check-in streak and TYSM balance
  */
+export const userStreaks = pgTable("user_streaks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fid: integer("fid").notNull().unique(),
+  username: text("username").notNull(),
+  tysmBalance: integer("tysm_balance").notNull().default(0),
+  lastCheckIn: timestamp("last_check_in"),
+  streakDay: integer("streak_day").notNull().default(1),
+  streakWeek: integer("streak_week").notNull().default(1),
+  totalStreakDays: integer("total_streak_days").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+/**
+ * Claims Table
+ * Records all TYSM claim transactions
+ */
+export const claims = pgTable("claims", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  fid: integer("fid").notNull(),
+  username: text("username").notNull(),
+  amount: integer("amount").notNull(),
+  txHash: text("tx_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
