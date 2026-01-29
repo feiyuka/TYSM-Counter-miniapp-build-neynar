@@ -1,10 +1,10 @@
-export const TYSM_CHECKIN_ADDRESS = "0x5FFB2f5642e87721FcF722645587942475Eed7Ab" as const;
+export const TYSM_CHECKIN_ADDRESS = "0xfEfcF3c2Aa08c6FF0BA3BD40ffEAD1F860A93d91" as const;
 
 export const TYSM_TOKEN_ADDRESS = "0x0358795322C04DE04EAD2338A803A9D3518a9877" as const;
 
 export const TYSM_CHECKIN_ABI = [
   {
-    inputs: [{ name: "_tysmToken", type: "address" }, { name: "_poolWallet", type: "address" }],
+    inputs: [{ name: "_tysmToken", type: "address" }],
     stateMutability: "nonpayable",
     type: "constructor"
   },
@@ -27,6 +27,15 @@ export const TYSM_CHECKIN_ABI = [
       { indexed: false, name: "timestamp", type: "uint256" }
     ],
     name: "StreakReset",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, name: "to", type: "address" },
+      { indexed: false, name: "amount", type: "uint256" }
+    ],
+    name: "FundsWithdrawn",
     type: "event"
   },
   {
@@ -83,9 +92,23 @@ export const TYSM_CHECKIN_ABI = [
   },
   {
     inputs: [],
-    name: "poolWallet",
+    name: "owner",
     outputs: [{ name: "", type: "address" }],
     stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }],
+    name: "withdrawFunds",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [{ name: "newOwner", type: "address" }],
+    name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function"
   },
   {
@@ -101,5 +124,9 @@ export const TYSM_CHECKIN_ABI = [
     outputs: [{ name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function"
+  },
+  {
+    stateMutability: "payable",
+    type: "receive"
   }
 ] as const;
