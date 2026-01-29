@@ -829,15 +829,15 @@ export function MiniApp() {
       </div>
 
       {/* Bottom Tab Navigation */}
-      <div className="flex border-t-[3px] border-amber-400 bg-black/90">
+      <div className="flex gap-2 p-2 border-t-[3px] border-amber-400 bg-black/90">
         {tabs.map((tab, index) => (
           <button
             key={index}
             onClick={() => setActiveTab(index)}
-            className={`flex-1 py-3 text-sm font-bold transition-colors ${
+            className={`flex-1 py-3 text-sm font-bold transition-colors rounded-xl border-2 ${
               activeTab === index
-                ? 'bg-amber-500/30 text-amber-400 border-t-2 border-amber-400'
-                : 'text-gray-400 hover:bg-amber-500/10'
+                ? 'bg-amber-500/30 text-amber-400 border-amber-400'
+                : 'text-gray-400 border-gray-600 hover:bg-amber-500/10 hover:border-amber-400/50'
             }`}
           >
             {tab.label}
