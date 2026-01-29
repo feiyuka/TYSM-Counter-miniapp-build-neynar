@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { ShareButton } from '@/neynar-farcaster-sdk/mini';
-import { useUser } from '@/neynar-web-sdk/api-hooks';
+import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
 import type { UserStreak } from '@/features/app/types';
