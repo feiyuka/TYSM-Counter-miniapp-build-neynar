@@ -365,25 +365,25 @@ function CheckInTab() {
       )}
 
       {/* Score Balance Check */}
-      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
+      <SketchCard padding="sm" className="border border-blue-400/50 rounded-lg">
         <SketchHeading level={6}>Score Balance</SketchHeading>
-        <div className="mt-3 grid grid-cols-2 gap-4">
-          <div className="text-center p-3 rounded-lg bg-amber-500/20 border-2 border-amber-400/60">
-            <p className="text-xs opacity-70 mb-1">Neynar Score</p>
-            <p className="text-2xl font-bold text-amber-400">
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="text-center p-2 rounded-md bg-amber-500/20 border border-amber-400/40">
+            <p className="text-xs opacity-70">Neynar Score</p>
+            <p className="text-xl font-bold text-amber-400">
               {mockScores.neynarScore.toFixed(2)}
             </p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-blue-500/20 border-2 border-blue-400/60">
-            <p className="text-xs opacity-70 mb-1">Quotient Score</p>
-            <p className="text-2xl font-bold text-blue-400">
+          <div className="text-center p-2 rounded-md bg-blue-500/20 border border-blue-400/40">
+            <p className="text-xs opacity-70">Quotient Score</p>
+            <p className="text-xl font-bold text-blue-400">
               {mockScores.quotientScore.toFixed(2)}
             </p>
           </div>
         </div>
 
-        <div className={`mt-4 p-3 rounded-lg text-center ${
-          balanced ? 'bg-green-500/20 border-2 border-green-400' : 'bg-red-500/20 border-2 border-red-400'
+        <div className={`mt-2 p-2 rounded-md text-center ${
+          balanced ? 'bg-green-500/20 border border-green-400/50' : 'bg-red-500/20 border border-red-400/50'
         }`}>
           {balanced ? (
             <>
@@ -403,14 +403,14 @@ function CheckInTab() {
         </div>
 
         {tier ? (
-          <div className="mt-3 text-center">
+          <div className="mt-2 text-center">
             <p className="text-xs opacity-60">Your Tier</p>
-            <p className={`text-xl font-bold ${tier.color}`}>{tier.name}</p>
+            <p className={`text-lg font-bold ${tier.color}`}>{tier.name}</p>
           </div>
         ) : (
-          <div className="mt-3 text-center">
+          <div className="mt-2 text-center">
             <p className="text-xs opacity-60">Your Tier</p>
-            <p className="text-lg font-bold text-gray-500">⚠️ No Tier (Unbalanced)</p>
+            <p className="text-sm font-bold text-gray-500">⚠️ No Tier (Unbalanced)</p>
           </div>
         )}
       </SketchCard>
