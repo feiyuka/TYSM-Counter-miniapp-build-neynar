@@ -186,14 +186,14 @@ function CheckInTab() {
           <img
             src={mockUser.pfpUrl}
             alt={mockUser.displayName}
-            className="w-12 h-12 rounded-full border-2 border-purple-400"
+            className="w-12 h-12 rounded-full border-2 border-amber-400"
           />
           <div className="flex-1">
             <p className="font-bold">{mockUser.displayName}</p>
             <p className="sketch-text text-xs opacity-70 font-mono">{mockUser.walletAddress}</p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-green-400">{onchain.tysmBalance}</p>
+            <p className="text-2xl font-bold text-amber-400">{onchain.tysmBalance}</p>
             <p className="text-xs opacity-60">$TYSM Balance</p>
           </div>
         </div>
@@ -208,18 +208,18 @@ function CheckInTab() {
               <p className="text-sm opacity-70">Next check-in in</p>
             </div>
             <div className="flex gap-2 font-mono">
-              <div className="bg-purple-500/30 px-2 py-1 rounded text-center">
-                <p className="text-lg font-bold">{String(countdown.hours).padStart(2, '0')}</p>
+              <div className="bg-amber-500/30 px-2 py-1 rounded text-center">
+                <p className="text-lg font-bold text-amber-400">{String(countdown.hours).padStart(2, '0')}</p>
                 <p className="text-xs opacity-50">hr</p>
               </div>
               <p className="text-lg font-bold self-start mt-1">:</p>
-              <div className="bg-purple-500/30 px-2 py-1 rounded text-center">
-                <p className="text-lg font-bold">{String(countdown.minutes).padStart(2, '0')}</p>
+              <div className="bg-amber-500/30 px-2 py-1 rounded text-center">
+                <p className="text-lg font-bold text-amber-400">{String(countdown.minutes).padStart(2, '0')}</p>
                 <p className="text-xs opacity-50">min</p>
               </div>
               <p className="text-lg font-bold self-start mt-1">:</p>
-              <div className="bg-purple-500/30 px-2 py-1 rounded text-center">
-                <p className="text-lg font-bold">{String(countdown.seconds).padStart(2, '0')}</p>
+              <div className="bg-amber-500/30 px-2 py-1 rounded text-center">
+                <p className="text-lg font-bold text-amber-400">{String(countdown.seconds).padStart(2, '0')}</p>
                 <p className="text-xs opacity-50">sec</p>
               </div>
             </div>
@@ -246,9 +246,9 @@ function CheckInTab() {
       <SketchCard padding="md">
         <SketchHeading level={6}>Score Balance</SketchHeading>
         <div className="mt-3 grid grid-cols-2 gap-4">
-          <div className="text-center p-3 rounded-lg bg-purple-500/20">
+          <div className="text-center p-3 rounded-lg bg-amber-500/20">
             <p className="text-xs opacity-70 mb-1">Neynar Score</p>
-            <p className="text-2xl font-bold text-purple-400">
+            <p className="text-2xl font-bold text-amber-400">
               {mockScores.neynarScore.toFixed(2)}
             </p>
           </div>
@@ -301,7 +301,7 @@ function CheckInTab() {
             <p className="text-xs opacity-50 mt-1">🔗 Onchain rewards</p>
           </div>
           <div className="text-right">
-            <p className="text-sm font-bold text-purple-400">Week {onchain.streakWeek}</p>
+            <p className="text-sm font-bold text-amber-400">Week {onchain.streakWeek}</p>
             <p className="text-xs opacity-60">{onchain.streakWeek}x Multiplier</p>
           </div>
         </div>
@@ -344,9 +344,9 @@ function CheckInTab() {
               <p className="sketch-text text-sm opacity-70 mt-2 mb-4">
                 This will send a transaction to Base Network
               </p>
-              <div className="p-3 rounded-lg bg-purple-500/20 mb-4">
+              <div className="p-3 rounded-lg bg-amber-500/20 mb-4">
                 <p className="text-xs opacity-60">Today's Reward</p>
-                <p className="text-2xl font-bold text-green-400">{todayReward} $TYSM</p>
+                <p className="text-2xl font-bold text-amber-400">{todayReward} $TYSM</p>
                 {isLastDayOfWeek && (
                   <p className="text-sm text-yellow-400">{weekBonus} week bonus</p>
                 )}
@@ -374,8 +374,8 @@ function CheckInTab() {
             <div className="text-center">
               <p className="text-5xl mb-3">🎉</p>
               <SketchHeading level={5}>Claim Successful!</SketchHeading>
-              <div className="p-4 rounded-lg bg-green-500/20 border border-green-400 my-4">
-                <p className="text-3xl font-bold text-green-400">{claimedReward} $TYSM</p>
+              <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-400 my-4">
+                <p className="text-3xl font-bold text-amber-400">{claimedReward} $TYSM</p>
                 <p className="text-xs opacity-60 mt-1">sent to your wallet</p>
               </div>
               {txHash && (
@@ -404,13 +404,13 @@ function CheckInTab() {
       <SketchCard padding="md">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>1 Month Milestones</SketchHeading>
-          <p className="text-sm font-bold text-purple-400">Day {onchain.totalStreakDays}</p>
+          <p className="text-sm font-bold text-amber-400">Day {onchain.totalStreakDays}</p>
         </div>
 
         {/* Progress Bar - capped at 30 for display */}
         <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-3">
           <div
-            className="h-full bg-gradient-to-r from-purple-500 to-yellow-400 transition-all"
+            className="h-full bg-gradient-to-r from-blue-500 to-amber-400 transition-all"
             style={{ width: `${Math.min((onchain.totalStreakDays / 30) * 100, 100)}%` }}
           />
         </div>
@@ -478,7 +478,7 @@ function CheckInTab() {
 
               return (
                 <div key={week} className="flex items-center gap-2">
-                  <p className={`text-xs w-16 ${isCurrentWeek ? 'text-purple-400 font-bold' : isFuture ? 'opacity-30' : 'opacity-60'}`}>
+                  <p className={`text-xs w-16 ${isCurrentWeek ? 'text-amber-400 font-bold' : isFuture ? 'opacity-30' : 'opacity-60'}`}>
                     Week {week}
                   </p>
                   <div className="flex-1 h-4 bg-gray-700 rounded-full overflow-hidden">
@@ -490,13 +490,13 @@ function CheckInTab() {
                     )}
                     {isCurrentWeek && (
                       <div
-                        className="h-full bg-purple-500"
+                        className="h-full bg-amber-500"
                         style={{ width: `${(currentProgress / maxReward) * 100}%` }}
                       />
                     )}
                   </div>
                   <p className={`text-sm font-bold w-20 text-right ${
-                    isCompleted ? 'text-green-400' : isCurrentWeek ? 'text-purple-400' : 'opacity-30'
+                    isCompleted ? 'text-green-400' : isCurrentWeek ? 'text-amber-400' : 'opacity-30'
                   }`}>
                     {isCompleted && completedWeekData
                       ? `${completedWeekData.claimed}/${maxReward}`
@@ -510,9 +510,9 @@ function CheckInTab() {
           </div>
 
           {/* Current Week Status */}
-          <div className="mt-3 p-2 rounded bg-purple-500/20 border border-purple-400/50">
+          <div className="mt-3 p-2 rounded bg-amber-500/20 border border-amber-400/50">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-purple-400 font-bold">Week {onchain.streakWeek} • Day {onchain.streakDay}/7</p>
+              <p className="text-xs text-amber-400 font-bold">Week {onchain.streakWeek} • Day {onchain.streakDay}/7</p>
               <p className="text-xs opacity-60">{onchain.streakWeek}x Multiplier</p>
             </div>
           </div>
@@ -548,11 +548,11 @@ function CheckInTab() {
           {/* Stats Summary */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
             <div className="p-2 rounded bg-black/20">
-              <p className="text-lg font-bold text-green-400">{onchain.tysmBalance}</p>
+              <p className="text-lg font-bold text-amber-400">{onchain.tysmBalance}</p>
               <p className="text-xs opacity-60">Total $TYSM</p>
             </div>
             <div className="p-2 rounded bg-black/20">
-              <p className="text-lg font-bold text-purple-400">{onchain.totalStreakDays}</p>
+              <p className="text-lg font-bold text-blue-400">{onchain.totalStreakDays}</p>
               <p className="text-xs opacity-60">Streak Days</p>
             </div>
             <div className="p-2 rounded bg-black/20">
@@ -573,23 +573,23 @@ function CheckInTab() {
           <SketchHeading level={6}>Streak System</SketchHeading>
           <div className="mt-2 space-y-2 text-sm">
             <div className="p-2 rounded bg-black/20">
-              <p className="font-bold text-purple-400">Week 1 (1x)</p>
+              <p className="font-bold text-amber-400">Week 1 (1x)</p>
               <p className="sketch-text opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 $TYSM</p>
             </div>
             <div className="p-2 rounded bg-black/20">
-              <p className="font-bold text-purple-400">Week 2 (2x)</p>
+              <p className="font-bold text-amber-400">Week 2 (2x)</p>
               <p className="sketch-text opacity-70">2, 4, 6, 8, 10, 12, 14 = 56 (14 bonus) = 70 $TYSM</p>
             </div>
             <div className="p-2 rounded bg-black/20">
-              <p className="font-bold text-purple-400">Week 3 (3x)</p>
+              <p className="font-bold text-amber-400">Week 3 (3x)</p>
               <p className="sketch-text opacity-70">3, 6, 9, 12, 15, 18, 21 = 84 (21 bonus) = 105 $TYSM</p>
             </div>
             <div className="p-2 rounded bg-black/20">
-              <p className="font-bold text-purple-400">Week 4 (4x)</p>
+              <p className="font-bold text-amber-400">Week 4 (4x)</p>
               <p className="sketch-text opacity-70">4, 8, 12, 16, 20, 24, 28 = 112 (28 bonus) = 140 $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-purple-500/20 border border-purple-400/50">
-              <p className="font-bold text-purple-400">♾️ Week 5, 6, 7... ∞</p>
+            <div className="p-2 rounded bg-amber-500/20 border border-amber-400/50">
+              <p className="font-bold text-amber-400">♾️ Week 5, 6, 7... ∞</p>
               <p className="sketch-text opacity-70">Multiplier keeps growing! Streak up to 1 year!</p>
             </div>
             <div className="p-2 rounded bg-green-500/20 border border-green-400/50">
@@ -626,7 +626,7 @@ function LiveClaimsTab() {
       <SketchCard padding="md">
         <div className="text-center mb-4">
           <p className="text-xs opacity-60 mb-1">$TYSM Reward Pool</p>
-          <p className="text-3xl font-bold text-green-400">
+          <p className="text-3xl font-bold text-amber-400">
             {mockPool.remainingPool.toLocaleString()}
           </p>
           <p className="text-xs opacity-50">of {mockPool.totalPool.toLocaleString()} $TYSM</p>
@@ -634,7 +634,7 @@ function LiveClaimsTab() {
 
         <div className="w-full h-4 bg-gray-700 rounded-full overflow-hidden mb-3">
           <div
-            className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all"
+            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all"
             style={{ width: `${poolPercentage}%` }}
           />
         </div>
@@ -645,7 +645,7 @@ function LiveClaimsTab() {
             <p className="text-xs opacity-60">Total Claimed</p>
           </div>
           <div className="p-2 rounded bg-black/20">
-            <p className="text-lg font-bold text-purple-400">{mockPool.totalClaimers.toLocaleString()}</p>
+            <p className="text-lg font-bold text-blue-400">{mockPool.totalClaimers.toLocaleString()}</p>
             <p className="text-xs opacity-60">Total Claimers</p>
           </div>
         </div>
@@ -679,7 +679,7 @@ function LiveClaimsTab() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-green-400 font-bold">+{claim.amount} $TYSM</p>
+                <p className="text-amber-400 font-bold">+{claim.amount} $TYSM</p>
                 <button
                   onClick={() => openTxInBrowser(claim.txHash)}
                   className="text-xs text-blue-400 underline"
@@ -737,9 +737,9 @@ function LeaderboardTab() {
       {/* My Rank Card */}
       <SketchCard padding="md">
         <SketchHeading level={6}>Your Ranking</SketchHeading>
-        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-purple-500/20 border border-purple-400">
+        <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-amber-500/20 border border-amber-400">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-full bg-amber-500/30 flex items-center justify-center font-bold text-amber-400">
               #{myRank.rank}
             </div>
             <div>
@@ -748,7 +748,7 @@ function LeaderboardTab() {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xl font-bold text-green-400">{myRank.totalTYSM}</p>
+            <p className="text-xl font-bold text-amber-400">{myRank.totalTYSM}</p>
             <p className="text-xs opacity-50">Week {myRank.streakWeek} streak</p>
           </div>
         </div>
@@ -782,7 +782,7 @@ function LeaderboardTab() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-green-400 font-bold">{user.totalTYSM.toLocaleString()}</p>
+                <p className="text-amber-400 font-bold">{user.totalTYSM.toLocaleString()}</p>
                 <p className="text-xs opacity-50">W{user.streakWeek}</p>
               </div>
             </div>
@@ -798,11 +798,11 @@ function LeaderboardTab() {
             <p className="text-xs opacity-60">Max Week</p>
           </div>
           <div className="p-2 rounded bg-black/20">
-            <p className="text-lg font-bold text-green-400">4,850</p>
+            <p className="text-lg font-bold text-amber-400">4,850</p>
             <p className="text-xs opacity-60">Top $TYSM</p>
           </div>
           <div className="p-2 rounded bg-black/20">
-            <p className="text-lg font-bold text-purple-400">3,847</p>
+            <p className="text-lg font-bold text-blue-400">3,847</p>
             <p className="text-xs opacity-60">Claimers</p>
           </div>
         </div>
