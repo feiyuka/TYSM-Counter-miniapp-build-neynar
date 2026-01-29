@@ -9,10 +9,9 @@ export interface User {
   walletAddress: string;
 }
 
-/** User's score data for qualification check */
+/** User's Neynar score for qualification check */
 export interface UserScores {
   neynarScore: number;
-  quotientScore: number;
 }
 
 /** User's onchain streak data */
@@ -46,7 +45,6 @@ export interface LeaderboardEntry {
   username: string;
   totalTYSM: number;
   streakWeek: number;
-  tier: string;
 }
 
 /** Weekly claim history */
@@ -61,12 +59,6 @@ export interface Milestone {
   day: number;
   bonus: number;
   label: string;
-}
-
-/** Tier information */
-export interface TierInfo {
-  name: string;
-  color: string;
 }
 
 /** Countdown timer values */

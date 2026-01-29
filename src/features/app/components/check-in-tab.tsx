@@ -7,7 +7,7 @@ import { ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/api-hooks';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
-import { meetsMinimumScore, getTier, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
+import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
 import {
   getOrCreateUserStreak,
   performCheckIn,
@@ -81,7 +81,6 @@ export function CheckInTab() {
 
   // Check if user meets minimum score threshold (anti-farming)
   const eligible = meetsMinimumScore(neynarScore);
-  const tier = getTier(neynarScore);
 
   const todayReward = (streak?.streakDay || 1) * (streak?.streakWeek || 1);
   const isLastDayOfWeek = (streak?.streakDay || 1) === 7;
@@ -418,19 +417,6 @@ export function CheckInTab() {
               </>
             )}
           </div>
-
-          {/* Tier Display */}
-          {tier ? (
-            <div className="mt-2 text-center">
-              <P className="text-xs opacity-60">Your Tier</P>
-              <P className={`text-lg font-bold ${tier.color}`}>{tier.name}</P>
-            </div>
-          ) : (
-            <div className="mt-2 text-center">
-              <P className="text-xs opacity-60">Your Tier</P>
-              <P className="text-sm font-bold text-gray-500">⚠️ No Tier (Score too low)</P>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -633,7 +619,6 @@ export function CheckInTab() {
             tysmBalance: (streak?.tysmBalance || 0).toString(),
             streakDay: (streak?.streakDay || 1).toString(),
             streakWeek: (streak?.streakWeek || 1).toString(),
-            tier: tier?.name || 'No Tier',
             username: user?.username || 'Player',
           }}
           variant="secondary"
