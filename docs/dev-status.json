@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "readyToPublish": false,
-  "currentPhase": 4,
+  "currentPhase": 5,
   "startedAt": "2026-01-28T21:42:18.885Z",
-  "lastUpdatedAt": "2026-01-29T01:25:34.703Z",
+  "lastUpdatedAt": "2026-01-29T01:29:42.740Z",
   "completedAt": null,
   "phases": {
     "1": {
@@ -44,23 +44,100 @@
     "4": {
       "name": "feature-planning",
       "displayName": "Planning the Details",
-      "status": "in_progress",
+      "status": "completed",
       "tasks": {
-        "mocks-analyzed": "pending",
-        "wiring-plan-created": "pending",
-        "features-populated": "pending"
+        "mocks-analyzed": "completed",
+        "wiring-plan-created": "completed",
+        "features-populated": "completed"
       }
     },
     "5": {
       "name": "feature-wiring",
       "displayName": "Bringing It to Life",
-      "status": "pending",
+      "status": "in_progress",
       "tasks": {
         "all-features-wired": "pending",
         "share-button-wired": "pending",
         "mocks-file-empty": "pending"
       },
-      "features": {}
+      "features": {
+        "user-profile": {
+          "type": "social",
+          "mockName": "MOCK_USER",
+          "status": "pending",
+          "subSteps": {
+            "sdk-integrated": "pending",
+            "hook-created": "pending",
+            "mock-swapped": "pending",
+            "validated": "pending"
+          }
+        },
+        "user-scores": {
+          "type": "social",
+          "mockName": "MOCK_SCORES",
+          "status": "pending",
+          "subSteps": {
+            "sdk-integrated": "pending",
+            "hook-created": "pending",
+            "mock-swapped": "pending",
+            "validated": "pending"
+          }
+        },
+        "user-streak": {
+          "type": "database",
+          "mockName": "MOCK_STREAK",
+          "status": "pending",
+          "subSteps": {
+            "schema-created": "pending",
+            "actions-created": "pending",
+            "hook-created": "pending",
+            "mock-swapped": "pending",
+            "validated": "pending"
+          }
+        },
+        "pool-stats": {
+          "type": "database",
+          "mockName": "MOCK_POOL",
+          "status": "pending",
+          "subSteps": {
+            "actions-created": "pending",
+            "hook-created": "pending",
+            "mock-swapped": "pending",
+            "validated": "pending"
+          }
+        },
+        "live-claims": {
+          "type": "database",
+          "mockName": "MOCK_LIVE_CLAIMS",
+          "status": "pending",
+          "subSteps": {
+            "schema-created": "pending",
+            "actions-created": "pending",
+            "hook-created": "pending",
+            "mock-swapped": "pending",
+            "validated": "pending"
+          }
+        },
+        "leaderboard": {
+          "type": "database",
+          "mockName": "MOCK_LEADERBOARD",
+          "status": "pending",
+          "subSteps": {
+            "actions-created": "pending",
+            "hook-created": "pending",
+            "mock-swapped": "pending",
+            "validated": "pending"
+          }
+        },
+        "share-button": {
+          "type": "sharing",
+          "status": "pending",
+          "subSteps": {
+            "share-manager-delegated": "pending",
+            "validated": "pending"
+          }
+        }
+      }
     },
     "6": {
       "name": "post-launch",
