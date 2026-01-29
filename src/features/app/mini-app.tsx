@@ -425,10 +425,10 @@ function CheckInTab() {
                 key={milestone.day}
                 className={`flex items-center justify-between p-2 rounded ${
                   achieved
-                    ? 'bg-green-500/20 border border-green-400'
+                    ? 'bg-green-500/20 border-2 border-green-400'
                     : isNext
-                    ? 'bg-yellow-500/20 border border-yellow-400'
-                    : 'bg-black/20 opacity-50'
+                    ? 'bg-yellow-500/20 border-2 border-yellow-400'
+                    : 'bg-black/20 border-2 border-gray-500/50 opacity-50'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -528,8 +528,8 @@ function CheckInTab() {
                     key={milestone.day}
                     className={`flex items-center justify-between p-2 rounded ${
                       achieved
-                        ? 'bg-green-500/20 border border-green-400'
-                        : 'bg-black/20 opacity-50'
+                        ? 'bg-green-500/20 border-2 border-green-400'
+                        : 'bg-black/20 border-2 border-gray-500/50 opacity-50'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -547,15 +547,15 @@ function CheckInTab() {
 
           {/* Stats Summary */}
           <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="text-lg font-bold text-amber-400">{onchain.tysmBalance}</p>
               <p className="text-xs opacity-60">Total $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-blue-400/60">
               <p className="text-lg font-bold text-blue-400">{onchain.totalStreakDays}</p>
               <p className="text-xs opacity-60">Streak Days</p>
             </div>
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-yellow-400/60">
               <p className="text-lg font-bold text-yellow-400">{onchain.streakWeek}</p>
               <p className="text-xs opacity-60">Current Week</p>
             </div>
@@ -572,31 +572,31 @@ function CheckInTab() {
         <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
           <SketchHeading level={6}>Streak System</SketchHeading>
           <div className="mt-2 space-y-2 text-sm">
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="font-bold text-amber-400">Week 1 (1x)</p>
               <p className="sketch-text opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="font-bold text-amber-400">Week 2 (2x)</p>
               <p className="sketch-text opacity-70">2, 4, 6, 8, 10, 12, 14 = 56 (14 bonus) = 70 $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="font-bold text-amber-400">Week 3 (3x)</p>
               <p className="sketch-text opacity-70">3, 6, 9, 12, 15, 18, 21 = 84 (21 bonus) = 105 $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-black/20">
+            <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="font-bold text-amber-400">Week 4 (4x)</p>
               <p className="sketch-text opacity-70">4, 8, 12, 16, 20, 24, 28 = 112 (28 bonus) = 140 $TYSM</p>
             </div>
-            <div className="p-2 rounded bg-amber-500/20 border border-amber-400/50">
+            <div className="p-2 rounded bg-amber-500/20 border-2 border-amber-400">
               <p className="font-bold text-amber-400">♾️ Week 5, 6, 7... ∞</p>
               <p className="sketch-text opacity-70">Multiplier keeps growing! Streak up to 1 year!</p>
             </div>
-            <div className="p-2 rounded bg-green-500/20 border border-green-400/50">
+            <div className="p-2 rounded bg-green-500/20 border-2 border-green-400">
               <p className="font-bold text-green-400">🎯 1 Month Milestone</p>
               <p className="sketch-text opacity-70">Day 29: 500 | Day 30: 1000 $TYSM (one-time bonus)</p>
             </div>
-            <div className="p-2 rounded bg-red-500/20 border border-red-400/50">
+            <div className="p-2 rounded bg-red-500/20 border-2 border-red-400">
               <p className="font-bold text-red-400">⚠️ Miss a Day?</p>
               <p className="sketch-text opacity-70">Streak resets to Week 1, Day 1!</p>
             </div>
@@ -665,7 +665,7 @@ function LiveClaimsTab() {
           {mockLiveClaims.map((claim, i) => (
             <div
               key={i}
-              className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors"
+              className="flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-black/30 transition-colors border-2 border-amber-400/60"
             >
               <div className="flex items-center gap-3">
                 <img
@@ -722,7 +722,7 @@ function LeaderboardTab() {
     if (rank === 1) return 'bg-yellow-500/30 border-yellow-400';
     if (rank === 2) return 'bg-gray-400/30 border-gray-300';
     if (rank === 3) return 'bg-orange-500/30 border-orange-400';
-    return 'bg-black/20 border-transparent';
+    return 'bg-black/20 border-blue-400/50';
   };
 
   const getRankBadge = (rank: number) => {
@@ -765,7 +765,7 @@ function LeaderboardTab() {
           {mockLeaderboard.map((user) => (
             <div
               key={user.rank}
-              className={`flex items-center justify-between p-3 rounded-lg border ${getRankStyle(user.rank)}`}
+              className={`flex items-center justify-between p-3 rounded-lg border-2 ${getRankStyle(user.rank)}`}
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 text-center font-bold text-lg">
