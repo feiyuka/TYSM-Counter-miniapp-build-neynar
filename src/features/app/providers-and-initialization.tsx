@@ -7,6 +7,7 @@ import {
   InitializeFarcasterMiniApp,
   useInitializeFarcasterApp,
 } from "@/neynar-farcaster-sdk/mini";
+import { NeynarWagmiProvider } from "@/neynar-web-sdk/blockchain";
 
 export function ProvidersAndInitialization({
   children,
@@ -20,6 +21,7 @@ export function ProvidersAndInitialization({
     <JotaiProvider>
       <QueryClientProvider client={queryClient}>
         {/* LLMs: Add additional providers between here */}
+        <NeynarWagmiProvider />
         {/* and here */}
         {/* LLMs: Do not remove, initialization must be last, before children */}
         <InitializeFarcasterMiniApp />
