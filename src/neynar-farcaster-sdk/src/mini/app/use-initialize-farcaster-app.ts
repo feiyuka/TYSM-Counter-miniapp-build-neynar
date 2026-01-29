@@ -43,28 +43,10 @@ export function useInitializeFarcasterApp() {
     hasInitializedRef.current = true;
 
     async function initialize() {
-      // Step 1: Back button setup (if creator context)
-      const isCreator = publicConfig.fid;
-      const returnUrl = `https://ai.neynar.com/studio`;
-      const backButtonEnabled = Boolean(returnUrl && isCreator);
+      // Back button disabled - let Farcaster handle native navigation
+      // No custom returnUrl needed
 
-      if (backButtonEnabled && returnUrl) {
-        try {
-          const handleBack = () => {
-            try {
-              sdk.actions.openMiniApp({ url: returnUrl });
-            } catch (e) {
-              console.error("[Back Navigation] Failed:", e);
-            }
-          };
-          sdk.back.onback = handleBack;
-          await sdk.back.show();
-        } catch (e) {
-          console.error("Failed to enable back navigation:", e);
-        }
-      }
-
-      // Step 2: Mark SDK as ready
+      // Step 1: Mark SDK as ready
       await sdk.actions.ready();
       setSdkReady(true);
 
