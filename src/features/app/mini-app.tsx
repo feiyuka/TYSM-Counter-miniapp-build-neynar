@@ -181,7 +181,7 @@ function CheckInTab() {
   return (
     <div className="space-y-4">
       {/* User Profile with Wallet */}
-      <SketchCard padding="md" className="border-2 border-amber-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <div className="flex items-center gap-3">
           <img
             src={mockUser.pfpUrl}
@@ -201,7 +201,7 @@ function CheckInTab() {
 
       {/* Countdown Timer - Next Check-in */}
       {todayClaimed && (
-        <SketchCard padding="sm" className="border-2 border-blue-400/50 rounded-xl">
+        <SketchCard padding="sm" className="border-[3px] border-blue-400 rounded-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-lg">⏰</span>
@@ -229,7 +229,7 @@ function CheckInTab() {
 
       {/* Streak Reminder Warning */}
       {!todayClaimed && countdown.total < 3600000 && (
-        <SketchCard padding="sm" className="border-2 border-yellow-400/50 rounded-xl">
+        <SketchCard padding="sm" className="border-[3px] border-yellow-400 rounded-xl">
           <div className="flex items-center gap-3 text-yellow-400">
             <span className="text-2xl animate-bounce">🔔</span>
             <div>
@@ -243,7 +243,7 @@ function CheckInTab() {
       )}
 
       {/* Score Balance Check */}
-      <SketchCard padding="md" className="border-2 border-blue-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
         <SketchHeading level={6}>Score Balance</SketchHeading>
         <div className="mt-3 grid grid-cols-2 gap-4">
           <div className="text-center p-3 rounded-lg bg-amber-500/20">
@@ -294,7 +294,7 @@ function CheckInTab() {
       </SketchCard>
 
       {/* Daily Onchain Check-in */}
-      <SketchCard padding="md" className="border-2 border-amber-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <div>
             <SketchHeading level={6}>Daily Check-in</SketchHeading>
@@ -401,7 +401,7 @@ function CheckInTab() {
       )}
 
       {/* 1 Month Milestone Progress */}
-      <SketchCard padding="md" className="border-2 border-amber-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>1 Month Milestones</SketchHeading>
           <p className="text-sm font-bold text-amber-400">Day {onchain.totalStreakDays}</p>
@@ -461,7 +461,7 @@ function CheckInTab() {
       </SketchButton>
 
       {showStats && (
-        <SketchCard padding="md" className="border-2 border-blue-400/50 rounded-xl">
+        <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
           <SketchHeading level={6}>My Progress</SketchHeading>
 
           {/* Week 1-4 Progress */}
@@ -569,7 +569,7 @@ function CheckInTab() {
       </SketchButton>
 
       {showHistory && (
-        <SketchCard padding="sm" className="border-2 border-amber-400/50 rounded-xl">
+        <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
           <SketchHeading level={6}>Streak System</SketchHeading>
           <div className="mt-2 space-y-2 text-sm">
             <div className="p-2 rounded bg-black/20">
@@ -623,7 +623,7 @@ function LiveClaimsTab() {
   return (
     <div className="space-y-4">
       {/* Pool Stats */}
-      <SketchCard padding="md" className="border-2 border-amber-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <div className="text-center mb-4">
           <p className="text-xs opacity-60 mb-1">$TYSM Reward Pool</p>
           <p className="text-3xl font-bold text-amber-400">
@@ -652,7 +652,7 @@ function LiveClaimsTab() {
       </SketchCard>
 
       {/* Live Claims Feed */}
-      <SketchCard padding="md" className="border-2 border-blue-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>Live Claims</SketchHeading>
           <div className="flex items-center gap-2">
@@ -697,7 +697,7 @@ function LiveClaimsTab() {
       </SketchCard>
 
       {/* Pool Info */}
-      <SketchCard padding="sm" className="border-2 border-green-400/50 rounded-xl">
+      <SketchCard padding="sm" className="border-[3px] border-green-400 rounded-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -735,7 +735,7 @@ function LeaderboardTab() {
   return (
     <div className="space-y-4">
       {/* My Rank Card */}
-      <SketchCard padding="md" className="border-2 border-amber-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-amber-400 rounded-xl">
         <SketchHeading level={6}>Your Ranking</SketchHeading>
         <div className="mt-3 flex items-center justify-between p-3 rounded-lg bg-amber-500/20 border border-amber-400">
           <div className="flex items-center gap-3">
@@ -755,7 +755,7 @@ function LeaderboardTab() {
       </SketchCard>
 
       {/* Top 10 Leaderboard */}
-      <SketchCard padding="md" className="border-2 border-blue-400/50 rounded-xl">
+      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
         <div className="flex items-center justify-between mb-3">
           <SketchHeading level={6}>Top Claimers</SketchHeading>
           <p className="text-xs opacity-50">All Time</p>
@@ -791,7 +791,7 @@ function LeaderboardTab() {
       </SketchCard>
 
       {/* Stats */}
-      <SketchCard padding="sm" className="border-2 border-amber-400/50 rounded-xl">
+      <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="p-2 rounded bg-black/20 border border-yellow-400/30">
             <p className="text-lg font-bold text-yellow-400">12</p>
@@ -818,7 +818,7 @@ function CustomHeader() {
       <img
         src="/app-logo.png"
         alt="TYSM"
-        className="w-10 h-10 rounded-full border-2 border-amber-400"
+        className="w-10 h-10 rounded-full border-[3px] border-amber-400"
       />
       <h1 className="text-xl font-bold text-amber-400">TYSM Counter</h1>
     </div>
