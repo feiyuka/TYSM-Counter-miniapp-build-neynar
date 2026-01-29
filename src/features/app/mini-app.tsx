@@ -311,9 +311,12 @@ function CheckInTab() {
                   <p className="text-sm opacity-70 mt-2">Confirming transaction...</p>
                 </div>
               ) : (
-                <SketchButton variant="primary" onClick={handleCheckInClick}>
+                <button
+                  onClick={handleCheckInClick}
+                  className="w-full py-4 rounded-xl border-[3px] border-amber-400 bg-amber-500/30 text-amber-400 font-bold text-lg hover:bg-amber-500/50 transition-colors"
+                >
                   🔥 Check In
-                </SketchButton>
+                </button>
               )}
             </div>
           ) : (
