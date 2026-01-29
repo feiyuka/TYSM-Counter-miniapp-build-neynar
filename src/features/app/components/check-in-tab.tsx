@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
-import { ShareButton } from '@/neynar-farcaster-sdk/mini';
-import { useShare } from '@/neynar-farcaster-sdk/src/mini/components/share/use-share';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -23,7 +21,6 @@ import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
   const { address: walletAddress } = useAccount();
-  const { share } = useShare();
 
   // Fetch real Neynar Score from API with experimental features
   const { data: neynarUser, isLoading: scoreLoading } = useUser(
@@ -249,7 +246,7 @@ export function CheckInTab() {
     };
 
     handleTxSuccess();
-  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak, share, streak]);
+  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak, streak]);
 
   const openTxInBrowser = () => {
     if (txHash) {
