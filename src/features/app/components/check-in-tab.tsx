@@ -302,7 +302,7 @@ export function CheckInTab() {
       )}
 
       {/* Share Icon - Top Left */}
-      <button onClick={handleShareApp} className="absolute -top-10 left-0 w-8 h-8 rounded-full border border-purple-400/60 bg-purple-500/30 text-purple-300 font-bold flex items-center justify-center hover:bg-purple-500/50 transition-colors text-sm">📤</button>
+      <button onClick={handleShareApp} className="absolute -top-10 left-0 w-8 h-8 rounded-full border border-purple-400/60 bg-purple-500/30 text-purple-300 font-bold flex items-center justify-center hover:bg-purple-500/50 transition-colors text-sm">🚀</button>
 
       {/* Help Icon - Top Right */}
       <button onClick={() => setShowStreakInfo(true)} className="absolute -top-10 right-0 w-8 h-8 rounded-full border border-amber-400/60 bg-amber-500/30 text-amber-400 font-bold flex items-center justify-center hover:bg-amber-500/50 transition-colors">❓</button>
