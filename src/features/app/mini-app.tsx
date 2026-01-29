@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-  SketchMiniLayout,
   SketchButton,
   SketchCard,
   SketchHeading,
@@ -106,9 +105,6 @@ function getTimeUntilReset() {
 
 function CheckInTab() {
   const [onchain, setOnchain] = useState(mockOnchain);
-  const [showHistory, setShowHistory] = useState(false);
-  const [showMilestones, setShowMilestones] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [txPending, setTxPending] = useState(false);
   const [todayClaimed, setTodayClaimed] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
@@ -455,17 +451,9 @@ function CheckInTab() {
         )}
       </SketchCard>
 
-      {/* Personal Stats */}
-      <button
-        onClick={() => setShowStats(!showStats)}
-        className="w-full p-3 rounded-xl border-[3px] border-blue-400 bg-blue-500/20 text-blue-400 font-bold hover:bg-blue-500/30 transition-colors"
-      >
-        {showStats ? 'Hide My Stats' : '📊 View My Stats'}
-      </button>
-
-      {showStats && (
-        <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
-          <SketchHeading level={6}>My Progress</SketchHeading>
+      {/* Personal Stats - Always Visible */}
+      <SketchCard padding="md" className="border-[3px] border-blue-400 rounded-xl">
+        <SketchHeading level={6}>📊 My Stats</SketchHeading>
 
           {/* Week 1-4 Progress */}
           <div className="mt-3 space-y-2">
@@ -564,19 +552,10 @@ function CheckInTab() {
             </div>
           </div>
         </SketchCard>
-      )}
 
-      {/* Streak Info Toggle */}
-      <button
-        onClick={() => setShowHistory(!showHistory)}
-        className="w-full p-3 rounded-xl border-[3px] border-amber-400 bg-amber-500/20 text-amber-400 font-bold hover:bg-amber-500/30 transition-colors"
-      >
-        {showHistory ? 'Hide Streak Info' : '❓ How Streaks Work'}
-      </button>
-
-      {showHistory && (
-        <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
-          <SketchHeading level={6}>Streak System</SketchHeading>
+      {/* Streak Info - Always Visible */}
+      <SketchCard padding="sm" className="border-[3px] border-amber-400 rounded-xl">
+        <SketchHeading level={6}>❓ How Streaks Work</SketchHeading>
           <div className="mt-2 space-y-2 text-sm">
             <div className="p-2 rounded bg-black/20 border-2 border-amber-400/60">
               <p className="font-bold text-amber-400">Week 1 (1x)</p>
@@ -608,7 +587,6 @@ function CheckInTab() {
             </div>
           </div>
         </SketchCard>
-      )}
 
       {/* Share Button */}
       {todayClaimed && (
@@ -832,15 +810,37 @@ function CustomHeader() {
 }
 
 export function MiniApp() {
+  const [activeTab, setActiveTab] = useState(0);
+
+  const tabs = [
+    { label: '🎁 Check-in', content: <><CustomHeader /><CheckInTab /></> },
+    { label: '📡 Live', content: <><CustomHeader /><LiveClaimsTab /></> },
+    { label: '🏆 Leaderboard', content: <><CustomHeader /><LeaderboardTab /></> },
+  ];
+
   return (
-    <SketchMiniLayout
-      title=""
-      mode="tabs"
-      tabs={[
-        { label: '🎁 Check-in', content: <><CustomHeader /><CheckInTab /></> },
-        { label: '📡 Live', content: <><CustomHeader /><LiveClaimsTab /></> },
-        { label: '🏆 Leaderboard', content: <><CustomHeader /><LeaderboardTab /></> },
-      ]}
-    />
+    <div className="h-dvh flex flex-col bg-black text-white">
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {tabs[activeTab].content}
+      </div>
+
+      {/* Bottom Tab Navigation */}
+      <div className="flex border-t-[3px] border-amber-400 bg-black/90">
+        {tabs.map((tab, index) => (
+          <button
+            key={index}
+            onClick={() => setActiveTab(index)}
+            className={`flex-1 py-3 text-sm font-bold transition-colors ${
+              activeTab === index
+                ? 'bg-amber-500/30 text-amber-400 border-t-2 border-amber-400'
+                : 'text-gray-400 hover:bg-amber-500/10'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
