@@ -260,12 +260,14 @@ export function LiveClaimsTab() {
             <>
               <div className="space-y-2">
                 {claims.map((claim) => (
-                  <button
+                  <div
                     key={claim.id}
-                    onClick={() => handleUserClick(claim.fid, claim.username)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-blue-500/20 transition-colors border border-amber-400/60 text-left"
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-black/20 hover:bg-blue-500/20 transition-colors border border-amber-400/60"
                   >
-                    <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleUserClick(claim.fid, claim.username)}
+                      className="flex items-center gap-3 text-left"
+                    >
                       <img
                         src={claim.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
                         alt={claim.username}
@@ -275,20 +277,17 @@ export function LiveClaimsTab() {
                         <P className="font-medium text-sm">@{claim.username}</P>
                         <P className="text-xs opacity-50">{claim.time}</P>
                       </div>
-                    </div>
+                    </button>
                     <div className="text-right">
                       <P className="text-amber-400 font-bold">+{claim.amount} TYSM</P>
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openTxInBrowser(claim.txHash);
-                        }}
+                        onClick={() => openTxInBrowser(claim.txHash)}
                         className="text-xs text-blue-400 underline"
                       >
                         {claim.txHash.slice(0, 6)}...{claim.txHash.slice(-4)}
                       </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
               <div className="mt-4 text-center">
