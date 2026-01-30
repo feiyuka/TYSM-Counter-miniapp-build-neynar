@@ -37,6 +37,20 @@ interface SelectedUser {
   username: string;
 }
 
+// Real-time User Avatar Component - fetches live photo from Neynar
+function UserAvatar({ fid, username, className }: { fid: number; username: string; className?: string }) {
+  const { data: userData } = useUser(fid);
+  const fallbackUrl = `https://api.dicebear.com/9.x/lorelei/svg?seed=${username}`;
+
+  return (
+    <img
+      src={userData?.pfp_url || fallbackUrl}
+      alt={username}
+      className={className || "w-8 h-8 rounded-full"}
+    />
+  );
+}
+
 // User Profile Popup Component
 function UserProfilePopup({
   user,
@@ -275,11 +289,7 @@ export function LeaderboardTab() {
                       <div className="w-8 text-center font-bold text-lg">
                         {getRankBadge(entry.rank)}
                       </div>
-                      <img
-                        src={entry.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${entry.username}`}
-                        alt={entry.username}
-                        className="w-8 h-8 rounded-full"
-                      />
+                      <UserAvatar fid={entry.fid} username={entry.username} className="w-8 h-8 rounded-full" />
                       <div>
                         <P className="font-medium text-sm">@{entry.username}</P>
                         <P className="text-xs opacity-50">{entry.tier}</P>

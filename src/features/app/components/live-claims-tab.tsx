@@ -29,6 +29,20 @@ interface SelectedUser {
   username: string;
 }
 
+// Real-time User Avatar Component - fetches live photo from Neynar
+function UserAvatar({ fid, username, className }: { fid: number; username: string; className?: string }) {
+  const { data: userData } = useUser(fid);
+  const fallbackUrl = `https://api.dicebear.com/9.x/lorelei/svg?seed=${username}`;
+
+  return (
+    <img
+      src={userData?.pfp_url || fallbackUrl}
+      alt={username}
+      className={className || "w-8 h-8 rounded-full"}
+    />
+  );
+}
+
 // User Profile Popup Component
 function UserProfilePopup({
   user,
@@ -268,11 +282,7 @@ export function LiveClaimsTab() {
                       onClick={() => handleUserClick(claim.fid, claim.username)}
                       className="flex items-center gap-3 text-left"
                     >
-                      <img
-                        src={claim.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
-                        alt={claim.username}
-                        className="w-8 h-8 rounded-full"
-                      />
+                      <UserAvatar fid={claim.fid} username={claim.username} className="w-8 h-8 rounded-full" />
                       <div>
                         <P className="font-medium text-sm">@{claim.username}</P>
                         <P className="text-xs opacity-50">{claim.time}</P>
