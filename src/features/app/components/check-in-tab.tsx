@@ -364,7 +364,7 @@ export function CheckInTab() {
             <div className="flex items-center gap-3 text-yellow-400">
               <span className="text-2xl animate-bounce">🔔</span>
               <div>
-                <P className="font-bold">Don't lose your streak!</P>
+                <P className="font-bold">Don&apos;t lose your streak!</P>
                 <P className="text-xs opacity-70">Only {countdown.hours}h {countdown.minutes}m left to check in today</P>
               </div>
             </div>

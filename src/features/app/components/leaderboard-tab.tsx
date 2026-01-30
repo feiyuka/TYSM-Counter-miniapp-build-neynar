@@ -6,6 +6,7 @@ import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { getTopClaimers, getUserRank, getLeaderboardStats } from '@/db/actions/leaderboard-actions';
 import { getRankBadge, getRankStyle } from '@/features/app/utils';
 import { useUser, useCastsByUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
+import type { Cast } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 
 interface LeaderboardEntry {
   rank: number;
@@ -118,7 +119,7 @@ function UserProfilePopup({
                 </div>
               ) : castsData?.pages?.[0]?.items && castsData.pages[0].items.length > 0 ? (
                 <div className="space-y-2 mb-4">
-                  {castsData.pages[0].items.slice(0, 3).map((cast: any) => (
+                  {castsData.pages[0].items.slice(0, 3).map((cast: Cast) => (
                     <div key={cast.hash} className="p-2 rounded bg-black/20 border border-gray-600">
                       <P className="text-sm opacity-80 line-clamp-2">{cast.text}</P>
                       <P className="text-xs opacity-40 mt-1">
