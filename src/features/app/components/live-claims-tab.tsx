@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, H6, P, Button } from '@neynar/ui';
 import { getRecentClaims, getPoolStats } from '@/db/actions/claim-actions';
-import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useUserCasts } from '@/neynar-web-sdk/src/neynar/api-hooks';
+import { useUser, useCastsByUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 
 interface PoolStats {
   totalPool: number;
@@ -37,7 +36,7 @@ function UserProfilePopup({
   onClose: () => void;
 }) {
   const { data: userData, isLoading: userLoading } = useUser(user.fid);
-  const { data: castsData, isLoading: castsLoading } = useUserCasts(user.fid, { limit: 3 });
+  const { data: castsData, isLoading: castsLoading } = useCastsByUser(user.fid, { limit: 3 });
 
   const visitProfile = () => {
     window.open(`https://warpcast.com/${user.username}`, '_blank');
@@ -109,9 +108,9 @@ function UserProfilePopup({
                   <div className="h-16 bg-gray-700 rounded" />
                   <div className="h-16 bg-gray-700 rounded" />
                 </div>
-              ) : castsData?.casts && castsData.casts.length > 0 ? (
+              ) : castsData?.pages?.[0]?.items && castsData.pages[0].items.length > 0 ? (
                 <div className="space-y-2 mb-4">
-                  {castsData.casts.slice(0, 3).map((cast: any) => (
+                  {castsData.pages[0].items.slice(0, 3).map((cast: any) => (
                     <div key={cast.hash} className="p-2 rounded bg-black/20 border border-gray-600">
                       <P className="text-sm opacity-80 line-clamp-2">{cast.text}</P>
                       <P className="text-xs opacity-40 mt-1">
