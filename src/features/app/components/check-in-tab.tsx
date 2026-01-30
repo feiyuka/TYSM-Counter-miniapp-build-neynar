@@ -187,8 +187,8 @@ export function CheckInTab() {
       txProcessedRef.current = txData;
       setTxHash(txData);
 
-      const result = await performCheckIn(user.fid, user.username || 'user');
-      await saveClaim(user.fid, user.username || 'user', claimedReward, txData);
+      const result = await performCheckIn(user.fid, user.username || 'user', user.pfpUrl);
+      await saveClaim(user.fid, user.username || 'user', claimedReward, txData, user.pfpUrl);
 
       if (result.streak) {
         setStreak({

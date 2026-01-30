@@ -12,6 +12,7 @@ interface LeaderboardEntry {
   rank: number;
   fid: number;
   username: string;
+  pfpUrl?: string | null;
   totalTYSM: number;
   streakWeek: number;
   tier: string;
@@ -275,7 +276,7 @@ export function LeaderboardTab() {
                         {getRankBadge(entry.rank)}
                       </div>
                       <img
-                        src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${entry.username}`}
+                        src={entry.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${entry.username}`}
                         alt={entry.username}
                         className="w-8 h-8 rounded-full"
                       />

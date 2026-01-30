@@ -11,11 +11,13 @@ export async function saveClaim(
   fid: number,
   username: string,
   amount: number,
-  txHash: string
+  txHash: string,
+  pfpUrl?: string
 ) {
   await db.insert(claims).values({
     fid,
     username,
+    pfpUrl,
     amount,
     txHash,
   });

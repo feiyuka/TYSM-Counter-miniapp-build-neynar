@@ -20,14 +20,25 @@ export async function getUserStreak(fid: number) {
 /**
  * Create or get user streak record
  */
-export async function getOrCreateUserStreak(fid: number, username: string) {
+export async function getOrCreateUserStreak(fid: number, username: string, pfpUrl?: string) {
   const existing = await getUserStreak(fid);
+
+  // Update pfpUrl if it changed
+  if (existing && pfpUrl && existing.pfpUrl !== pfpUrl) {
+    await db
+      .update(userStreaks)
+      .set({ pfpUrl, updatedAt: new Date() })
+      .where(eq(userStreaks.fid, fid));
+    return getUserStreak(fid);
+  }
+
   if (existing) return existing;
 
   // Create new user
   await db.insert(userStreaks).values({
     fid,
     username,
+    pfpUrl,
     tysmBalance: 0,
     streakDay: 1,
     streakWeek: 1,
@@ -84,9 +95,9 @@ export async function shouldResetStreak(fid: number): Promise<boolean> {
  * Perform daily check-in
  * Returns the reward amount and new streak data
  */
-export async function performCheckIn(fid: number, username: string) {
+export async function performCheckIn(fid: number, username: string, pfpUrl?: string) {
   // Get or create user
-  let streak = await getOrCreateUserStreak(fid, username);
+  let streak = await getOrCreateUserStreak(fid, username, pfpUrl);
   if (!streak) throw new Error('Failed to create user streak');
 
   // Check if already checked in today

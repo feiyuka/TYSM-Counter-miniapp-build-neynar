@@ -30,6 +30,7 @@ export async function getTopClaimers(limit: number = 10) {
     rank: index + 1,
     fid: user.fid,
     username: user.username,
+    pfpUrl: user.pfpUrl,
     totalTYSM: user.tysmBalance,
     streakWeek: user.streakWeek,
     tier: getTierFromBalance(user.tysmBalance),
@@ -60,6 +61,7 @@ export async function getUserRank(fid: number) {
   return {
     rank: Number(result[0]?.rank ?? 1),
     username: user[0].username,
+    pfpUrl: user[0].pfpUrl,
     totalTYSM: user[0].tysmBalance,
     streakWeek: user[0].streakWeek,
     tier: getTierFromBalance(user[0].tysmBalance),

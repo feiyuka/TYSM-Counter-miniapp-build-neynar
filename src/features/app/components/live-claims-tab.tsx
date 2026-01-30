@@ -17,6 +17,7 @@ interface LiveClaim {
   id: string;
   fid: number;
   username: string;
+  pfpUrl?: string | null;
   amount: number;
   txHash: string;
   createdAt: Date;
@@ -266,7 +267,7 @@ export function LiveClaimsTab() {
                   >
                     <div className="flex items-center gap-3">
                       <img
-                        src={`https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
+                        src={claim.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${claim.username}`}
                         alt={claim.username}
                         className="w-8 h-8 rounded-full"
                       />
