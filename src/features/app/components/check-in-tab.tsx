@@ -506,13 +506,13 @@ export function CheckInTab() {
               const achieved = (streak?.totalStreakDays || 0) >= milestone.day;
               const isNext = nextMilestone?.day === milestone.day;
               return (
-                <div key={milestone.day} className={`flex items-center justify-between p-2 rounded ${achieved ? 'bg-green-500/20 border border-green-400/60' : isNext ? 'bg-yellow-500/20 border border-yellow-400/60' : 'bg-black/20 border border-gray-500/40 opacity-50'}`}>
+                <div key={milestone.day} className={`flex items-center justify-between p-2 rounded ${achieved ? 'bg-green-500/20 border border-green-400/60' : isNext ? 'bg-yellow-500/20 border border-yellow-400/60' : 'bg-blue-500/20 border border-blue-400/40'}`}>
                   <div className="flex items-center gap-2">
-                    <span>{achieved ? '✅' : isNext ? '🎯' : '⬜'}</span>
-                    <span className="text-sm font-medium">{milestone.label}</span>
-                    <span className="text-xs opacity-50">Day {milestone.day}</span>
+                    <span>{achieved ? '✅' : isNext ? '🎯' : '💙'}</span>
+                    <span className={`text-sm font-medium ${!achieved && !isNext ? 'text-blue-300' : ''}`}>{milestone.label}</span>
+                    <span className={`text-xs ${!achieved && !isNext ? 'text-blue-400/70' : 'opacity-50'}`}>Day {milestone.day}</span>
                   </div>
-                  <span className={`font-bold ${achieved ? 'text-green-400' : isNext ? 'text-yellow-400' : ''}`}>{milestone.bonus} TYSM</span>
+                  <span className={`font-bold ${achieved ? 'text-green-400' : isNext ? 'text-yellow-400' : 'text-blue-300'}`}>{milestone.bonus} TYSM</span>
                 </div>
               );
             })}
