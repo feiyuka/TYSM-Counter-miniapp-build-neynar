@@ -97,8 +97,8 @@ function UserProfilePopup({
                   <P className="text-xs opacity-60">Following</P>
                 </div>
                 <div className="p-2 rounded bg-black/20 border border-gray-600">
-                  <P className="text-lg font-bold text-white">{userData.active_status === 'active' ? '🟢' : '⚪'}</P>
-                  <P className="text-xs opacity-60">Status</P>
+                  <P className="text-lg font-bold text-white">{userData.power_badge ? '⚡' : '👤'}</P>
+                  <P className="text-xs opacity-60">Badge</P>
                 </div>
               </div>
 
