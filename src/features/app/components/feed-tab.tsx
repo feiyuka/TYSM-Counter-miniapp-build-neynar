@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useOnchainNetworkTrendingPools, useOnchainTokensRecentlyUpdated } from '@/neynar-web-sdk/src/coingecko/api-hooks';
@@ -10,70 +10,10 @@ import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/ap
 type FeedSection = 'casts' | 'tokens' | 'apps';
 type TokenSubTab = 'trending' | 'new';
 
-// Detect if running inside Farcaster app (Warpcast) or Base app
-function usePlatformDetection() {
-  const [platform, setPlatform] = useState<'farcaster' | 'base' | 'browser'>('browser');
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isInIframe = window !== window.parent;
-
-    // Check for Farcaster/Warpcast
-    if (userAgent.includes('warpcast') ||
-        userAgent.includes('farcaster') ||
-        document.referrer.includes('warpcast.com') ||
-        document.referrer.includes('farcaster')) {
-      setPlatform('farcaster');
-    }
-    // Check for Base app
-    else if (userAgent.includes('base') ||
-             document.referrer.includes('base.org') ||
-             document.referrer.includes('wallet.coinbase.com')) {
-      setPlatform('base');
-    }
-    // If in iframe, likely a mini app context - default to farcaster
-    else if (isInIframe) {
-      setPlatform('farcaster');
-    }
-  }, []);
-
-  return platform;
-}
-
-// Generate swap/buy URL based on platform and token address
-function getTokenActionUrl(tokenAddress: string, platform: 'farcaster' | 'base' | 'browser'): string {
-  // Base network chain ID
+// Generate Farcaster Wallet swap URL for token on Base
+function getSwapUrl(tokenAddress: string): string {
   const baseChainId = 8453;
-
-  switch (platform) {
-    case 'farcaster':
-      // Farcaster Wallet swap URL (uses Uniswap under the hood)
-      // Format: https://warpcast.com/~/swap?token=<address>&chain=<chainId>
-      return `https://warpcast.com/~/swap?token=${tokenAddress}&chain=${baseChainId}`;
-
-    case 'base':
-      // Base app / Coinbase Wallet - use Coinbase Commerce or direct swap
-      // Format: https://wallet.coinbase.com/swap?outputCurrency=<address>&chain=base
-      return `https://wallet.coinbase.com/swap?outputCurrency=${tokenAddress}&chain=base`;
-
-    default:
-      // Fallback to GeckoTerminal for browser users
-      return `https://www.geckoterminal.com/base/tokens/${tokenAddress}`;
-  }
-}
-
-// Get action button label based on platform
-function getTokenActionLabel(platform: 'farcaster' | 'base' | 'browser'): string {
-  switch (platform) {
-    case 'farcaster':
-      return 'Swap';
-    case 'base':
-      return 'Buy';
-    default:
-      return 'View';
-  }
+  return `https://warpcast.com/~/swap?token=${tokenAddress}&chain=${baseChainId}`;
 }
 
 // User Avatar Component for casts - fetches real-time photo
@@ -251,9 +191,6 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
 
 // Trending Tokens on Base - Using GeckoTerminal trending pools
 function TrendingTokensList() {
-  const platform = usePlatformDetection();
-  const actionLabel = getTokenActionLabel(platform);
-
   const { data, isLoading, error } = useOnchainNetworkTrendingPools(
     'base',
     { per_page: 50, duration: '24h' },  // Increased to find more tokens with logos
@@ -335,17 +272,16 @@ function TrendingTokensList() {
       {uniqueTokens.map(({ pool, token }, index) => {
         const tokenAddress = token.address;
 
-        const openToken = () => {
+        const openSwap = () => {
           if (tokenAddress) {
-            const url = getTokenActionUrl(tokenAddress, platform);
-            window.open(url, '_blank');
+            window.open(getSwapUrl(tokenAddress), '_blank');
           }
         };
 
         return (
           <button
             key={pool.id || index}
-            onClick={openToken}
+            onClick={openSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
           >
             <div className="flex items-center gap-3">
@@ -375,12 +311,8 @@ function TrendingTokensList() {
                     </P>
                   )}
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded mt-1 inline-block ${
-                  platform === 'farcaster' ? 'bg-purple-500/20 text-purple-400' :
-                  platform === 'base' ? 'bg-blue-500/20 text-blue-400' :
-                  'bg-gray-500/20 text-gray-400'
-                }`}>
-                  {actionLabel}
+                <span className="text-[10px] px-2 py-0.5 rounded mt-1 inline-block bg-purple-500/20 text-purple-400">
+                  Swap
                 </span>
               </div>
             </div>
@@ -393,9 +325,6 @@ function TrendingTokensList() {
 
 // New Tokens - Recently updated tokens on Base with logos
 function NewTokensList() {
-  const platform = usePlatformDetection();
-  const actionLabel = getTokenActionLabel(platform);
-
   const { data, isLoading, error } = useOnchainTokensRecentlyUpdated(
     { network: 'base' },
     {
@@ -484,17 +413,16 @@ function NewTokensList() {
         const address = attrs.address || token.id?.split('_')[1];
         const priceUsd = parseFloat(attrs.price_usd || '0');
 
-        const openToken = () => {
+        const openSwap = () => {
           if (address) {
-            const url = getTokenActionUrl(address, platform);
-            window.open(url, '_blank');
+            window.open(getSwapUrl(address), '_blank');
           }
         };
 
         return (
           <button
             key={token.id || index}
-            onClick={openToken}
+            onClick={openSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
           >
             <div className="flex items-center gap-3">
@@ -519,12 +447,8 @@ function NewTokensList() {
                 {priceUsd > 0 && (
                   <P className="text-xs opacity-60">{formatPrice(priceUsd)}</P>
                 )}
-                <span className={`text-[10px] px-2 py-0.5 rounded mt-1 inline-block ${
-                  platform === 'farcaster' ? 'bg-purple-500/20 text-purple-400' :
-                  platform === 'base' ? 'bg-blue-500/20 text-blue-400' :
-                  'bg-gray-500/20 text-gray-400'
-                }`}>
-                  {actionLabel}
+                <span className="text-[10px] px-2 py-0.5 rounded mt-1 inline-block bg-purple-500/20 text-purple-400">
+                  Swap
                 </span>
               </div>
             </div>
