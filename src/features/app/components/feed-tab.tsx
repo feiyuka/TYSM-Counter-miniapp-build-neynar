@@ -359,13 +359,13 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens - New AND trending tokens on Base (fresh tokens with activity)
+// New Tokens - Small MC tokens that are trending (MC < 100K = new tokens)
 function NewTokensList() {
-  // Use trending pools with SHORT duration (1h) to get fresh/new tokens that are also trending
-  // This gives tokens that are both NEW and have trading activity
+  // Use same trending endpoint but filter for LOW market cap tokens
+  // New tokens = MC under 100K that are trending in 24h
   const { data, isLoading, error } = useOnchainNetworkTrendingPools(
     'base',
-    { per_page: 100, duration: '1h' },  // 1h = very fresh tokens that are trending NOW
+    { per_page: 100, duration: '24h' },  // 24h trending, filtered by MC
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
@@ -390,6 +390,9 @@ function NewTokensList() {
 
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
+
+    // NEW TOKENS = Market Cap under 100K (small/new projects)
+    if (!token.marketCap || token.marketCap >= 100000) continue;
 
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
@@ -443,10 +446,10 @@ function NewTokensList() {
         const tokenAddress = token.address;
         const attrs = pool.attributes || pool;
 
-        // Extract 1h specific data for new tokens
-        const volume1h = attrs.volume_usd?.h1 ? parseFloat(attrs.volume_usd.h1) : null;
-        const priceChange1h = attrs.price_change_percentage?.h1
-          ? parseFloat(attrs.price_change_percentage.h1)
+        // Extract 24h data for new tokens (same as trending, just filtered by MC)
+        const volume24h = attrs.volume_usd?.h24 ? parseFloat(attrs.volume_usd.h24) : null;
+        const priceChange24h = attrs.price_change_percentage?.h24
+          ? parseFloat(attrs.price_change_percentage.h24)
           : null;
 
         const handleSwap = () => {
@@ -477,8 +480,8 @@ function NewTokensList() {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
                   <P className="text-xs text-green-400 uppercase">{token.symbol}</P>
-                  {volume1h !== null && volume1h > 0 && (
-                    <P className="text-[10px] opacity-40">Vol 1h: {formatMarketCap(volume1h)}</P>
+                  {volume24h !== null && volume24h > 0 && (
+                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(volume24h)}</P>
                   )}
                 </div>
               </div>
@@ -489,10 +492,10 @@ function NewTokensList() {
                 {token.marketCap && (
                   <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.marketCap)}</P>
                 )}
-                {priceChange1h !== null && (
-                  <P className={`text-xs font-medium ${priceChange1h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {priceChange1h >= 0 ? '↑' : '↓'}
-                    {Math.abs(priceChange1h).toFixed(2)}%
+                {priceChange24h !== null && (
+                  <P className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {priceChange24h >= 0 ? '↑' : '↓'}
+                    {Math.abs(priceChange24h).toFixed(2)}%
                   </P>
                 )}
               </div>
