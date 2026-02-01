@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useOnchainNetworkTrendingPools, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useOnchainNetworkTrendingPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 import sdk from '@farcaster/miniapp-sdk';
@@ -359,12 +359,13 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens - Newly created tokens on Base (not trending, actually NEW)
+// New Tokens - New AND trending tokens on Base (fresh tokens with activity)
 function NewTokensList() {
-  // Use NEW POOLS endpoint - these are actually newly created tokens
-  const { data, isLoading, error } = useOnchainNetworkNewPools(
+  // Use trending pools with SHORT duration (6h) to get fresh/new tokens that are also trending
+  // This gives tokens that are both NEW and have trading activity
+  const { data, isLoading, error } = useOnchainNetworkTrendingPools(
     'base',
-    { per_page: 100 },  // Get more to filter for those with logos
+    { per_page: 100, duration: '6h' },  // 6h = fresh tokens that are trending
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
