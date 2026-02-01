@@ -420,8 +420,8 @@ function NewTokensList() {
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
 
-    // NEW TOKENS = Market Cap under 100K (small/new projects)
-    if (!token.marketCap || token.marketCap >= 100000) continue;
+    // NEW TOKENS = Market Cap under 10M (smaller/newer projects)
+    if (!token.marketCap || token.marketCap >= 10000000) continue;
 
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
@@ -463,7 +463,7 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No new tokens found (MC &lt; $100K)</P>
+        <P className="opacity-60 text-sm">No new tokens found (MC &lt; $10M)</P>
       </div>
     );
   }
