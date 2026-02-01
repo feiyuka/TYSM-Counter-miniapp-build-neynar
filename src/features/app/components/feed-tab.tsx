@@ -10,10 +10,12 @@ import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/ap
 type FeedSection = 'casts' | 'tokens' | 'apps';
 type TokenSubTab = 'trending' | 'new';
 
-// Generate Farcaster Wallet swap URL for token on Base
+// Generate swap URL for token on Base
+// Uses Uniswap interface which works well in Farcaster/Warpcast browser
 function getSwapUrl(tokenAddress: string): string {
+  // ETH as input, token as output on Base network
   const baseChainId = 8453;
-  return `https://warpcast.com/~/swap?token=${tokenAddress}&chain=${baseChainId}`;
+  return `https://app.uniswap.org/swap?outputCurrency=${tokenAddress}&chain=base`;
 }
 
 // User Avatar Component for casts - fetches real-time photo
