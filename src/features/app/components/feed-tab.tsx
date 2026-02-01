@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
-import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useOnchainNetworkTrendingPools, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
-import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
+import { useTrendingGlobalFeed, useFrameCatalog, useTrendingFungibles, useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
+import type { TrendingFungible } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 import sdk from '@farcaster/miniapp-sdk';
 
@@ -155,99 +154,6 @@ const formatMarketCap = (cap: number | string | undefined) => {
   return `$${numCap.toFixed(2)}`;
 };
 
-// Helper to extract token data from GeckoTerminal pool response
-interface TokenInfo {
-  name: string;
-  symbol: string;
-  image: string | null;
-  price: string | null;
-  priceChange24h: number | null;
-  address: string | null;
-  marketCap: number | null;
-  fdv: number | null;
-  volume24h: number | null;
-  volume1h: number | null;
-}
-
-function extractBaseToken(pool: any, included?: any[]): TokenInfo {
-  const attrs = pool.attributes || pool;
-
-  // Get token relationship ID
-  const baseTokenId = pool.relationships?.base_token?.data?.id;
-
-  // Try to find token in included array
-  let tokenData: any = null;
-  if (included && baseTokenId) {
-    tokenData = included.find((item: any) => item.id === baseTokenId && item.type === 'token');
-  }
-
-  // Extract name - multiple fallbacks
-  const name = tokenData?.attributes?.name ||
-               attrs.base_token_name ||
-               attrs.name?.split('/')[0]?.trim() ||
-               'Unknown';
-
-  // Extract symbol
-  const symbol = tokenData?.attributes?.symbol ||
-                 attrs.base_token_symbol ||
-                 name.split(' ')[0] ||
-                 '?';
-
-  // Extract address FIRST - needed for fallback image
-  const address = tokenData?.attributes?.address ||
-                  attrs.base_token_address ||
-                  baseTokenId?.split('_')[1] ||
-                  null;
-
-  // Extract image - TRY EVERY POSSIBLE SOURCE
-  let image: string | null = null;
-
-  // 1. From included token data
-  if (tokenData?.attributes?.image_url) {
-    image = tokenData.attributes.image_url;
-  }
-  // 2. From pool attributes directly
-  else if (attrs.base_token_image_url) {
-    image = attrs.base_token_image_url;
-  }
-  // 3. From pool image
-  else if (attrs.image_url) {
-    image = attrs.image_url;
-  }
-  // 4. Try token logo from token attributes
-  else if (tokenData?.attributes?.logo_url) {
-    image = tokenData.attributes.logo_url;
-  }
-  // 5. Try CoinGecko image format
-  else if (tokenData?.attributes?.coingecko_coin_id) {
-    image = `https://assets.coingecko.com/coins/images/${tokenData.attributes.coingecko_coin_id}/small/${tokenData.attributes.coingecko_coin_id}.png`;
-  }
-  // 6. FALLBACK: Generate from address using a token logo service
-  else if (address) {
-    // Use Trust Wallet assets or similar service for Base tokens
-    image = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/${address}/logo.png`;
-  }
-
-  // Extract price
-  const price = attrs.base_token_price_usd || null;
-
-  // Extract 24h price change
-  const priceChange24h = attrs.price_change_percentage?.h24
-    ? parseFloat(attrs.price_change_percentage.h24)
-    : null;
-
-  // Extract market cap and FDV
-  const marketCap = attrs.market_cap_usd ? parseFloat(attrs.market_cap_usd) :
-                    attrs.fdv_usd ? parseFloat(attrs.fdv_usd) : null;
-  const fdv = attrs.fdv_usd ? parseFloat(attrs.fdv_usd) : null;
-
-  // Extract volume
-  const volume24h = attrs.volume_usd?.h24 ? parseFloat(attrs.volume_usd.h24) : null;
-  const volume1h = attrs.volume_usd?.h1 ? parseFloat(attrs.volume_usd.h1) : null;
-
-  return { name, symbol, image, price, priceChange24h, address, marketCap, fdv, volume24h, volume1h };
-}
-
 // Helper to check if token is a pure Base token (not bridged/wrapped/stablecoin)
 function isPureBaseToken(symbol: string, name: string): boolean {
   const symbolLower = symbol.toLowerCase();
@@ -296,41 +202,20 @@ function isPureBaseToken(symbol: string, name: string): boolean {
   return true;
 }
 
-// Trending Tokens on Base - Using GeckoTerminal trending pools
+// Trending Tokens on Base - Using Neynar Pulse API (24h trending)
 function TrendingTokensList() {
-  const { data, isLoading, error } = useOnchainNetworkTrendingPools(
-    'base',
-    { per_page: 50, duration: '24h' },  // Increased to find more tokens with logos
+  const { data: tokens = [], isLoading, error } = useTrendingFungibles(
+    { network: 'base', time_window: '24h' },
     {
       refetchInterval: 3 * 60 * 1000,
       staleTime: 2 * 60 * 1000,
     }
   );
 
-  // Extract pools and included data
-  const rawData = data as any;
-  const pools = rawData?.data || [];
-  const included = rawData?.included || [];
-
-  // Track seen tokens to avoid duplicates (by symbol)
-  const seenSymbols = new Set<string>();
-  const uniqueTokens: { pool: any; token: TokenInfo }[] = [];
-
-  for (const pool of pools) {
-    const token = extractBaseToken(pool, included);
-    const symbolLower = token.symbol.toLowerCase();
-
-    // Only pure Base tokens - skip stablecoins, bridged, wrapped
-    if (!isPureBaseToken(token.symbol, token.name)) continue;
-
-    // Skip if we've already seen this token
-    if (seenSymbols.has(symbolLower)) continue;
-
-    seenSymbols.add(symbolLower);
-    uniqueTokens.push({ pool, token });
-
-    if (uniqueTokens.length >= 10) break;
-  }
+  // Filter to only pure Base tokens
+  const filteredTokens = tokens.filter(token =>
+    isPureBaseToken(token.symbol || '', token.name || '')
+  ).slice(0, 10);
 
   if (isLoading) {
     return (
@@ -361,7 +246,7 @@ function TrendingTokensList() {
     );
   }
 
-  if (uniqueTokens.length === 0) {
+  if (filteredTokens.length === 0) {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">🔥</P>
@@ -372,26 +257,24 @@ function TrendingTokensList() {
 
   return (
     <div className="space-y-2">
-      {uniqueTokens.map(({ pool, token }, index) => {
-        const tokenAddress = token.address;
-
+      {filteredTokens.map((token, index) => {
         const handleSwap = () => {
-          if (tokenAddress) {
-            openSwapForToken(tokenAddress);
+          if (token.contract_address) {
+            openSwapForToken(token.contract_address);
           }
         };
 
         return (
           <button
-            key={pool.id || index}
+            key={token.contract_address || index}
             onClick={handleSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                {token.image ? (
+                {token.logo ? (
                   <img
-                    src={token.image}
+                    src={token.logo}
                     alt={token.symbol}
                     className="w-10 h-10 rounded-full object-cover border border-amber-500/30"
                     onError={(e) => {
@@ -401,7 +284,7 @@ function TrendingTokensList() {
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-sm font-bold border border-amber-500/30">
-                    {token.symbol.slice(0, 2)}
+                    {(token.symbol || '??').slice(0, 2)}
                   </div>
                 )}
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 text-[10px] font-bold flex items-center justify-center text-black">
@@ -412,22 +295,22 @@ function TrendingTokensList() {
                 <P className="font-medium truncate">{token.name}</P>
                 <div className="flex items-center gap-2">
                   <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
-                  {token.volume24h && (
-                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(token.volume24h)}</P>
+                  {token.volume_24h && (
+                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(token.volume_24h)}</P>
                   )}
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                {token.price && (
-                  <P className="font-medium text-sm">{formatPrice(token.price)}</P>
+                {token.price_usd && (
+                  <P className="font-medium text-sm">{formatPrice(token.price_usd)}</P>
                 )}
-                {token.marketCap && (
-                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.marketCap)}</P>
+                {token.market_cap && (
+                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.market_cap)}</P>
                 )}
-                {token.priceChange24h !== null && (
-                  <P className={`text-xs font-medium ${token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {token.priceChange24h >= 0 ? '↑' : '↓'}
-                    {Math.abs(token.priceChange24h).toFixed(2)}%
+                {token.price_change_24h !== undefined && token.price_change_24h !== null && (
+                  <P className={`text-xs font-medium ${token.price_change_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {token.price_change_24h >= 0 ? '↑' : '↓'}
+                    {Math.abs(token.price_change_24h).toFixed(2)}%
                   </P>
                 )}
               </div>
@@ -439,42 +322,20 @@ function TrendingTokensList() {
   );
 }
 
-// New/Recent Tokens - Newly created pools on Base (pure Base tokens only)
+// Recent/New Tokens on Base - Using Neynar Pulse API (1h trending = recently active)
 function NewTokensList() {
-  // Use NEW POOLS endpoint - recently created tokens
-  const { data, isLoading, error } = useOnchainNetworkNewPools(
-    'base',
-    { per_page: 100 },  // Get more to filter
+  const { data: tokens = [], isLoading, error } = useTrendingFungibles(
+    { network: 'base', time_window: '1h' },
     {
       refetchInterval: 1 * 60 * 1000,
       staleTime: 30 * 1000,
     }
   );
 
-  // Extract pools and included data
-  const rawData = data as any;
-  const pools = rawData?.data || [];
-  const included = rawData?.included || [];
-
-  // Track seen tokens to avoid duplicates (by symbol)
-  const seenSymbols = new Set<string>();
-  const uniqueTokens: { pool: any; token: TokenInfo }[] = [];
-
-  for (const pool of pools) {
-    const token = extractBaseToken(pool, included);
-    const symbolLower = token.symbol.toLowerCase();
-
-    // Only pure Base tokens - skip stablecoins, bridged, wrapped
-    if (!isPureBaseToken(token.symbol, token.name)) continue;
-
-    // Skip if we've already seen this token
-    if (seenSymbols.has(symbolLower)) continue;
-
-    seenSymbols.add(symbolLower);
-    uniqueTokens.push({ pool, token });
-
-    if (uniqueTokens.length >= 10) break;
-  }
+  // Filter to only pure Base tokens
+  const filteredTokens = tokens.filter(token =>
+    isPureBaseToken(token.symbol || '', token.name || '')
+  ).slice(0, 10);
 
   if (isLoading) {
     return (
@@ -498,60 +359,50 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">⚠️</P>
-        <P className="opacity-60 text-sm">Error loading new tokens</P>
+        <P className="opacity-60 text-sm">Error loading recent tokens</P>
       </div>
     );
   }
 
-  if (uniqueTokens.length === 0) {
+  if (filteredTokens.length === 0) {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No new tokens found</P>
+        <P className="opacity-60 text-sm">No recent tokens found</P>
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      {uniqueTokens.map(({ pool, token }, index) => {
-        const tokenAddress = token.address;
-        const attrs = pool.attributes || pool;
-
-        // Extract 24h data for new tokens (same as trending, just filtered by MC)
-        const volume24h = attrs.volume_usd?.h24 ? parseFloat(attrs.volume_usd.h24) : null;
-        const priceChange24h = attrs.price_change_percentage?.h24
-          ? parseFloat(attrs.price_change_percentage.h24)
-          : null;
-
+      {filteredTokens.map((token, index) => {
         const handleSwap = () => {
-          if (tokenAddress) {
-            openSwapForToken(tokenAddress);
+          if (token.contract_address) {
+            openSwapForToken(token.contract_address);
           }
         };
 
         return (
           <button
-            key={pool.id || index}
+            key={token.contract_address || index}
             onClick={handleSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                {token.image ? (
+                {token.logo ? (
                   <img
-                    src={token.image}
+                    src={token.logo}
                     alt={token.symbol}
                     className="w-10 h-10 rounded-full object-cover border border-green-500/30"
                     onError={(e) => {
-                      // Fallback to generated avatar if image fails
                       const target = e.target as HTMLImageElement;
                       target.src = `https://api.dicebear.com/9.x/shapes/svg?seed=${token.symbol}`;
                     }}
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-sm font-bold border border-green-500/30">
-                    {token.symbol.slice(0, 2)}
+                    {(token.symbol || '??').slice(0, 2)}
                   </div>
                 )}
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
@@ -561,24 +412,24 @@ function NewTokensList() {
               <div className="flex-1 min-w-0">
                 <P className="font-medium truncate text-sm">{token.name}</P>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">HOT</span>
                   <P className="text-xs text-green-400 uppercase">{token.symbol}</P>
-                  {volume24h !== null && volume24h > 0 && (
-                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(volume24h)}</P>
+                  {token.volume_24h && (
+                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(token.volume_24h)}</P>
                   )}
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                {token.price && (
-                  <P className="font-medium text-sm">{formatPrice(token.price)}</P>
+                {token.price_usd && (
+                  <P className="font-medium text-sm">{formatPrice(token.price_usd)}</P>
                 )}
-                {token.marketCap && (
-                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.marketCap)}</P>
+                {token.market_cap && (
+                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.market_cap)}</P>
                 )}
-                {priceChange24h !== null && (
-                  <P className={`text-xs font-medium ${priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {priceChange24h >= 0 ? '↑' : '↓'}
-                    {Math.abs(priceChange24h).toFixed(2)}%
+                {token.price_change_24h !== undefined && token.price_change_24h !== null && (
+                  <P className={`text-xs font-medium ${token.price_change_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {token.price_change_24h >= 0 ? '↑' : '↓'}
+                    {Math.abs(token.price_change_24h).toFixed(2)}%
                   </P>
                 )}
               </div>
@@ -616,7 +467,7 @@ function TokensSection() {
               : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
           }`}
         >
-          ✨ New on Base
+          ⚡ Hot Now
         </button>
       </div>
 
@@ -625,7 +476,7 @@ function TokensSection() {
 
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">
-          Base Network via GeckoTerminal • 🔄 Auto-refresh
+          Farcaster Pulse • Base Network • 🔄 Auto-refresh
         </P>
       </div>
     </div>

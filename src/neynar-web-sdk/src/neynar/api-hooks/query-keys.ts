@@ -228,6 +228,8 @@ export const neynarQueryKeys = {
     all: () => onchainKeys.all(),
     relevantFungibleOwners: (params?: Record<string, unknown>) =>
       onchainKeys.custom("relevant-fungible-owners", normalizeFilters(params)),
+    trendingFungibles: (params?: Record<string, unknown>) =>
+      onchainKeys.custom("trending-fungibles", normalizeFilters(params)),
     deployFungible: (params?: Record<string, unknown>) =>
       onchainKeys.custom("deploy-fungible", normalizeFilters(params)),
     sendFungibles: (params?: Record<string, unknown>) =>

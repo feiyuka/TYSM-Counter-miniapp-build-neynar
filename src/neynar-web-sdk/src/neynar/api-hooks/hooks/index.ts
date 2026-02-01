@@ -141,9 +141,12 @@ export {
 export {
   useDeployFungible,
   useRelevantFungibleOwners,
+  useTrendingFungibles,
   useSendFungibles,
   useMintNft,
   useSimulateNftMint,
+  type TrendingFungible,
+  type UseTrendingFungiblesParams,
 } from "./onchain";
 
 // Reactions-related hooks

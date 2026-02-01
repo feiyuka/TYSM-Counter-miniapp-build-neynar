@@ -167,8 +167,111 @@ export type SimulateNftMintResponse = {
 };
 
 // ============================================================================
+// Trending Fungibles Types
+// ============================================================================
+
+/**
+ * Trending fungible token from Neynar Pulse API
+ */
+export type TrendingFungible = {
+  /** Network the token is on */
+  network: string;
+  /** Token contract address */
+  contract_address: string;
+  /** Token name */
+  name: string;
+  /** Token symbol */
+  symbol: string;
+  /** Token logo URL */
+  logo?: string;
+  /** Current price in USD */
+  price_usd?: number;
+  /** 24h price change percentage */
+  price_change_24h?: number;
+  /** Market cap */
+  market_cap?: number;
+  /** 24h volume */
+  volume_24h?: number;
+};
+
+/**
+ * Response from trending fungibles API
+ */
+export type TrendingFungiblesResponse = {
+  fungibles: TrendingFungible[];
+};
+
+/**
+ * Parameters for trending fungibles query
+ */
+export type UseTrendingFungiblesParams = {
+  /** Network to filter by (default: "base") */
+  network?: "base" | "ethereum" | "optimism" | "arbitrum" | "solana";
+  /** Time window for trending (default: "24h") */
+  time_window?: "1h" | "6h" | "12h" | "24h" | "7d";
+};
+
+// ============================================================================
 // Onchain Query Hooks
 // ============================================================================
+
+/**
+ * Fetch trending fungible tokens from Neynar Pulse
+ *
+ * Returns tokens ranked by USD buy volume and buy count.
+ * Perfect for displaying trending tokens like in Farcaster Pulse.
+ *
+ * @param params - Query parameters
+ * @param params.network - Network to filter (default: "base")
+ * @param params.time_window - Time window: "1h", "6h", "12h", "24h", "7d" (default: "24h")
+ * @param options - TanStack Query options
+ * @returns TanStack Query result with trending fungibles
+ *
+ * @example
+ * ```tsx
+ * function TrendingTokens() {
+ *   const { data: tokens = [], isLoading } = useTrendingFungibles({
+ *     network: "base",
+ *     time_window: "24h"
+ *   });
+ *
+ *   if (isLoading) return <div>Loading...</div>;
+ *
+ *   return (
+ *     <div>
+ *       {tokens.map(token => (
+ *         <div key={token.contract_address}>
+ *           <img src={token.logo} alt={token.symbol} />
+ *           <span>{token.name} ({token.symbol})</span>
+ *           <span>${token.price_usd}</span>
+ *         </div>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useTrendingFungibles(
+  params?: UseTrendingFungiblesParams,
+  options?: QueryHookOptions<TrendingFungiblesResponse, TrendingFungible[]>,
+): QueryHookResult<TrendingFungible[]> {
+  const queryParams = buildNeynarQuery({
+    network: params?.network || "base",
+    time_window: params?.time_window || "24h",
+  });
+
+  return useApiQuery<TrendingFungiblesResponse, TrendingFungible[]>(
+    neynarQueryKeys.onchain.trendingFungibles(params),
+    `/api/neynar/fungible/trending?${queryParams}`,
+    {
+      staleTime: STALE_TIME.FREQUENT, // 2 minutes
+      ...options,
+      select: (response: TrendingFungiblesResponse) => {
+        return response?.fungibles || [];
+      },
+    },
+  );
+}
 
 type UseRelevantFungibleOwnersParams = {
   /** Contract address of the fungible token */
