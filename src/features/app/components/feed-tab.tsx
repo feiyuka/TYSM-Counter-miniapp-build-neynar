@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useOnchainNetworkTrendingPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useOnchainNetworkTrendingPools, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 import sdk from '@farcaster/miniapp-sdk';
@@ -275,9 +275,6 @@ function TrendingTokensList() {
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
 
-    // TRENDING = Only established tokens with MC >= 10M
-    if (!token.marketCap || token.marketCap < 10000000) continue;
-
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
 
@@ -394,16 +391,15 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens - Small MC tokens that are trending (MC < 100K = new tokens)
+// New/Recent Tokens - Newly created pools on Base
 function NewTokensList() {
-  // Use same trending endpoint but filter for LOW market cap tokens
-  // New tokens = MC under 100K that are trending in 24h
-  const { data, isLoading, error } = useOnchainNetworkTrendingPools(
+  // Use NEW POOLS endpoint - recently created tokens
+  const { data, isLoading, error } = useOnchainNetworkNewPools(
     'base',
-    { per_page: 100, duration: '24h' },  // 24h trending, filtered by MC
+    { per_page: 50 },
     {
-      refetchInterval: 2 * 60 * 1000,
-      staleTime: 1 * 60 * 1000,
+      refetchInterval: 1 * 60 * 1000,  // Refresh every minute
+      staleTime: 30 * 1000,
     }
   );
 
@@ -422,11 +418,6 @@ function NewTokensList() {
 
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
-
-    // NEW TOKENS = Market Cap under 10M (smaller/newer projects)
-    // If no MC data, include it (likely a new token)
-    // Only skip if MC is known AND >= 10M
-    if (token.marketCap && token.marketCap >= 10000000) continue;
 
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
@@ -468,7 +459,7 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No new tokens found (MC &lt; $10M)</P>
+        <P className="opacity-60 text-sm">No new tokens found</P>
       </div>
     );
   }
