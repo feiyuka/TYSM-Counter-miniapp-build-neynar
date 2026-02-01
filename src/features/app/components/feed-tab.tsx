@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useOnchainNetworkTrendingPools, useOnchainTokensRecentlyUpdated } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useOnchainNetworkTrendingPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 import sdk from '@farcaster/miniapp-sdk';
@@ -359,45 +359,42 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens - Recently updated tokens on Base with logos
+// New Tokens - Using new pools endpoint for complete data (volume, price, MC)
 function NewTokensList() {
-  const { data, isLoading, error } = useOnchainTokensRecentlyUpdated(
-    { network: 'base' },
+  // Use new pools endpoint which has complete data including volume 1h
+  const { data, isLoading, error } = useOnchainNetworkTrendingPools(
+    'base',
+    { per_page: 100, duration: '1h' },  // 1h duration for new/recent tokens
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
     }
   );
 
-  // Extract tokens from response
+  // Extract pools and included data
   const rawData = data as any;
-  const tokens = rawData?.data || [];
+  const pools = rawData?.data || [];
+  const included = rawData?.included || [];
 
-  // Filter tokens with logos and on Base network
+  // Track seen tokens to avoid duplicates (by symbol)
   const seenSymbols = new Set<string>();
-  const uniqueTokens: any[] = [];
+  const uniqueTokens: { pool: any; token: TokenInfo }[] = [];
 
-  for (const token of tokens) {
-    const attrs = token.attributes || token;
-    const symbol = attrs.symbol || '';
-    const symbolLower = symbol.toLowerCase();
-    const imageUrl = attrs.image_url || null;
-    const network = token.relationships?.network?.data?.id || attrs.network || '';
+  for (const pool of pools) {
+    const token = extractBaseToken(pool, included);
+    const symbolLower = token.symbol.toLowerCase();
 
-    // Skip tokens without logos - user requirement
-    if (!imageUrl) continue;
+    // Skip tokens without logos - user requirement: no logo = not in list
+    if (!token.image) continue;
 
-    // Only Base network tokens
-    if (network && network !== 'base') continue;
-
-    // Skip stablecoins and wrapped
+    // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
 
-    // Skip duplicates
+    // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
 
     seenSymbols.add(symbolLower);
-    uniqueTokens.push(token);
+    uniqueTokens.push({ pool, token });
 
     if (uniqueTokens.length >= 10) break;
   }
@@ -441,39 +438,33 @@ function NewTokensList() {
 
   return (
     <div className="space-y-2">
-      {uniqueTokens.map((token, index) => {
-        const attrs = token.attributes || token;
-        const name = attrs.name || 'Unknown';
-        const symbol = attrs.symbol || '???';
-        const imageUrl = attrs.image_url;
-        const address = attrs.address || token.id?.split('_')[1];
-        const priceUsd = parseFloat(attrs.price_usd || '0');
-        const marketCapUsd = parseFloat(attrs.market_cap_usd || attrs.fdv_usd || '0');
-        const volume1h = parseFloat(attrs.volume_usd?.h1 || '0');
-        // Price change percentage - try multiple field names
+      {uniqueTokens.map(({ pool, token }, index) => {
+        const tokenAddress = token.address;
+        const attrs = pool.attributes || pool;
+
+        // Extract 1h specific data
+        const volume1h = attrs.volume_usd?.h1 ? parseFloat(attrs.volume_usd.h1) : null;
         const priceChange1h = attrs.price_change_percentage?.h1
           ? parseFloat(attrs.price_change_percentage.h1)
-          : attrs.price_percent_change_1h
-            ? parseFloat(attrs.price_percent_change_1h)
-            : null;
+          : null;
 
         const handleSwap = () => {
-          if (address) {
-            openSwapForToken(address);
+          if (tokenAddress) {
+            openSwapForToken(tokenAddress);
           }
         };
 
         return (
           <button
-            key={token.id || index}
+            key={pool.id || index}
             onClick={handleSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
                 <img
-                  src={imageUrl}
-                  alt={symbol}
+                  src={token.image!}
+                  alt={token.symbol}
                   className="w-10 h-10 rounded-full object-cover border border-green-500/30"
                 />
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
@@ -481,21 +472,21 @@ function NewTokensList() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <P className="font-medium truncate text-sm">{name}</P>
+                <P className="font-medium truncate text-sm">{token.name}</P>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
-                  <P className="text-xs text-green-400 uppercase">{symbol}</P>
-                  {volume1h > 0 && (
-                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(volume1h)}</P>
+                  <P className="text-xs text-green-400 uppercase">{token.symbol}</P>
+                  {volume1h !== null && volume1h > 0 && (
+                    <P className="text-[10px] opacity-40">Vol 1h: {formatMarketCap(volume1h)}</P>
                   )}
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                {priceUsd > 0 && (
-                  <P className="font-medium text-sm">{formatPrice(priceUsd)}</P>
+                {token.price && (
+                  <P className="font-medium text-sm">{formatPrice(token.price)}</P>
                 )}
-                {marketCapUsd > 0 && (
-                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(marketCapUsd)}</P>
+                {token.marketCap && (
+                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.marketCap)}</P>
                 )}
                 {priceChange1h !== null && (
                   <P className={`text-xs font-medium ${priceChange1h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
