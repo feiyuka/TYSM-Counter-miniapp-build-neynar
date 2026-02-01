@@ -391,3 +391,34 @@ export function useOnchainNetworkTrendingPools(
     },
   );
 }
+
+/**
+ * Fetches tokens with recently updated info (good for getting tokens with logos)
+ *
+ * This hook retrieves tokens that have had their info recently updated,
+ * which typically includes image URLs. Better for getting tokens with logos.
+ *
+ * @param params - Optional pagination parameters
+ * @param params.include - Include related data like network
+ * @param options - Optional query configuration parameters
+ *
+ * @returns UseQueryResult containing token data with images
+ */
+export function useOnchainTokensRecentlyUpdated(
+  params?: { include?: string; network?: string },
+  options?: ExtendedQueryOptions<any[]> & CoinGeckoHookOptions,
+) {
+  const queryParams = new URLSearchParams();
+  if (params?.include) queryParams.set("include", params.include);
+  if (params?.network) queryParams.set("network", params.network);
+
+  return useApiQuery<any[]>(
+    ["coingecko", "onchain", "tokens", "info-recently-updated", params],
+    `/api/coingecko/onchain/tokens/info-recently-updated?${queryParams}`,
+    {
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      gcTime: 15 * 60 * 1000, // 15 minutes
+      ...options,
+    },
+  );
+}

@@ -63,6 +63,7 @@ export {
   useOnchainNetworks,
   useOnchainNetworkNewPools,
   useOnchainNetworkTrendingPools,
+  useOnchainTokensRecentlyUpdated,
 } from "./hooks/onchain";
 
 // Ping hooks

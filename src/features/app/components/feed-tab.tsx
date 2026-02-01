@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useOnchainNetworkTrendingPools, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useOnchainNetworkTrendingPools, useOnchainTokensRecentlyUpdated } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 
@@ -313,38 +313,36 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens on Base - Recently created pools
+// New Tokens - Recently updated tokens on Base with logos
 function NewTokensList() {
-  const { data, isLoading, error } = useOnchainNetworkNewPools(
-    'base',
-    { per_page: 100 },  // Increased significantly - new tokens often lack logos
+  const { data, isLoading, error } = useOnchainTokensRecentlyUpdated(
+    { network: 'base' },
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
     }
   );
 
-  // Extract pools and included data
+  // Extract tokens from response
   const rawData = data as any;
-  const pools = rawData?.data || [];
-  const included = rawData?.included || [];
+  const tokens = rawData?.data || [];
 
-  // Filter pools with at least $1000 liquidity and get unique tokens
+  // Filter tokens with logos and on Base network
   const seenSymbols = new Set<string>();
-  const uniqueTokens: { pool: any; token: TokenInfo }[] = [];
+  const uniqueTokens: any[] = [];
 
-  for (const pool of pools) {
-    const attrs = pool.attributes || pool;
-    const reserve = parseFloat(attrs.reserve_in_usd || '0');
+  for (const token of tokens) {
+    const attrs = token.attributes || token;
+    const symbol = attrs.symbol || '';
+    const symbolLower = symbol.toLowerCase();
+    const imageUrl = attrs.image_url || null;
+    const network = token.relationships?.network?.data?.id || attrs.network || '';
 
-    // Skip low liquidity pools
-    if (reserve < 1000) continue;
+    // Skip tokens without logos - user requirement
+    if (!imageUrl) continue;
 
-    const token = extractBaseToken(pool, included);
-    const symbolLower = token.symbol.toLowerCase();
-
-    // Skip tokens without logos - user requirement: no logo = not in list
-    if (!token.image) continue;
+    // Only Base network tokens
+    if (network && network !== 'base') continue;
 
     // Skip stablecoins and wrapped
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
@@ -353,7 +351,7 @@ function NewTokensList() {
     if (seenSymbols.has(symbolLower)) continue;
 
     seenSymbols.add(symbolLower);
-    uniqueTokens.push({ pool, token });
+    uniqueTokens.push(token);
 
     if (uniqueTokens.length >= 10) break;
   }
@@ -380,7 +378,7 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">⚠️</P>
-        <P className="opacity-60 text-sm">Error loading new pools</P>
+        <P className="opacity-60 text-sm">Error loading new tokens</P>
       </div>
     );
   }
@@ -397,29 +395,31 @@ function NewTokensList() {
 
   return (
     <div className="space-y-2">
-      {uniqueTokens.map(({ pool, token }, index) => {
-        const attrs = pool.attributes || pool;
-        const poolAddress = attrs.address || pool.id?.split('_')[1];
-        const reserve = parseFloat(attrs.reserve_in_usd || '0');
-        const dexId = pool.relationships?.dex?.data?.id || attrs.dex_id || 'DEX';
+      {uniqueTokens.map((token, index) => {
+        const attrs = token.attributes || token;
+        const name = attrs.name || 'Unknown';
+        const symbol = attrs.symbol || '???';
+        const imageUrl = attrs.image_url;
+        const address = attrs.address || token.id?.split('_')[1];
+        const priceUsd = parseFloat(attrs.price_usd || '0');
 
-        const openPool = () => {
-          if (poolAddress) {
-            window.open(`https://www.geckoterminal.com/base/pools/${poolAddress}`, '_blank');
+        const openToken = () => {
+          if (address) {
+            window.open(`https://www.geckoterminal.com/base/tokens/${address}`, '_blank');
           }
         };
 
         return (
           <button
-            key={pool.id || index}
-            onClick={openPool}
+            key={token.id || index}
+            onClick={openToken}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
                 <img
-                  src={token.image!}
-                  alt={token.symbol}
+                  src={imageUrl}
+                  alt={symbol}
                   className="w-10 h-10 rounded-full object-cover border border-green-500/30"
                 />
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
@@ -427,16 +427,15 @@ function NewTokensList() {
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <P className="font-medium truncate text-sm">{token.name}</P>
+                <P className="font-medium truncate text-sm">{name}</P>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
-                  <P className="text-xs opacity-40 truncate">{dexId}</P>
+                  <P className="text-xs text-green-400 uppercase">{symbol}</P>
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
-                <P className="text-xs text-green-400">TVL: {formatMarketCap(reserve)}</P>
-                {token.price && (
-                  <P className="text-xs opacity-60">{formatPrice(token.price)}</P>
+                {priceUsd > 0 && (
+                  <P className="text-xs opacity-60">{formatPrice(priceUsd)}</P>
                 )}
               </div>
             </div>
