@@ -193,8 +193,40 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
                  name.split(' ')[0] ||
                  '?';
 
-  // Extract image - GeckoTerminal provides image_url in token attributes
-  const image = tokenData?.attributes?.image_url || null;
+  // Extract address FIRST - needed for fallback image
+  const address = tokenData?.attributes?.address ||
+                  attrs.base_token_address ||
+                  baseTokenId?.split('_')[1] ||
+                  null;
+
+  // Extract image - TRY EVERY POSSIBLE SOURCE
+  let image: string | null = null;
+
+  // 1. From included token data
+  if (tokenData?.attributes?.image_url) {
+    image = tokenData.attributes.image_url;
+  }
+  // 2. From pool attributes directly
+  else if (attrs.base_token_image_url) {
+    image = attrs.base_token_image_url;
+  }
+  // 3. From pool image
+  else if (attrs.image_url) {
+    image = attrs.image_url;
+  }
+  // 4. Try token logo from token attributes
+  else if (tokenData?.attributes?.logo_url) {
+    image = tokenData.attributes.logo_url;
+  }
+  // 5. Try CoinGecko image format
+  else if (tokenData?.attributes?.coingecko_coin_id) {
+    image = `https://assets.coingecko.com/coins/images/${tokenData.attributes.coingecko_coin_id}/small/${tokenData.attributes.coingecko_coin_id}.png`;
+  }
+  // 6. FALLBACK: Generate from address using a token logo service
+  else if (address) {
+    // Use Trust Wallet assets or similar service for Base tokens
+    image = `https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/base/assets/${address}/logo.png`;
+  }
 
   // Extract price
   const price = attrs.base_token_price_usd || null;
@@ -203,12 +235,6 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
   const priceChange24h = attrs.price_change_percentage?.h24
     ? parseFloat(attrs.price_change_percentage.h24)
     : null;
-
-  // Extract address
-  const address = tokenData?.attributes?.address ||
-                  attrs.base_token_address ||
-                  baseTokenId?.split('_')[1] ||
-                  null;
 
   // Extract market cap and FDV
   const marketCap = attrs.market_cap_usd ? parseFloat(attrs.market_cap_usd) :
@@ -245,9 +271,6 @@ function TrendingTokensList() {
   for (const pool of pools) {
     const token = extractBaseToken(pool, included);
     const symbolLower = token.symbol.toLowerCase();
-
-    // Skip tokens without logos - user requirement: no logo = not in list
-    if (!token.image) continue;
 
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
@@ -294,8 +317,7 @@ function TrendingTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">🔥</P>
-        <P className="opacity-60 text-sm">No trending tokens with logos found</P>
-        <P className="text-xs opacity-40 mt-1">Only tokens with verified logos are shown</P>
+        <P className="opacity-60 text-sm">No trending tokens found</P>
       </div>
     );
   }
@@ -319,11 +341,21 @@ function TrendingTokensList() {
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                <img
-                  src={token.image!}
-                  alt={token.symbol}
-                  className="w-10 h-10 rounded-full object-cover border border-amber-500/30"
-                />
+                {token.image ? (
+                  <img
+                    src={token.image}
+                    alt={token.symbol}
+                    className="w-10 h-10 rounded-full object-cover border border-amber-500/30"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://api.dicebear.com/9.x/shapes/svg?seed=${token.symbol}`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-sm font-bold border border-amber-500/30">
+                    {token.symbol.slice(0, 2)}
+                  </div>
+                )}
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 text-[10px] font-bold flex items-center justify-center text-black">
                   {index + 1}
                 </span>
@@ -385,9 +417,6 @@ function NewTokensList() {
     const token = extractBaseToken(pool, included);
     const symbolLower = token.symbol.toLowerCase();
 
-    // Skip tokens without logos - user requirement: no logo = not in list
-    if (!token.image) continue;
-
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
 
@@ -434,8 +463,7 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No new tokens with logos found</P>
-        <P className="text-xs opacity-40 mt-1">Only tokens with verified logos are shown</P>
+        <P className="opacity-60 text-sm">No new tokens found (MC &lt; $100K)</P>
       </div>
     );
   }
@@ -466,11 +494,22 @@ function NewTokensList() {
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                <img
-                  src={token.image!}
-                  alt={token.symbol}
-                  className="w-10 h-10 rounded-full object-cover border border-green-500/30"
-                />
+                {token.image ? (
+                  <img
+                    src={token.image}
+                    alt={token.symbol}
+                    className="w-10 h-10 rounded-full object-cover border border-green-500/30"
+                    onError={(e) => {
+                      // Fallback to generated avatar if image fails
+                      const target = e.target as HTMLImageElement;
+                      target.src = `https://api.dicebear.com/9.x/shapes/svg?seed=${token.symbol}`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-sm font-bold border border-green-500/30">
+                    {token.symbol.slice(0, 2)}
+                  </div>
+                )}
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
                   {index + 1}
                 </span>
