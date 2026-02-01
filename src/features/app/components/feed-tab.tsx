@@ -450,6 +450,12 @@ function NewTokensList() {
         const priceUsd = parseFloat(attrs.price_usd || '0');
         const marketCapUsd = parseFloat(attrs.market_cap_usd || attrs.fdv_usd || '0');
         const volume1h = parseFloat(attrs.volume_usd?.h1 || '0');
+        // Price change percentage - try multiple field names
+        const priceChange1h = attrs.price_change_percentage?.h1
+          ? parseFloat(attrs.price_change_percentage.h1)
+          : attrs.price_percent_change_1h
+            ? parseFloat(attrs.price_percent_change_1h)
+            : null;
 
         const handleSwap = () => {
           if (address) {
@@ -480,7 +486,7 @@ function NewTokensList() {
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
                   <P className="text-xs text-green-400 uppercase">{symbol}</P>
                   {volume1h > 0 && (
-                    <P className="text-[10px] opacity-40">1h: {formatMarketCap(volume1h)}</P>
+                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(volume1h)}</P>
                   )}
                 </div>
               </div>
@@ -490,6 +496,12 @@ function NewTokensList() {
                 )}
                 {marketCapUsd > 0 && (
                   <P className="text-[10px] opacity-50">MC: {formatMarketCap(marketCapUsd)}</P>
+                )}
+                {priceChange1h !== null && (
+                  <P className={`text-xs font-medium ${priceChange1h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {priceChange1h >= 0 ? '↑' : '↓'}
+                    {Math.abs(priceChange1h).toFixed(2)}%
+                  </P>
                 )}
               </div>
             </div>
