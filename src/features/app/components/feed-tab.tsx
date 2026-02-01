@@ -6,15 +6,27 @@ import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/ney
 import { useOnchainNetworkTrendingPools, useOnchainTokensRecentlyUpdated } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
+import sdk from '@farcaster/miniapp-sdk';
 
 type FeedSection = 'casts' | 'tokens' | 'apps';
 type TokenSubTab = 'trending' | 'new';
 
-// Generate swap URL for token on Base
-// DexScreener provides easy access to swap via connected DEXes
-function getSwapUrl(tokenAddress: string): string {
-  // DexScreener token page - has "Buy" button that connects to DEXes
-  return `https://dexscreener.com/base/${tokenAddress}`;
+// Open Farcaster native swap for token on Base
+// Uses sdk.actions.swapToken which opens the native Farcaster wallet swap UI
+async function openSwapForToken(tokenAddress: string): Promise<void> {
+  try {
+    // CAIP-19 format for ERC20 token on Base (chain ID 8453)
+    // Format: eip155:<chainId>/erc20:<tokenAddress>
+    const buyTokenCAIP19 = `eip155:8453/erc20:${tokenAddress}`;
+
+    await sdk.actions.swapToken({
+      buyToken: buyTokenCAIP19,
+    });
+  } catch (error) {
+    console.error('Swap error:', error);
+    // Fallback to DexScreener if SDK swap fails
+    window.open(`https://dexscreener.com/base/${tokenAddress}`, '_blank');
+  }
 }
 
 // User Avatar Component for casts - fetches real-time photo
@@ -286,16 +298,16 @@ function TrendingTokensList() {
       {uniqueTokens.map(({ pool, token }, index) => {
         const tokenAddress = token.address;
 
-        const openSwap = () => {
+        const handleSwap = () => {
           if (tokenAddress) {
-            window.open(getSwapUrl(tokenAddress), '_blank');
+            openSwapForToken(tokenAddress);
           }
         };
 
         return (
           <button
             key={pool.id || index}
-            onClick={openSwap}
+            onClick={handleSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
           >
             <div className="flex items-center gap-3">
@@ -432,16 +444,16 @@ function NewTokensList() {
         const marketCapUsd = parseFloat(attrs.market_cap_usd || attrs.fdv_usd || '0');
         const volume1h = parseFloat(attrs.volume_usd?.h1 || '0');
 
-        const openSwap = () => {
+        const handleSwap = () => {
           if (address) {
-            window.open(getSwapUrl(address), '_blank');
+            openSwapForToken(address);
           }
         };
 
         return (
           <button
             key={token.id || index}
-            onClick={openSwap}
+            onClick={handleSwap}
             className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
           >
             <div className="flex items-center gap-3">
