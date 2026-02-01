@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useCoinsMarkets } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useCoinsMarkets, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 
 type FeedSection = 'casts' | 'tokens' | 'apps';
+type TokenSubTab = 'trending' | 'new';
 
 // User Avatar Component for casts - fetches real-time photo
 function CastAuthorAvatar({ fid, pfpUrl }: { fid: number; pfpUrl?: string }) {
@@ -26,11 +27,11 @@ function CastAuthorAvatar({ fid, pfpUrl }: { fid: number; pfpUrl?: string }) {
 
 // Trending Casts Section - 24h trending with auto-refresh
 function TrendingCastsSection() {
-  const { data, isLoading, fetchNextPage, hasNextPage } = useTrendingGlobalFeed(
+  const { data, isLoading } = useTrendingGlobalFeed(
     { time_window: '24h' },
     {
-      refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
-      staleTime: 2 * 60 * 1000, // Consider stale after 2 minutes
+      refetchInterval: 5 * 60 * 1000,
+      staleTime: 2 * 60 * 1000,
     }
   );
   const casts = data?.pages?.flatMap(p => p.items) || [];
@@ -59,7 +60,6 @@ function TrendingCastsSection() {
       <div className="text-center py-8">
         <P className="text-4xl mb-2">📡</P>
         <P className="opacity-60">No trending casts right now</P>
-        <P className="text-xs opacity-40 mt-1">Check back in a few minutes</P>
       </div>
     );
   }
@@ -70,7 +70,7 @@ function TrendingCastsSection() {
 
   return (
     <div className="space-y-3">
-      {casts.slice(0, 20).map((cast, index) => (
+      {casts.slice(0, 10).map((cast, index) => (
         <button
           key={cast.hash}
           onClick={() => openCast(cast)}
@@ -101,16 +101,6 @@ function TrendingCastsSection() {
           </div>
         </button>
       ))}
-
-      {hasNextPage && (
-        <button
-          onClick={() => fetchNextPage()}
-          className="w-full py-2 text-center text-sm text-purple-400 hover:text-purple-300"
-        >
-          Load more...
-        </button>
-      )}
-
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">🔄 Auto-refreshes every 5 minutes</P>
       </div>
@@ -118,20 +108,36 @@ function TrendingCastsSection() {
   );
 }
 
-// Trending Tokens Section - Base Network tokens with logos
-function TrendingTokensSection() {
-  // Fetch Base ecosystem tokens, sorted by market cap
-  const { data, isLoading, fetchNextPage, hasNextPage } = useCoinsMarkets(
+// Helper functions for token formatting
+const formatPrice = (price: number | undefined) => {
+  if (!price) return '$0.00';
+  if (price < 0.0001) return `$${price.toExponential(2)}`;
+  if (price < 1) return `$${price.toFixed(6)}`;
+  if (price < 1000) return `$${price.toFixed(2)}`;
+  return `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+};
+
+const formatMarketCap = (cap: number | undefined) => {
+  if (!cap) return 'N/A';
+  if (cap >= 1_000_000_000) return `$${(cap / 1_000_000_000).toFixed(2)}B`;
+  if (cap >= 1_000_000) return `$${(cap / 1_000_000).toFixed(2)}M`;
+  if (cap >= 1_000) return `$${(cap / 1_000).toFixed(2)}K`;
+  return `$${cap.toFixed(2)}`;
+};
+
+// Trending Tokens - Top 10 most trending in 24h
+function TrendingTokensList() {
+  const { data, isLoading } = useCoinsMarkets(
     {
       vs_currency: 'usd',
-      category: 'base-ecosystem', // Filter to Base Network tokens only
-      order: 'market_cap_desc',
-      per_page: 100, // Get top 100
+      category: 'base-ecosystem',
+      order: 'volume_desc', // Sort by volume for trending
+      per_page: 10,
       sparkline: false,
       price_change_percentage: '24h',
     },
     {
-      refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes
+      refetchInterval: 5 * 60 * 1000,
       staleTime: 2 * 60 * 1000,
     }
   );
@@ -140,7 +146,7 @@ function TrendingTokensSection() {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="animate-pulse p-3 rounded-lg bg-gray-800/50">
             <div className="flex items-center gap-3">
@@ -148,10 +154,6 @@ function TrendingTokensSection() {
               <div className="flex-1">
                 <div className="h-4 bg-gray-700 rounded w-24 mb-1" />
                 <div className="h-3 bg-gray-700 rounded w-16" />
-              </div>
-              <div className="text-right">
-                <div className="h-4 bg-gray-700 rounded w-20 mb-1" />
-                <div className="h-3 bg-gray-700 rounded w-14" />
               </div>
             </div>
           </div>
@@ -162,10 +164,9 @@ function TrendingTokensSection() {
 
   if (coins.length === 0) {
     return (
-      <div className="text-center py-8">
-        <P className="text-4xl mb-2">🪙</P>
-        <P className="opacity-60">No Base tokens found</P>
-        <P className="text-xs opacity-40 mt-1">Try again later</P>
+      <div className="text-center py-6">
+        <P className="text-3xl mb-2">🪙</P>
+        <P className="opacity-60 text-sm">No trending tokens</P>
       </div>
     );
   }
@@ -174,44 +175,18 @@ function TrendingTokensSection() {
     window.open(`https://www.coingecko.com/en/coins/${coinId}`, '_blank');
   };
 
-  const formatPrice = (price: number | undefined) => {
-    if (!price) return '$0.00';
-    if (price < 0.0001) return `$${price.toExponential(2)}`;
-    if (price < 1) return `$${price.toFixed(6)}`;
-    if (price < 1000) return `$${price.toFixed(2)}`;
-    return `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-  };
-
-  const formatMarketCap = (cap: number | undefined) => {
-    if (!cap) return 'N/A';
-    if (cap >= 1_000_000_000) return `$${(cap / 1_000_000_000).toFixed(2)}B`;
-    if (cap >= 1_000_000) return `$${(cap / 1_000_000).toFixed(2)}M`;
-    if (cap >= 1_000) return `$${(cap / 1_000).toFixed(2)}K`;
-    return `$${cap.toFixed(2)}`;
-  };
-
   return (
     <div className="space-y-2">
-      {/* Header */}
-      <div className="flex items-center justify-between px-2 text-xs opacity-50 mb-2">
-        <span>Token</span>
-        <span>Price / 24h</span>
-      </div>
-
-      {coins.slice(0, 100).map((coin, index) => (
+      {coins.slice(0, 10).map((coin, index) => (
         <button
-          key={`${coin.id}-${index}`}
+          key={coin.id}
           onClick={() => openToken(coin.id)}
           className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
         >
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
               {coin.image ? (
-                <img
-                  src={coin.image}
-                  alt={coin.name}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
+                <img src={coin.image} alt={coin.name} className="w-10 h-10 rounded-full object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-lg font-bold">
                   {coin.symbol?.charAt(0).toUpperCase() || '?'}
@@ -225,18 +200,12 @@ function TrendingTokensSection() {
               <P className="font-medium truncate">{coin.name}</P>
               <div className="flex items-center gap-2">
                 <P className="text-xs text-amber-400 uppercase">{coin.symbol}</P>
-                {coin.market_cap && (
-                  <P className="text-xs opacity-40">MCap: {formatMarketCap(coin.market_cap)}</P>
-                )}
+                <P className="text-xs opacity-40">MCap: {formatMarketCap(coin.market_cap)}</P>
               </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <P className="font-medium">{formatPrice(coin.current_price)}</P>
-              <P className={`text-xs font-medium ${
-                (coin.price_change_percentage_24h || 0) >= 0
-                  ? 'text-green-400'
-                  : 'text-red-400'
-              }`}>
+              <P className="font-medium text-sm">{formatPrice(coin.current_price)}</P>
+              <P className={`text-xs font-medium ${(coin.price_change_percentage_24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {(coin.price_change_percentage_24h || 0) >= 0 ? '↑' : '↓'}
                 {Math.abs(coin.price_change_percentage_24h || 0).toFixed(2)}%
               </P>
@@ -244,15 +213,120 @@ function TrendingTokensSection() {
           </div>
         </button>
       ))}
+    </div>
+  );
+}
 
-      {hasNextPage && coins.length < 100 && (
+// New Tokens on Base - Recently created pools
+function NewTokensList() {
+  const { data, isLoading } = useOnchainNetworkNewPools('base', { per_page: 10 }, {
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const pools = data || [];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="animate-pulse p-3 rounded-lg bg-gray-800/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gray-700" />
+              <div className="flex-1">
+                <div className="h-4 bg-gray-700 rounded w-28 mb-1" />
+                <div className="h-3 bg-gray-700 rounded w-20" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (pools.length === 0) {
+    return (
+      <div className="text-center py-6">
+        <P className="text-3xl mb-2">✨</P>
+        <P className="opacity-60 text-sm">No new tokens found</P>
+      </div>
+    );
+  }
+
+  const openPool = (pool: typeof pools[0]) => {
+    if (pool.address) {
+      window.open(`https://www.geckoterminal.com/base/pools/${pool.address}`, '_blank');
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {pools.slice(0, 10).map((pool, index) => (
         <button
-          onClick={() => fetchNextPage()}
-          className="w-full py-2 text-center text-sm text-amber-400 hover:text-amber-300"
+          key={`${pool.address}-${index}`}
+          onClick={() => openPool(pool)}
+          className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
         >
-          Load more...
+          <div className="flex items-center gap-3">
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-sm font-bold">
+                {pool.name?.split('/')[0]?.charAt(0) || '?'}
+              </div>
+              <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
+                {index + 1}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <P className="font-medium truncate text-sm">{pool.name || 'Unknown Pool'}</P>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
+                <P className="text-xs opacity-40 truncate">{pool.dex_id || 'DEX'}</P>
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              {pool.reserve_in_usd && (
+                <P className="text-xs opacity-60">TVL: {formatMarketCap(pool.reserve_in_usd)}</P>
+              )}
+            </div>
+          </div>
         </button>
-      )}
+      ))}
+    </div>
+  );
+}
+
+// Tokens Section with sub-tabs
+function TokensSection() {
+  const [subTab, setSubTab] = useState<TokenSubTab>('trending');
+
+  return (
+    <div className="space-y-3">
+      {/* Sub-tabs */}
+      <div className="flex gap-2 mb-3">
+        <button
+          onClick={() => setSubTab('trending')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+            subTab === 'trending'
+              ? 'bg-amber-500 text-black'
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+          }`}
+        >
+          🔥 Trending
+        </button>
+        <button
+          onClick={() => setSubTab('new')}
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+            subTab === 'new'
+              ? 'bg-green-500 text-black'
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+          }`}
+        >
+          ✨ New
+        </button>
+      </div>
+
+      {/* Content */}
+      {subTab === 'trending' ? <TrendingTokensList /> : <NewTokensList />}
 
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">
@@ -263,16 +337,24 @@ function TrendingTokensSection() {
   );
 }
 
-// Trending Mini Apps Section - with logos and 24h filter
+// Trending Mini Apps Section - 10 apps, no duplicates
 function TrendingAppsSection() {
-  const { data, isLoading, fetchNextPage, hasNextPage } = useFrameCatalog(
+  const { data, isLoading } = useFrameCatalog(
     { category: undefined },
     {
       staleTime: 5 * 60 * 1000,
-      refetchInterval: 10 * 60 * 1000, // Refresh every 10 minutes
+      refetchInterval: 10 * 60 * 1000,
     }
   );
-  const frames = data?.pages?.flatMap(p => p.items) || [];
+  const allFrames = data?.pages?.flatMap(p => p.items) || [];
+
+  // Remove duplicates by frames_url
+  const seenUrls = new Set<string>();
+  const frames = allFrames.filter(frame => {
+    if (!frame.frames_url || seenUrls.has(frame.frames_url)) return false;
+    seenUrls.add(frame.frames_url);
+    return true;
+  });
 
   if (isLoading) {
     return (
@@ -283,8 +365,7 @@ function TrendingAppsSection() {
               <div className="w-12 h-12 rounded-xl bg-gray-700" />
               <div className="flex-1">
                 <div className="h-4 bg-gray-700 rounded w-28 mb-1" />
-                <div className="h-3 bg-gray-700 rounded w-20 mb-1" />
-                <div className="h-3 bg-gray-700 rounded w-36" />
+                <div className="h-3 bg-gray-700 rounded w-20" />
               </div>
             </div>
           </div>
@@ -298,7 +379,6 @@ function TrendingAppsSection() {
       <div className="text-center py-8">
         <P className="text-4xl mb-2">📱</P>
         <P className="opacity-60">No trending mini apps right now</P>
-        <P className="text-xs opacity-40 mt-1">Check back later</P>
       </div>
     );
   }
@@ -311,9 +391,9 @@ function TrendingAppsSection() {
 
   return (
     <div className="space-y-3">
-      {frames.slice(0, 20).map((frame, index) => (
+      {frames.slice(0, 10).map((frame, index) => (
         <button
-          key={`${frame.frames_url}-${index}`}
+          key={frame.frames_url}
           onClick={() => openApp(frame)}
           className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-blue-500/20 transition-colors border border-gray-700 hover:border-blue-500/50"
         >
@@ -355,16 +435,6 @@ function TrendingAppsSection() {
           </div>
         </button>
       ))}
-
-      {hasNextPage && (
-        <button
-          onClick={() => fetchNextPage()}
-          className="w-full py-2 text-center text-sm text-blue-400 hover:text-blue-300"
-        >
-          Load more...
-        </button>
-      )}
-
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">Farcaster Mini Apps • 🔄 Auto-refresh 10min</P>
       </div>
@@ -388,7 +458,7 @@ export function FeedTab() {
         <CardContent className="p-4">
           <div className="text-center mb-3">
             <H6>📰 Trending Now</H6>
-            <P className="text-xs opacity-60 mt-1">Fresh content • Auto-updates every few minutes</P>
+            <P className="text-xs opacity-60 mt-1">Fresh content • Auto-updates</P>
           </div>
 
           {/* Section Tabs */}
@@ -427,7 +497,7 @@ export function FeedTab() {
             <>
               <div className="flex items-center justify-between mb-3">
                 <H6>🔥 Trending Casts</H6>
-                <P className="text-xs text-purple-400">Last 24 hours</P>
+                <P className="text-xs text-purple-400">Top 10 • 24h</P>
               </div>
               <TrendingCastsSection />
             </>
@@ -436,18 +506,18 @@ export function FeedTab() {
           {activeSection === 'tokens' && (
             <>
               <div className="flex items-center justify-between mb-3">
-                <H6>🪙 Base Network Tokens</H6>
-                <P className="text-xs text-amber-400">Top 100</P>
+                <H6>🪙 Base Tokens</H6>
+                <P className="text-xs text-amber-400">Top 10</P>
               </div>
-              <TrendingTokensSection />
+              <TokensSection />
             </>
           )}
 
           {activeSection === 'apps' && (
             <>
               <div className="flex items-center justify-between mb-3">
-                <H6>📱 Trending Mini Apps</H6>
-                <P className="text-xs text-blue-400">Farcaster</P>
+                <H6>📱 Mini Apps</H6>
+                <P className="text-xs text-blue-400">Top 10</P>
               </div>
               <TrendingAppsSection />
             </>
