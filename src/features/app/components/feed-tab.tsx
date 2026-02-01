@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useCoinsMarkets, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useTrendingSearch, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 
@@ -125,37 +125,55 @@ const formatMarketCap = (cap: number | undefined) => {
   return `$${cap.toFixed(2)}`;
 };
 
-// Excluded tokens - major coins, stablecoins, wrapped tokens
+// Major coins/stablecoins to exclude - be very aggressive
 const EXCLUDED_SYMBOLS = new Set([
-  'eth', 'weth', 'btc', 'wbtc', 'usdc', 'usdt', 'dai', 'busd', 'tusd', 'usdp',
-  'frax', 'lusd', 'susd', 'gusd', 'eurs', 'eurt', 'jeur', 'ageur', 'ceur',
-  'steth', 'wsteth', 'cbeth', 'reth', 'sfrxeth', 'frxeth', 'seth2',
-  'matic', 'wmatic', 'sol', 'wsol', 'avax', 'wavax', 'bnb', 'wbnb',
-  'link', 'uni', 'aave', 'crv', 'mkr', 'snx', 'comp', 'yfi', 'sushi',
+  // Stablecoins
+  'usdc', 'usdt', 'dai', 'busd', 'tusd', 'usdp', 'frax', 'lusd', 'susd', 'gusd',
+  'eurs', 'eurt', 'jeur', 'ageur', 'ceur', 'pyusd', 'fdusd', 'usdd', 'usde', 'eusd',
+  'usd+', 'usdb', 'crvusd', 'gho', 'mkusd', 'dola', 'rai', 'mim', 'fei', 'tribe',
+  // Major L1s & Wrapped
+  'eth', 'weth', 'btc', 'wbtc', 'tbtc', 'hbtc', 'renbtc', 'sbtc',
+  'sol', 'wsol', 'bnb', 'wbnb', 'avax', 'wavax', 'matic', 'wmatic', 'ftm', 'wftm',
+  'atom', 'dot', 'ada', 'xrp', 'doge', 'shib', 'ltc', 'bch', 'etc', 'trx',
+  // ETH LSDs
+  'steth', 'wsteth', 'cbeth', 'reth', 'sfrxeth', 'frxeth', 'seth2', 'ankreth', 'sweth',
+  'oeth', 'meth', 'rseth', 'ezeth', 'weeth', 'eeth', 'pufeth',
+  // DeFi Blue Chips (top 50 marketcap)
+  'link', 'uni', 'aave', 'crv', 'mkr', 'snx', 'comp', 'yfi', 'sushi', 'bal',
+  '1inch', 'ldo', 'gmx', 'dydx', 'pendle', 'rpl', 'fxs', 'cvx', 'spell', 'joe',
+  // CEX tokens
+  'bnb', 'okb', 'cro', 'kcs', 'ht', 'ftt', 'leo', 'gt', 'mx',
+  // Layer 2 tokens
+  'arb', 'op', 'ens', 'blur', 'imx', 'lrc', 'zk', 'strk', 'mnt', 'metis',
 ]);
 
-// Trending Tokens - Top 10 most trending in 24h (excluding major coins)
-function TrendingTokensList() {
-  const { data, isLoading } = useCoinsMarkets(
-    {
-      vs_currency: 'usd',
-      category: 'base-ecosystem',
-      order: 'volume_desc', // Sort by volume for trending
-      per_page: 50, // Get more to filter
-      sparkline: false,
-      price_change_percentage: '24h',
-    },
-    {
-      refetchInterval: 5 * 60 * 1000,
-      staleTime: 2 * 60 * 1000,
-    }
-  );
+// Also exclude by market cap rank (top 100 coins)
+const isLikelyMajorCoin = (coin: any) => {
+  const marketCapRank = coin.market_cap_rank;
+  // Exclude if in top 100 by market cap
+  if (marketCapRank && marketCapRank <= 100) return true;
+  return false;
+};
 
-  // Filter out major coins and stablecoins
-  const allCoins = data?.pages?.flat() || [];
-  const coins = allCoins.filter(coin =>
-    !EXCLUDED_SYMBOLS.has(coin.symbol?.toLowerCase() || '')
-  );
+// Trending Tokens - Global trending (filtered to exclude majors)
+function TrendingTokensList() {
+  const { data, isLoading } = useTrendingSearch({
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Get coins from trending response and filter
+  const allCoins = (data as any)?.coins || [];
+  const coins = allCoins
+    .map((item: any) => item.item || item)
+    .filter((coin: any) => {
+      const symbol = coin.symbol?.toLowerCase() || '';
+      // Exclude if in our exclusion list
+      if (EXCLUDED_SYMBOLS.has(symbol)) return false;
+      // Exclude if top 100 market cap
+      if (isLikelyMajorCoin(coin)) return false;
+      return true;
+    });
 
   if (isLoading) {
     return (
@@ -178,8 +196,8 @@ function TrendingTokensList() {
   if (coins.length === 0) {
     return (
       <div className="text-center py-6">
-        <P className="text-3xl mb-2">🪙</P>
-        <P className="opacity-60 text-sm">No trending tokens</P>
+        <P className="text-3xl mb-2">🔥</P>
+        <P className="opacity-60 text-sm">No trending tokens right now</P>
       </div>
     );
   }
@@ -190,7 +208,7 @@ function TrendingTokensList() {
 
   return (
     <div className="space-y-2">
-      {coins.slice(0, 10).map((coin, index) => (
+      {coins.slice(0, 10).map((coin: any, index: number) => (
         <button
           key={coin.id}
           onClick={() => openToken(coin.id)}
@@ -198,8 +216,12 @@ function TrendingTokensList() {
         >
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
-              {coin.image ? (
-                <img src={coin.image} alt={coin.name} className="w-10 h-10 rounded-full object-cover" />
+              {coin.thumb || coin.small || coin.large ? (
+                <img
+                  src={coin.thumb || coin.small || coin.large}
+                  alt={coin.name}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-lg font-bold">
                   {coin.symbol?.charAt(0).toUpperCase() || '?'}
@@ -213,15 +235,24 @@ function TrendingTokensList() {
               <P className="font-medium truncate">{coin.name}</P>
               <div className="flex items-center gap-2">
                 <P className="text-xs text-amber-400 uppercase">{coin.symbol}</P>
-                <P className="text-xs opacity-40">MCap: {formatMarketCap(coin.market_cap)}</P>
+                {coin.market_cap_rank && (
+                  <P className="text-xs opacity-40">Rank #{coin.market_cap_rank}</P>
+                )}
               </div>
             </div>
             <div className="text-right flex-shrink-0">
-              <P className="font-medium text-sm">{formatPrice(coin.current_price)}</P>
-              <P className={`text-xs font-medium ${(coin.price_change_percentage_24h || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {(coin.price_change_percentage_24h || 0) >= 0 ? '↑' : '↓'}
-                {Math.abs(coin.price_change_percentage_24h || 0).toFixed(2)}%
-              </P>
+              {coin.data?.price && (
+                <P className="font-medium text-sm">{formatPrice(parseFloat(coin.data.price))}</P>
+              )}
+              {coin.data?.price_change_percentage_24h?.usd !== undefined && (
+                <P className={`text-xs font-medium ${coin.data.price_change_percentage_24h.usd >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {coin.data.price_change_percentage_24h.usd >= 0 ? '↑' : '↓'}
+                  {Math.abs(coin.data.price_change_percentage_24h.usd).toFixed(2)}%
+                </P>
+              )}
+              {coin.score !== undefined && (
+                <P className="text-[10px] opacity-40">Score: {coin.score + 1}</P>
+              )}
             </div>
           </div>
         </button>
@@ -230,15 +261,23 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens on Base - Recently created pools
+// New Tokens on Base - Recently created pools with better formatting
 function NewTokensList() {
-  const { data, isLoading } = useOnchainNetworkNewPools('base', { per_page: 10 }, {
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 2 * 60 * 1000,
+  const { data, isLoading } = useOnchainNetworkNewPools('base', { per_page: 20 }, {
+    refetchInterval: 2 * 60 * 1000,
+    staleTime: 1 * 60 * 1000,
   });
 
   // Handle different response structures
-  const pools = Array.isArray(data) ? data : (data as any)?.data || [];
+  const rawPools = Array.isArray(data) ? data : (data as any)?.data || [];
+
+  // Filter to show only interesting new pools (with some liquidity)
+  const pools = rawPools.filter((pool: any) => {
+    // Must have some reserve
+    const reserve = pool.reserve_in_usd || pool.attributes?.reserve_in_usd || 0;
+    if (reserve < 1000) return false; // At least $1k liquidity
+    return true;
+  });
 
   if (isLoading) {
     return (
@@ -262,49 +301,55 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No new tokens found</P>
+        <P className="opacity-60 text-sm">No new pools with liquidity</P>
       </div>
     );
   }
 
-  const openPool = (pool: typeof pools[0]) => {
-    if (pool.address) {
-      window.open(`https://www.geckoterminal.com/base/pools/${pool.address}`, '_blank');
+  const openPool = (pool: any) => {
+    const address = pool.address || pool.attributes?.address;
+    if (address) {
+      window.open(`https://www.geckoterminal.com/base/pools/${address}`, '_blank');
     }
   };
 
   return (
     <div className="space-y-2">
-      {pools.slice(0, 10).map((pool, index) => (
-        <button
-          key={`${pool.address}-${index}`}
-          onClick={() => openPool(pool)}
-          className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-sm font-bold">
-                {pool.name?.split('/')[0]?.charAt(0) || '?'}
+      {pools.slice(0, 10).map((pool: any, index: number) => {
+        const name = pool.name || pool.attributes?.name || 'Unknown Pool';
+        const dex = pool.dex_id || pool.relationships?.dex?.data?.id || 'DEX';
+        const reserve = pool.reserve_in_usd || pool.attributes?.reserve_in_usd || 0;
+        const baseToken = pool.tokens?.base_token?.symbol || name.split('/')[0] || '?';
+
+        return (
+          <button
+            key={`${pool.address || pool.id}-${index}`}
+            onClick={() => openPool(pool)}
+            className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-sm font-bold">
+                  {baseToken.charAt(0)}
+                </div>
+                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
+                  {index + 1}
+                </span>
               </div>
-              <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
-                {index + 1}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <P className="font-medium truncate text-sm">{pool.name || 'Unknown Pool'}</P>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
-                <P className="text-xs opacity-40 truncate">{pool.dex_id || 'DEX'}</P>
+              <div className="flex-1 min-w-0">
+                <P className="font-medium truncate text-sm">{name}</P>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
+                  <P className="text-xs opacity-40 truncate">{dex}</P>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <P className="text-xs text-green-400">TVL: {formatMarketCap(reserve)}</P>
               </div>
             </div>
-            <div className="text-right flex-shrink-0">
-              {pool.reserve_in_usd && (
-                <P className="text-xs opacity-60">TVL: {formatMarketCap(pool.reserve_in_usd)}</P>
-              )}
-            </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -335,7 +380,7 @@ function TokensSection() {
               : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
           }`}
         >
-          ✨ New
+          ✨ New on Base
         </button>
       </div>
 
@@ -344,40 +389,68 @@ function TokensSection() {
 
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">
-          <span className="text-blue-400">Base Network</span> • CoinGecko • 🔄 Auto-refresh 5min
+          {subTab === 'trending' ? 'CoinGecko Trending' : 'Base Network'} • 🔄 Auto-refresh
         </P>
       </div>
     </div>
   );
 }
 
-// Helper to get app name from frame data
+// Helper to get app name from frame data - improved version
 const getAppName = (frame: FrameV2WithFullAuthor): string => {
-  // Try manifest name first (most reliable for app name)
-  if (frame.manifest?.name) return frame.manifest.name;
-  // Then try metadata name
-  if ((frame.metadata as any)?.name) return (frame.metadata as any).name;
-  // Then title (button title, fallback)
-  if (frame.title) return frame.title;
-  // Extract from URL as last resort
+  // Priority order for getting name
+  // 1. Try manifest name (official app name from farcaster.json)
+  const manifestName = (frame.manifest as any)?.name;
+  if (manifestName && manifestName.trim()) return manifestName;
+
+  // 2. Try metadata name
+  const metadataName = (frame.metadata as any)?.name;
+  if (metadataName && metadataName.trim()) return metadataName;
+
+  // 3. Try title field (button title)
+  if (frame.title && frame.title.trim()) return frame.title;
+
+  // 4. Try to get name from author info
+  if (frame.author?.display_name) return `${frame.author.display_name}'s App`;
+
+  // 5. Extract domain name from URL
   try {
     const url = new URL(frame.frames_url);
-    return url.hostname.replace('www.', '');
-  } catch {
-    return 'Mini App';
-  }
+    const hostname = url.hostname.replace('www.', '');
+    // Clean up common patterns
+    const cleanName = hostname
+      .replace('.vercel.app', '')
+      .replace('.netlify.app', '')
+      .replace('.pages.dev', '')
+      .split('.')[0];
+    if (cleanName.length > 2) return cleanName;
+  } catch {}
+
+  return 'Mini App';
 };
 
-// Helper to get app icon/logo from frame data
+// Helper to get app icon/logo - improved version
 const getAppIcon = (frame: FrameV2WithFullAuthor): string | null => {
-  // Try manifest icon first (actual app icon)
-  if (frame.manifest?.iconUrl) return frame.manifest.iconUrl;
-  // Then frame image (preview image)
-  if (frame.image) return frame.image;
+  // Priority order for getting icon
+  // 1. Manifest icon (actual app icon from farcaster.json)
+  const manifestIcon = (frame.manifest as any)?.iconUrl;
+  if (manifestIcon) return manifestIcon;
+
+  // 2. Manifest splash image
+  const splashImage = (frame.manifest as any)?.splashImageUrl;
+  if (splashImage) return splashImage;
+
+  // 3. Frame image (preview/og image)
+  if (frame.image && frame.image.trim()) return frame.image;
+
+  // 4. Metadata image
+  const metadataImage = (frame.metadata as any)?.image;
+  if (metadataImage) return metadataImage;
+
   return null;
 };
 
-// Trending Mini Apps Section - 10 apps, no duplicates
+// Trending Mini Apps Section - 10 apps, no duplicates, with better name/logo handling
 function TrendingAppsSection() {
   const { data, isLoading } = useFrameCatalog(
     { category: undefined },
@@ -429,12 +502,15 @@ function TrendingAppsSection() {
     }
   };
 
+  // Debug: Log first frame to see what data we have
+  console.log('First frame data:', JSON.stringify(frames[0], null, 2));
+
   return (
     <div className="space-y-3">
       {frames.slice(0, 10).map((frame, index) => {
         const appName = getAppName(frame);
         const appIcon = getAppIcon(frame);
-        const description = (frame.metadata as any)?.description || frame.manifest?.tagline;
+        const description = (frame.metadata as any)?.description || (frame.manifest as any)?.tagline;
 
         return (
           <button
@@ -449,12 +525,16 @@ function TrendingAppsSection() {
                     src={appIcon}
                     alt={appName}
                     className="w-12 h-12 rounded-xl object-cover border border-blue-500/30"
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      (e.target as HTMLImageElement).style.display = 'none';
+                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                    }}
                   />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl">
-                    📱
-                  </div>
-                )}
+                ) : null}
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl ${appIcon ? 'hidden' : ''}`}>
+                  📱
+                </div>
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-blue-500 text-[10px] font-bold flex items-center justify-center">
                   {index + 1}
                 </span>
@@ -466,7 +546,7 @@ function TrendingAppsSection() {
                     {frame.author.pfp_url && (
                       <img
                         src={frame.author.pfp_url}
-                        alt={frame.author.username}
+                        alt={frame.author.username || 'author'}
                         className="w-4 h-4 rounded-full"
                       />
                     )}
@@ -493,7 +573,7 @@ export function FeedTab() {
 
   const sections = [
     { id: 'casts' as FeedSection, label: '🔥 Casts', color: 'purple' },
-    { id: 'tokens' as FeedSection, label: '🪙 Base', color: 'amber' },
+    { id: 'tokens' as FeedSection, label: '🪙 Tokens', color: 'amber' },
     { id: 'apps' as FeedSection, label: '📱 Apps', color: 'blue' },
   ];
 
@@ -552,7 +632,7 @@ export function FeedTab() {
           {activeSection === 'tokens' && (
             <>
               <div className="flex items-center justify-between mb-3">
-                <H6>🪙 Base Tokens</H6>
+                <H6>🪙 Hot Tokens</H6>
                 <P className="text-xs text-amber-400">Top 10</P>
               </div>
               <TokensSection />
