@@ -62,6 +62,7 @@ export {
   useOnchainCategoryPools,
   useOnchainNetworks,
   useOnchainNetworkNewPools,
+  useOnchainNetworkTrendingPools,
 } from "./hooks/onchain";
 
 // Ping hooks

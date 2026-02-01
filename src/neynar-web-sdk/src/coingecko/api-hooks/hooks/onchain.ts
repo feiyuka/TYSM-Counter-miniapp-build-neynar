@@ -330,7 +330,60 @@ export function useOnchainNetworkNewPools(
   );
 }
 
-// Additional network hooks would continue here following the same pattern...
-// For brevity, I'm including just a few representative examples
-// The full file would include all hooks from the original implementation
-// with the enhanced documentation and proper typing
+/**
+ * Fetches trending pools for a specific blockchain network
+ *
+ * This hook retrieves the most popular/trending liquidity pools on a given network
+ * based on trading volume and activity. Perfect for discovering hot trading pairs
+ * and monitoring market sentiment.
+ *
+ * @param network - Network identifier (e.g., "base", "eth", "polygon")
+ * @param params - Optional pagination parameters
+ * @param params.page - Page number for pagination (default: 1)
+ * @param params.per_page - Number of pools per page
+ * @param params.duration - Duration to sort trending list by (default: "24h")
+ * @param options - Optional query configuration parameters
+ *
+ * @returns UseQueryResult containing:
+ * - `data.data[]`: Array of OnchainPool objects sorted by trending score
+ * - Each pool includes: id, name, address, tokens, reserve_in_usd, volume_24h, price changes
+ *
+ * @example
+ * ```tsx
+ * function TrendingPools({ network }: { network: string }) {
+ *   const { data, isLoading } = useOnchainNetworkTrendingPools(network, { per_page: 10 });
+ *
+ *   if (isLoading) return <div>Loading trending pools...</div>;
+ *
+ *   const pools = data?.data || [];
+ *   return (
+ *     <div>
+ *       {pools.map(pool => (
+ *         <div key={pool.id}>{pool.name}</div>
+ *       ))}
+ *     </div>
+ *   );
+ * }
+ * ```
+ */
+export function useOnchainNetworkTrendingPools(
+  network: string,
+  params?: OnchainCategoryPoolsParams & { duration?: "5m" | "1h" | "6h" | "24h" },
+  options?: ExtendedQueryOptions<OnchainPool[]> & CoinGeckoHookOptions,
+) {
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.set("page", params.page.toString());
+  if (params?.per_page) queryParams.set("per_page", params.per_page.toString());
+  if (params?.duration) queryParams.set("duration", params.duration);
+
+  return useApiQuery<OnchainPool[]>(
+    ["coingecko", "onchain", "networks", "trending-pools", network, params],
+    `/api/coingecko/onchain/networks/${network}/trending-pools?${queryParams}`,
+    {
+      enabled: Boolean(network?.trim()),
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      gcTime: 15 * 60 * 1000, // 15 minutes
+      ...options,
+    },
+  );
+}

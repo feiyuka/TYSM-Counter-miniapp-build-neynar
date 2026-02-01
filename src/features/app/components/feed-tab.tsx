@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useTrendingSearch, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useOnchainNetworkTrendingPools, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 
@@ -108,74 +108,116 @@ function TrendingCastsSection() {
   );
 }
 
-// Helper functions for token formatting
-const formatPrice = (price: number | undefined) => {
+// Helper functions for formatting
+const formatPrice = (price: number | string | undefined) => {
   if (!price) return '$0.00';
-  if (price < 0.0001) return `$${price.toExponential(2)}`;
-  if (price < 1) return `$${price.toFixed(6)}`;
-  if (price < 1000) return `$${price.toFixed(2)}`;
-  return `$${price.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  if (isNaN(numPrice)) return '$0.00';
+  if (numPrice < 0.0001) return `$${numPrice.toExponential(2)}`;
+  if (numPrice < 1) return `$${numPrice.toFixed(6)}`;
+  if (numPrice < 1000) return `$${numPrice.toFixed(2)}`;
+  return `$${numPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
 };
 
-const formatMarketCap = (cap: number | undefined) => {
+const formatMarketCap = (cap: number | string | undefined) => {
   if (!cap) return 'N/A';
-  if (cap >= 1_000_000_000) return `$${(cap / 1_000_000_000).toFixed(2)}B`;
-  if (cap >= 1_000_000) return `$${(cap / 1_000_000).toFixed(2)}M`;
-  if (cap >= 1_000) return `$${(cap / 1_000).toFixed(2)}K`;
-  return `$${cap.toFixed(2)}`;
+  const numCap = typeof cap === 'string' ? parseFloat(cap) : cap;
+  if (isNaN(numCap)) return 'N/A';
+  if (numCap >= 1_000_000_000) return `$${(numCap / 1_000_000_000).toFixed(2)}B`;
+  if (numCap >= 1_000_000) return `$${(numCap / 1_000_000).toFixed(2)}M`;
+  if (numCap >= 1_000) return `$${(numCap / 1_000).toFixed(2)}K`;
+  return `$${numCap.toFixed(2)}`;
 };
 
-// Major coins/stablecoins to exclude - be very aggressive
-const EXCLUDED_SYMBOLS = new Set([
-  // Stablecoins
-  'usdc', 'usdt', 'dai', 'busd', 'tusd', 'usdp', 'frax', 'lusd', 'susd', 'gusd',
-  'eurs', 'eurt', 'jeur', 'ageur', 'ceur', 'pyusd', 'fdusd', 'usdd', 'usde', 'eusd',
-  'usd+', 'usdb', 'crvusd', 'gho', 'mkusd', 'dola', 'rai', 'mim', 'fei', 'tribe',
-  // Major L1s & Wrapped
-  'eth', 'weth', 'btc', 'wbtc', 'tbtc', 'hbtc', 'renbtc', 'sbtc',
-  'sol', 'wsol', 'bnb', 'wbnb', 'avax', 'wavax', 'matic', 'wmatic', 'ftm', 'wftm',
-  'atom', 'dot', 'ada', 'xrp', 'doge', 'shib', 'ltc', 'bch', 'etc', 'trx',
-  // ETH LSDs
-  'steth', 'wsteth', 'cbeth', 'reth', 'sfrxeth', 'frxeth', 'seth2', 'ankreth', 'sweth',
-  'oeth', 'meth', 'rseth', 'ezeth', 'weeth', 'eeth', 'pufeth',
-  // DeFi Blue Chips (top 50 marketcap)
-  'link', 'uni', 'aave', 'crv', 'mkr', 'snx', 'comp', 'yfi', 'sushi', 'bal',
-  '1inch', 'ldo', 'gmx', 'dydx', 'pendle', 'rpl', 'fxs', 'cvx', 'spell', 'joe',
-  // CEX tokens
-  'bnb', 'okb', 'cro', 'kcs', 'ht', 'ftt', 'leo', 'gt', 'mx',
-  // Layer 2 tokens
-  'arb', 'op', 'ens', 'blur', 'imx', 'lrc', 'zk', 'strk', 'mnt', 'metis',
-]);
+// Helper to extract token data from GeckoTerminal pool response
+interface TokenInfo {
+  name: string;
+  symbol: string;
+  image: string | null;
+  price: string | null;
+  priceChange24h: number | null;
+  address: string | null;
+}
 
-// Also exclude by market cap rank (top 100 coins)
-const isLikelyMajorCoin = (coin: any) => {
-  const marketCapRank = coin.market_cap_rank;
-  // Exclude if in top 100 by market cap
-  if (marketCapRank && marketCapRank <= 100) return true;
-  return false;
-};
+function extractBaseToken(pool: any, included?: any[]): TokenInfo {
+  const attrs = pool.attributes || pool;
 
-// Trending Tokens - Global trending (filtered to exclude majors)
+  // Get token relationship ID
+  const baseTokenId = pool.relationships?.base_token?.data?.id;
+
+  // Try to find token in included array
+  let tokenData: any = null;
+  if (included && baseTokenId) {
+    tokenData = included.find((item: any) => item.id === baseTokenId && item.type === 'token');
+  }
+
+  // Extract name - multiple fallbacks
+  const name = tokenData?.attributes?.name ||
+               attrs.base_token_name ||
+               attrs.name?.split('/')[0]?.trim() ||
+               'Unknown';
+
+  // Extract symbol
+  const symbol = tokenData?.attributes?.symbol ||
+                 attrs.base_token_symbol ||
+                 name.split(' ')[0] ||
+                 '?';
+
+  // Extract image - GeckoTerminal provides image_url in token attributes
+  const image = tokenData?.attributes?.image_url || null;
+
+  // Extract price
+  const price = attrs.base_token_price_usd || null;
+
+  // Extract 24h price change
+  const priceChange24h = attrs.price_change_percentage?.h24
+    ? parseFloat(attrs.price_change_percentage.h24)
+    : null;
+
+  // Extract address
+  const address = tokenData?.attributes?.address ||
+                  attrs.base_token_address ||
+                  baseTokenId?.split('_')[1] ||
+                  null;
+
+  return { name, symbol, image, price, priceChange24h, address };
+}
+
+// Trending Tokens on Base - Using GeckoTerminal trending pools
 function TrendingTokensList() {
-  const { data, isLoading, error } = useTrendingSearch({
-    refetchInterval: 5 * 60 * 1000,
-    staleTime: 2 * 60 * 1000,
-  });
+  const { data, isLoading, error } = useOnchainNetworkTrendingPools(
+    'base',
+    { per_page: 20, duration: '24h' },
+    {
+      refetchInterval: 3 * 60 * 1000,
+      staleTime: 2 * 60 * 1000,
+    }
+  );
 
-  // Debug log to see actual data structure
-  console.log('Trending search raw data:', data);
+  // Extract pools and included data
+  const rawData = data as any;
+  const pools = rawData?.data || [];
+  const included = rawData?.included || [];
 
-  // Get coins from trending response - handle nested structure
-  const rawCoins = (data as any)?.coins || [];
-  const allCoins = rawCoins.map((item: any) => item.item || item);
+  // Track seen tokens to avoid duplicates (by symbol)
+  const seenSymbols = new Set<string>();
+  const uniqueTokens: { pool: any; token: TokenInfo }[] = [];
 
-  // Filter out major coins
-  const coins = allCoins.filter((coin: any) => {
-    const symbol = coin.symbol?.toLowerCase() || '';
-    if (EXCLUDED_SYMBOLS.has(symbol)) return false;
-    if (isLikelyMajorCoin(coin)) return false;
-    return true;
-  });
+  for (const pool of pools) {
+    const token = extractBaseToken(pool, included);
+    const symbolLower = token.symbol.toLowerCase();
+
+    // Skip stablecoins and wrapped tokens
+    if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
+
+    // Skip if we've already seen this token
+    if (seenSymbols.has(symbolLower)) continue;
+
+    seenSymbols.add(symbolLower);
+    uniqueTokens.push({ pool, token });
+
+    if (uniqueTokens.length >= 10) break;
+  }
 
   if (isLoading) {
     return (
@@ -196,10 +238,7 @@ function TrendingTokensList() {
   }
 
   if (error) {
-    // Extract proper error message
-    const errorMsg = error instanceof Error ? error.message :
-                     (error as any)?.message ||
-                     JSON.stringify(error);
+    const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">⚠️</P>
@@ -209,126 +248,118 @@ function TrendingTokensList() {
     );
   }
 
-  if (coins.length === 0 && allCoins.length === 0) {
+  if (uniqueTokens.length === 0) {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">🔥</P>
-        <P className="opacity-60 text-sm">No trending tokens available</P>
-        <P className="text-xs opacity-40 mt-1">Check console for API response</P>
-      </div>
-    );
-  }
-
-  if (coins.length === 0 && allCoins.length > 0) {
-    // All coins were filtered out, show unfiltered
-    return (
-      <div className="space-y-2">
-        {allCoins.slice(0, 10).map((coin: any, index: number) => (
-          <TrendingTokenItem key={coin.id || index} coin={coin} index={index} />
-        ))}
+        <P className="opacity-60 text-sm">No trending tokens on Base right now</P>
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      {coins.slice(0, 10).map((coin: any, index: number) => (
-        <TrendingTokenItem key={coin.id || index} coin={coin} index={index} />
-      ))}
+      {uniqueTokens.map(({ pool, token }, index) => {
+        const attrs = pool.attributes || pool;
+        const poolAddress = attrs.address || pool.id?.split('_')[1];
+
+        const openToken = () => {
+          if (poolAddress) {
+            window.open(`https://www.geckoterminal.com/base/pools/${poolAddress}`, '_blank');
+          }
+        };
+
+        return (
+          <button
+            key={pool.id || index}
+            onClick={openToken}
+            className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative flex-shrink-0">
+                {token.image ? (
+                  <img
+                    src={token.image}
+                    alt={token.symbol}
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-lg font-bold ${token.image ? 'hidden' : ''}`}>
+                  {token.symbol.charAt(0).toUpperCase()}
+                </div>
+                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 text-[10px] font-bold flex items-center justify-center text-black">
+                  {index + 1}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <P className="font-medium truncate">{token.name}</P>
+                <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
+              </div>
+              <div className="text-right flex-shrink-0">
+                {token.price && (
+                  <P className="font-medium text-sm">{formatPrice(token.price)}</P>
+                )}
+                {token.priceChange24h !== null && (
+                  <P className={`text-xs font-medium ${token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {token.priceChange24h >= 0 ? '↑' : '↓'}
+                    {Math.abs(token.priceChange24h).toFixed(2)}%
+                  </P>
+                )}
+              </div>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-// Extracted token item component
-function TrendingTokenItem({ coin, index }: { coin: any; index: number }) {
-  const openToken = (coinId: string) => {
-    window.open(`https://www.coingecko.com/en/coins/${coinId}`, '_blank');
-  };
-
-  // Get image from various possible locations
-  const imageUrl = coin.thumb || coin.small || coin.large || coin.image;
-
-  // Get price data from various possible locations
-  const price = coin.data?.price || coin.current_price;
-  const priceChange = coin.data?.price_change_percentage_24h?.usd ?? coin.price_change_percentage_24h;
-
-  return (
-    <button
-      onClick={() => openToken(coin.id)}
-      className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
-    >
-      <div className="flex items-center gap-3">
-        <div className="relative flex-shrink-0">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={coin.name}
-              className="w-10 h-10 rounded-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-lg font-bold">
-              {coin.symbol?.charAt(0).toUpperCase() || '?'}
-            </div>
-          )}
-          <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 text-[10px] font-bold flex items-center justify-center text-black">
-            {index + 1}
-          </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <P className="font-medium truncate">{coin.name}</P>
-          <div className="flex items-center gap-2">
-            <P className="text-xs text-amber-400 uppercase">{coin.symbol}</P>
-            {coin.market_cap_rank && (
-              <P className="text-xs opacity-40">#{coin.market_cap_rank}</P>
-            )}
-          </div>
-        </div>
-        <div className="text-right flex-shrink-0">
-          {price && (
-            <P className="font-medium text-sm">
-              {typeof price === 'string' ? price : formatPrice(price)}
-            </P>
-          )}
-          {priceChange !== undefined && (
-            <P className={`text-xs font-medium ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {priceChange >= 0 ? '↑' : '↓'}
-              {Math.abs(priceChange).toFixed(2)}%
-            </P>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// New Tokens on Base - Recently created pools with better formatting
+// New Tokens on Base - Recently created pools
 function NewTokensList() {
-  const { data, isLoading, error } = useOnchainNetworkNewPools('base', { per_page: 30 }, {
-    refetchInterval: 2 * 60 * 1000,
-    staleTime: 1 * 60 * 1000,
-  });
+  const { data, isLoading, error } = useOnchainNetworkNewPools(
+    'base',
+    { per_page: 30 },
+    {
+      refetchInterval: 2 * 60 * 1000,
+      staleTime: 1 * 60 * 1000,
+    }
+  );
 
-  // Debug log
-  console.log('New pools raw data:', data);
+  // Extract pools and included data
+  const rawData = data as any;
+  const pools = rawData?.data || [];
+  const included = rawData?.included || [];
 
-  // Handle different response structures from GeckoTerminal API
-  let rawPools: any[] = [];
-  if (Array.isArray(data)) {
-    rawPools = data;
-  } else if ((data as any)?.data) {
-    rawPools = (data as any).data;
-  } else if ((data as any)?.items) {
-    rawPools = (data as any).items;
+  // Filter pools with at least $1000 liquidity and get unique tokens
+  const seenSymbols = new Set<string>();
+  const uniqueTokens: { pool: any; token: TokenInfo }[] = [];
+
+  for (const pool of pools) {
+    const attrs = pool.attributes || pool;
+    const reserve = parseFloat(attrs.reserve_in_usd || '0');
+
+    // Skip low liquidity pools
+    if (reserve < 1000) continue;
+
+    const token = extractBaseToken(pool, included);
+    const symbolLower = token.symbol.toLowerCase();
+
+    // Skip stablecoins and wrapped
+    if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
+
+    // Skip duplicates
+    if (seenSymbols.has(symbolLower)) continue;
+
+    seenSymbols.add(symbolLower);
+    uniqueTokens.push({ pool, token });
+
+    if (uniqueTokens.length >= 10) break;
   }
-
-  // Filter to show only pools with some liquidity
-  const pools = rawPools.filter((pool: any) => {
-    const reserve = pool.reserve_in_usd || pool.attributes?.reserve_in_usd || 0;
-    return reserve >= 500; // At least $500 liquidity
-  });
 
   if (isLoading) {
     return (
@@ -357,99 +388,74 @@ function NewTokensList() {
     );
   }
 
-  if (pools.length === 0) {
-    // Show raw pools if filter removed everything
-    const displayPools = rawPools.length > 0 ? rawPools : [];
-    if (displayPools.length === 0) {
-      return (
-        <div className="text-center py-6">
-          <P className="text-3xl mb-2">✨</P>
-          <P className="opacity-60 text-sm">No new pools found</P>
-          <P className="text-xs opacity-40 mt-1">Check console for API response</P>
-        </div>
-      );
-    }
-    // Render unfiltered
+  if (uniqueTokens.length === 0) {
     return (
-      <div className="space-y-2">
-        {displayPools.slice(0, 10).map((pool: any, index: number) => (
-          <NewPoolItem key={`${pool.id || pool.address}-${index}`} pool={pool} index={index} />
-        ))}
+      <div className="text-center py-6">
+        <P className="text-3xl mb-2">✨</P>
+        <P className="opacity-60 text-sm">No new tokens with liquidity found</P>
       </div>
     );
   }
 
   return (
     <div className="space-y-2">
-      {pools.slice(0, 10).map((pool: any, index: number) => (
-        <NewPoolItem key={`${pool.id || pool.address}-${index}`} pool={pool} index={index} />
-      ))}
+      {uniqueTokens.map(({ pool, token }, index) => {
+        const attrs = pool.attributes || pool;
+        const poolAddress = attrs.address || pool.id?.split('_')[1];
+        const reserve = parseFloat(attrs.reserve_in_usd || '0');
+        const dexId = pool.relationships?.dex?.data?.id || attrs.dex_id || 'DEX';
+
+        const openPool = () => {
+          if (poolAddress) {
+            window.open(`https://www.geckoterminal.com/base/pools/${poolAddress}`, '_blank');
+          }
+        };
+
+        return (
+          <button
+            key={pool.id || index}
+            onClick={openPool}
+            className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative flex-shrink-0">
+                {token.image ? (
+                  <img
+                    src={token.image}
+                    alt={token.symbol}
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
+                ) : null}
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-sm font-bold ${token.image ? 'hidden' : ''}`}>
+                  {token.symbol.charAt(0).toUpperCase()}
+                </div>
+                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
+                  {index + 1}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <P className="font-medium truncate text-sm">{token.name}</P>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
+                  <P className="text-xs opacity-40 truncate">{dexId}</P>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <P className="text-xs text-green-400">TVL: {formatMarketCap(reserve)}</P>
+                {token.price && (
+                  <P className="text-xs opacity-60">{formatPrice(token.price)}</P>
+                )}
+              </div>
+            </div>
+          </button>
+        );
+      })}
     </div>
-  );
-}
-
-// Extracted new pool item component
-function NewPoolItem({ pool, index }: { pool: any; index: number }) {
-  const openPool = () => {
-    const address = pool.address || pool.attributes?.address || pool.id;
-    if (address) {
-      window.open(`https://www.geckoterminal.com/base/pools/${address}`, '_blank');
-    }
-  };
-
-  // Extract data from various possible structures
-  const attrs = pool.attributes || pool;
-  const name = attrs.name || pool.name || 'Unknown Pool';
-  const dex = pool.dex_id || pool.relationships?.dex?.data?.id || attrs.dex_id || 'DEX';
-  const reserve = attrs.reserve_in_usd || pool.reserve_in_usd || 0;
-
-  // Get token info
-  const baseTokenSymbol = pool.tokens?.base_token?.symbol ||
-                          attrs.base_token_symbol ||
-                          name.split('/')[0]?.trim() || '?';
-
-  // Try to get token image
-  const baseTokenImage = pool.tokens?.base_token?.image_url ||
-                         attrs.base_token_image_url ||
-                         pool.included?.find?.((i: any) => i.type === 'token')?.attributes?.image_url;
-
-  return (
-    <button
-      onClick={openPool}
-      className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
-    >
-      <div className="flex items-center gap-3">
-        <div className="relative flex-shrink-0">
-          {baseTokenImage ? (
-            <img
-              src={baseTokenImage}
-              alt={baseTokenSymbol}
-              className="w-10 h-10 rounded-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-          ) : null}
-          <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-sm font-bold ${baseTokenImage ? 'hidden' : ''}`}>
-            {baseTokenSymbol.charAt(0).toUpperCase()}
-          </div>
-          <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
-            {index + 1}
-          </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <P className="font-medium truncate text-sm">{name}</P>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
-            <P className="text-xs opacity-40 truncate">{dex}</P>
-          </div>
-        </div>
-        <div className="text-right flex-shrink-0">
-          <P className="text-xs text-green-400">TVL: {formatMarketCap(reserve)}</P>
-        </div>
-      </div>
-    </button>
   );
 }
 
@@ -488,99 +494,14 @@ function TokensSection() {
 
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">
-          {subTab === 'trending' ? 'CoinGecko Trending' : 'Base Network'} • 🔄 Auto-refresh
+          Base Network via GeckoTerminal • 🔄 Auto-refresh
         </P>
       </div>
     </div>
   );
 }
 
-// Helper to get app name from frame data - improved version
-const getAppName = (frame: FrameV2WithFullAuthor): string => {
-  // Debug: log full frame structure for first call
-  console.log('Frame structure for name:', {
-    manifest: frame.manifest,
-    metadata: frame.metadata,
-    title: frame.title,
-    author: frame.author?.display_name,
-    url: frame.frames_url
-  });
-
-  // Priority order for getting name
-  // 1. Try manifest name (official app name from farcaster.json)
-  const manifestName = (frame.manifest as any)?.name;
-  if (manifestName && manifestName.trim()) return manifestName;
-
-  // 2. Try frame metadata name
-  const metadataName = (frame.metadata as any)?.name ||
-                       (frame.metadata as any)?.title ||
-                       (frame.metadata as any)?.frame?.name;
-  if (metadataName && metadataName.trim()) return metadataName;
-
-  // 3. Try title field (button title)
-  if (frame.title && frame.title.trim()) return frame.title;
-
-  // 4. Try to get name from author info
-  if (frame.author?.display_name) return `${frame.author.display_name}'s App`;
-  if (frame.author?.username) return `@${frame.author.username}'s App`;
-
-  // 5. Extract domain name from URL
-  try {
-    const url = new URL(frame.frames_url);
-    const hostname = url.hostname.replace('www.', '');
-    // Clean up common patterns
-    const cleanName = hostname
-      .replace('.vercel.app', '')
-      .replace('.netlify.app', '')
-      .replace('.pages.dev', '')
-      .replace('.com', '')
-      .replace('.xyz', '')
-      .replace('.io', '')
-      .split('.')[0];
-    // Capitalize first letter
-    if (cleanName.length > 2) {
-      return cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
-    }
-  } catch {}
-
-  return 'Mini App';
-};
-
-// Helper to get app icon/logo - improved version
-const getAppIcon = (frame: FrameV2WithFullAuthor): string | null => {
-  // Debug: log image sources
-  console.log('Frame structure for icon:', {
-    manifestIcon: (frame.manifest as any)?.iconUrl,
-    splashImage: (frame.manifest as any)?.splashImageUrl,
-    frameImage: frame.image,
-    metadataImage: (frame.metadata as any)?.image,
-    metadataOgImage: (frame.metadata as any)?.['og:image'],
-    metadataFrameImage: (frame.metadata as any)?.frame?.image,
-  });
-
-  // Priority order for getting icon
-  // 1. Manifest icon (actual app icon from farcaster.json)
-  const manifestIcon = (frame.manifest as any)?.iconUrl;
-  if (manifestIcon) return manifestIcon;
-
-  // 2. Manifest splash image
-  const splashImage = (frame.manifest as any)?.splashImageUrl;
-  if (splashImage) return splashImage;
-
-  // 3. Frame image (preview/og image)
-  if (frame.image && frame.image.trim()) return frame.image;
-
-  // 4. Metadata various image fields
-  const metadataImage = (frame.metadata as any)?.image ||
-                        (frame.metadata as any)?.['og:image'] ||
-                        (frame.metadata as any)?.frame?.image ||
-                        (frame.metadata as any)?.icon;
-  if (metadataImage) return metadataImage;
-
-  return null;
-};
-
-// Trending Mini Apps Section - 10 apps, no duplicates, with better name/logo handling
+// Trending Mini Apps Section
 function TrendingAppsSection() {
   const { data, isLoading } = useFrameCatalog(
     { category: undefined },
@@ -632,15 +553,61 @@ function TrendingAppsSection() {
     }
   };
 
-  // Debug: Log first frame to see what data we have
-  console.log('First frame data:', JSON.stringify(frames[0], null, 2));
+  // Helper to get app name - prioritize manifest, then title, then URL
+  const getAppName = (frame: FrameV2WithFullAuthor): string => {
+    // 1. Manifest name (from farcaster.json)
+    const manifestName = (frame.manifest as any)?.name;
+    if (manifestName && manifestName.trim()) return manifestName;
+
+    // 2. Button title
+    if (frame.title && frame.title.trim()) return frame.title;
+
+    // 3. Extract from URL
+    try {
+      const url = new URL(frame.frames_url);
+      const hostname = url.hostname
+        .replace('www.', '')
+        .replace('.vercel.app', '')
+        .replace('.netlify.app', '')
+        .replace('.pages.dev', '')
+        .replace('.com', '')
+        .replace('.xyz', '')
+        .replace('.io', '')
+        .split('.')[0];
+      if (hostname.length > 2) {
+        return hostname.charAt(0).toUpperCase() + hostname.slice(1);
+      }
+    } catch {
+      // ignore
+    }
+
+    // 4. Author's app
+    if (frame.author?.display_name) return `${frame.author.display_name}'s App`;
+
+    return 'Mini App';
+  };
+
+  // Helper to get app icon - prioritize manifest iconUrl, then splashImageUrl, then frame image
+  const getAppIcon = (frame: FrameV2WithFullAuthor): string | null => {
+    const manifest = frame.manifest as any;
+
+    // 1. Icon URL from manifest
+    if (manifest?.iconUrl) return manifest.iconUrl;
+
+    // 2. Splash image from manifest
+    if (manifest?.splashImageUrl) return manifest.splashImageUrl;
+
+    // 3. Frame preview image
+    if (frame.image && frame.image.trim()) return frame.image;
+
+    return null;
+  };
 
   return (
     <div className="space-y-3">
       {frames.slice(0, 10).map((frame, index) => {
         const appName = getAppName(frame);
         const appIcon = getAppIcon(frame);
-        const description = (frame.metadata as any)?.description || (frame.manifest as any)?.tagline;
 
         return (
           <button
@@ -656,9 +623,9 @@ function TrendingAppsSection() {
                     alt={appName}
                     className="w-12 h-12 rounded-xl object-cover border border-blue-500/30"
                     onError={(e) => {
-                      // Fallback if image fails to load
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
                     }}
                   />
                 ) : null}
@@ -682,9 +649,6 @@ function TrendingAppsSection() {
                     )}
                     <P className="text-xs text-blue-400 truncate">@{frame.author.username}</P>
                   </div>
-                )}
-                {description && (
-                  <P className="text-xs opacity-50 line-clamp-1 mt-0.5">{description}</P>
                 )}
               </div>
             </div>
@@ -762,8 +726,8 @@ export function FeedTab() {
           {activeSection === 'tokens' && (
             <>
               <div className="flex items-center justify-between mb-3">
-                <H6>🪙 Hot Tokens</H6>
-                <P className="text-xs text-amber-400">Top 10</P>
+                <H6>🪙 Base Tokens</H6>
+                <P className="text-xs text-amber-400">GeckoTerminal</P>
               </div>
               <TokensSection />
             </>
