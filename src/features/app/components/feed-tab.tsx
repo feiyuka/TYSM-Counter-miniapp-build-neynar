@@ -275,6 +275,9 @@ function TrendingTokensList() {
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
 
+    // TRENDING = Only established tokens with MC >= 10M
+    if (!token.marketCap || token.marketCap < 10000000) continue;
+
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
 
@@ -421,7 +424,9 @@ function NewTokensList() {
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
 
     // NEW TOKENS = Market Cap under 10M (smaller/newer projects)
-    if (!token.marketCap || token.marketCap >= 10000000) continue;
+    // If no MC data, include it (likely a new token)
+    // Only skip if MC is known AND >= 10M
+    if (token.marketCap && token.marketCap >= 10000000) continue;
 
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
