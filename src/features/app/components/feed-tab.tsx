@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useOnchainNetworkTrendingPools, useOnchainTokensRecentlyUpdated } from '@/neynar-web-sdk/src/coingecko/api-hooks';
@@ -9,6 +9,72 @@ import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/ap
 
 type FeedSection = 'casts' | 'tokens' | 'apps';
 type TokenSubTab = 'trending' | 'new';
+
+// Detect if running inside Farcaster app (Warpcast) or Base app
+function usePlatformDetection() {
+  const [platform, setPlatform] = useState<'farcaster' | 'base' | 'browser'>('browser');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isInIframe = window !== window.parent;
+
+    // Check for Farcaster/Warpcast
+    if (userAgent.includes('warpcast') ||
+        userAgent.includes('farcaster') ||
+        document.referrer.includes('warpcast.com') ||
+        document.referrer.includes('farcaster')) {
+      setPlatform('farcaster');
+    }
+    // Check for Base app
+    else if (userAgent.includes('base') ||
+             document.referrer.includes('base.org') ||
+             document.referrer.includes('wallet.coinbase.com')) {
+      setPlatform('base');
+    }
+    // If in iframe, likely a mini app context - default to farcaster
+    else if (isInIframe) {
+      setPlatform('farcaster');
+    }
+  }, []);
+
+  return platform;
+}
+
+// Generate swap/buy URL based on platform and token address
+function getTokenActionUrl(tokenAddress: string, platform: 'farcaster' | 'base' | 'browser'): string {
+  // Base network chain ID
+  const baseChainId = 8453;
+
+  switch (platform) {
+    case 'farcaster':
+      // Farcaster Wallet swap URL (uses Uniswap under the hood)
+      // Format: https://warpcast.com/~/swap?token=<address>&chain=<chainId>
+      return `https://warpcast.com/~/swap?token=${tokenAddress}&chain=${baseChainId}`;
+
+    case 'base':
+      // Base app / Coinbase Wallet - use Coinbase Commerce or direct swap
+      // Format: https://wallet.coinbase.com/swap?outputCurrency=<address>&chain=base
+      return `https://wallet.coinbase.com/swap?outputCurrency=${tokenAddress}&chain=base`;
+
+    default:
+      // Fallback to GeckoTerminal for browser users
+      return `https://www.geckoterminal.com/base/tokens/${tokenAddress}`;
+  }
+}
+
+// Get action button label based on platform
+function getTokenActionLabel(platform: 'farcaster' | 'base' | 'browser'): string {
+  switch (platform) {
+    case 'farcaster':
+      return 'Swap';
+    case 'base':
+      return 'Buy';
+    default:
+      return 'View';
+  }
+}
 
 // User Avatar Component for casts - fetches real-time photo
 function CastAuthorAvatar({ fid, pfpUrl }: { fid: number; pfpUrl?: string }) {
@@ -185,6 +251,9 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
 
 // Trending Tokens on Base - Using GeckoTerminal trending pools
 function TrendingTokensList() {
+  const platform = usePlatformDetection();
+  const actionLabel = getTokenActionLabel(platform);
+
   const { data, isLoading, error } = useOnchainNetworkTrendingPools(
     'base',
     { per_page: 50, duration: '24h' },  // Increased to find more tokens with logos
@@ -264,12 +333,12 @@ function TrendingTokensList() {
   return (
     <div className="space-y-2">
       {uniqueTokens.map(({ pool, token }, index) => {
-        const attrs = pool.attributes || pool;
-        const poolAddress = attrs.address || pool.id?.split('_')[1];
+        const tokenAddress = token.address;
 
         const openToken = () => {
-          if (poolAddress) {
-            window.open(`https://www.geckoterminal.com/base/pools/${poolAddress}`, '_blank');
+          if (tokenAddress) {
+            const url = getTokenActionUrl(tokenAddress, platform);
+            window.open(url, '_blank');
           }
         };
 
@@ -295,15 +364,24 @@ function TrendingTokensList() {
                 <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
               </div>
               <div className="text-right flex-shrink-0">
-                {token.price && (
-                  <P className="font-medium text-sm">{formatPrice(token.price)}</P>
-                )}
-                {token.priceChange24h !== null && (
-                  <P className={`text-xs font-medium ${token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {token.priceChange24h >= 0 ? '↑' : '↓'}
-                    {Math.abs(token.priceChange24h).toFixed(2)}%
-                  </P>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {token.price && (
+                    <P className="font-medium text-sm">{formatPrice(token.price)}</P>
+                  )}
+                  {token.priceChange24h !== null && (
+                    <P className={`text-xs font-medium ${token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {token.priceChange24h >= 0 ? '↑' : '↓'}
+                      {Math.abs(token.priceChange24h).toFixed(2)}%
+                    </P>
+                  )}
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded mt-1 inline-block ${
+                  platform === 'farcaster' ? 'bg-purple-500/20 text-purple-400' :
+                  platform === 'base' ? 'bg-blue-500/20 text-blue-400' :
+                  'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {actionLabel}
+                </span>
               </div>
             </div>
           </button>
@@ -315,6 +393,9 @@ function TrendingTokensList() {
 
 // New Tokens - Recently updated tokens on Base with logos
 function NewTokensList() {
+  const platform = usePlatformDetection();
+  const actionLabel = getTokenActionLabel(platform);
+
   const { data, isLoading, error } = useOnchainTokensRecentlyUpdated(
     { network: 'base' },
     {
@@ -405,7 +486,8 @@ function NewTokensList() {
 
         const openToken = () => {
           if (address) {
-            window.open(`https://www.geckoterminal.com/base/tokens/${address}`, '_blank');
+            const url = getTokenActionUrl(address, platform);
+            window.open(url, '_blank');
           }
         };
 
@@ -437,6 +519,13 @@ function NewTokensList() {
                 {priceUsd > 0 && (
                   <P className="text-xs opacity-60">{formatPrice(priceUsd)}</P>
                 )}
+                <span className={`text-[10px] px-2 py-0.5 rounded mt-1 inline-block ${
+                  platform === 'farcaster' ? 'bg-purple-500/20 text-purple-400' :
+                  platform === 'base' ? 'bg-blue-500/20 text-blue-400' :
+                  'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {actionLabel}
+                </span>
               </div>
             </div>
           </button>
