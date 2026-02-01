@@ -143,6 +143,8 @@ interface TokenInfo {
   price: string | null;
   priceChange24h: number | null;
   address: string | null;
+  marketCap: number | null;
+  fdv: number | null;
 }
 
 function extractBaseToken(pool: any, included?: any[]): TokenInfo {
@@ -186,7 +188,12 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
                   baseTokenId?.split('_')[1] ||
                   null;
 
-  return { name, symbol, image, price, priceChange24h, address };
+  // Extract market cap and FDV
+  const marketCap = attrs.market_cap_usd ? parseFloat(attrs.market_cap_usd) :
+                    attrs.fdv_usd ? parseFloat(attrs.fdv_usd) : null;
+  const fdv = attrs.fdv_usd ? parseFloat(attrs.fdv_usd) : null;
+
+  return { name, symbol, image, price, priceChange24h, address, marketCap, fdv };
 }
 
 // Trending Tokens on Base - Using GeckoTerminal trending pools
@@ -300,20 +307,18 @@ function TrendingTokensList() {
                 <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="flex flex-col items-end gap-1">
-                  {token.price && (
-                    <P className="font-medium text-sm">{formatPrice(token.price)}</P>
-                  )}
-                  {token.priceChange24h !== null && (
-                    <P className={`text-xs font-medium ${token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {token.priceChange24h >= 0 ? '↑' : '↓'}
-                      {Math.abs(token.priceChange24h).toFixed(2)}%
-                    </P>
-                  )}
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded mt-1 inline-block bg-purple-500/20 text-purple-400">
-                  Swap
-                </span>
+                {token.price && (
+                  <P className="font-medium text-sm">{formatPrice(token.price)}</P>
+                )}
+                {token.marketCap && (
+                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.marketCap)}</P>
+                )}
+                {token.priceChange24h !== null && (
+                  <P className={`text-xs font-medium ${token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {token.priceChange24h >= 0 ? '↑' : '↓'}
+                    {Math.abs(token.priceChange24h).toFixed(2)}%
+                  </P>
+                )}
               </div>
             </div>
           </button>
@@ -412,6 +417,7 @@ function NewTokensList() {
         const imageUrl = attrs.image_url;
         const address = attrs.address || token.id?.split('_')[1];
         const priceUsd = parseFloat(attrs.price_usd || '0');
+        const marketCapUsd = parseFloat(attrs.market_cap_usd || attrs.fdv_usd || '0');
 
         const openSwap = () => {
           if (address) {
@@ -445,11 +451,11 @@ function NewTokensList() {
               </div>
               <div className="text-right flex-shrink-0">
                 {priceUsd > 0 && (
-                  <P className="text-xs opacity-60">{formatPrice(priceUsd)}</P>
+                  <P className="font-medium text-sm">{formatPrice(priceUsd)}</P>
                 )}
-                <span className="text-[10px] px-2 py-0.5 rounded mt-1 inline-block bg-purple-500/20 text-purple-400">
-                  Swap
-                </span>
+                {marketCapUsd > 0 && (
+                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(marketCapUsd)}</P>
+                )}
               </div>
             </div>
           </button>
