@@ -207,7 +207,7 @@ function TrendingAppsSection() {
     <div className="space-y-3">
       {frames.slice(0, 10).map((frame, index) => (
         <button
-          key={frame.frames_url || index}
+          key={`${frame.frames_url}-${index}`}
           onClick={() => openApp(frame)}
           className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-gray-700/50 transition-colors border border-gray-700"
         >
