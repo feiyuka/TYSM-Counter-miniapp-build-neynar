@@ -196,11 +196,15 @@ function TrendingTokensList() {
   }
 
   if (error) {
+    // Extract proper error message
+    const errorMsg = error instanceof Error ? error.message :
+                     (error as any)?.message ||
+                     JSON.stringify(error);
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">⚠️</P>
         <P className="opacity-60 text-sm">Error loading trending tokens</P>
-        <P className="text-xs opacity-40 mt-1">{String(error)}</P>
+        <P className="text-xs opacity-40 mt-1">{errorMsg}</P>
       </div>
     );
   }

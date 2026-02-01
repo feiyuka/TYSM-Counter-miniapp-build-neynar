@@ -213,6 +213,7 @@ export function buildCoinGeckoRoutes(client: Coingecko): RouteMap {
 
     // Search API
     "GET /search": async ({ query }) => client.search.get(query as any),
+    "GET /search/trending": async () => client.search.trending.get(),
 
     // Simple API
     "GET /simple/price": async ({ query }) =>
