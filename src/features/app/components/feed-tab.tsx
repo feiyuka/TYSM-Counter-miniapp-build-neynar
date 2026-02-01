@@ -145,6 +145,8 @@ interface TokenInfo {
   address: string | null;
   marketCap: number | null;
   fdv: number | null;
+  volume24h: number | null;
+  volume1h: number | null;
 }
 
 function extractBaseToken(pool: any, included?: any[]): TokenInfo {
@@ -193,7 +195,11 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
                     attrs.fdv_usd ? parseFloat(attrs.fdv_usd) : null;
   const fdv = attrs.fdv_usd ? parseFloat(attrs.fdv_usd) : null;
 
-  return { name, symbol, image, price, priceChange24h, address, marketCap, fdv };
+  // Extract volume
+  const volume24h = attrs.volume_usd?.h24 ? parseFloat(attrs.volume_usd.h24) : null;
+  const volume1h = attrs.volume_usd?.h1 ? parseFloat(attrs.volume_usd.h1) : null;
+
+  return { name, symbol, image, price, priceChange24h, address, marketCap, fdv, volume24h, volume1h };
 }
 
 // Trending Tokens on Base - Using GeckoTerminal trending pools
@@ -304,7 +310,12 @@ function TrendingTokensList() {
               </div>
               <div className="flex-1 min-w-0">
                 <P className="font-medium truncate">{token.name}</P>
-                <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
+                <div className="flex items-center gap-2">
+                  <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
+                  {token.volume24h && (
+                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(token.volume24h)}</P>
+                  )}
+                </div>
               </div>
               <div className="text-right flex-shrink-0">
                 {token.price && (
@@ -418,6 +429,7 @@ function NewTokensList() {
         const address = attrs.address || token.id?.split('_')[1];
         const priceUsd = parseFloat(attrs.price_usd || '0');
         const marketCapUsd = parseFloat(attrs.market_cap_usd || attrs.fdv_usd || '0');
+        const volume1h = parseFloat(attrs.volume_usd?.h1 || '0');
 
         const openSwap = () => {
           if (address) {
@@ -447,6 +459,9 @@ function NewTokensList() {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">NEW</span>
                   <P className="text-xs text-green-400 uppercase">{symbol}</P>
+                  {volume1h > 0 && (
+                    <P className="text-[10px] opacity-40">1h: {formatMarketCap(volume1h)}</P>
+                  )}
                 </div>
               </div>
               <div className="text-right flex-shrink-0">
