@@ -248,6 +248,54 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
   return { name, symbol, image, price, priceChange24h, address, marketCap, fdv, volume24h, volume1h };
 }
 
+// Helper to check if token is a pure Base token (not bridged/wrapped/stablecoin)
+function isPureBaseToken(symbol: string, name: string): boolean {
+  const symbolLower = symbol.toLowerCase();
+  const nameLower = name.toLowerCase();
+
+  // Skip stablecoins
+  const stablecoins = ['usdc', 'usdt', 'dai', 'usd+', 'usdb', 'usdd', 'busd', 'tusd', 'frax', 'lusd', 'gusd', 'usdp', 'eurc', 'pyusd', 'ust', 'susd', 'mim', 'fei', 'usdx', 'dola'];
+  if (stablecoins.includes(symbolLower)) return false;
+
+  // Skip wrapped/bridged ETH variants
+  const wrappedEth = ['weth', 'eth', 'steth', 'reth', 'cbeth', 'wsteth', 'frxeth', 'sfrxeth', 'oeth', 'ankreth', 'sweth', 'meth', 'ezeth', 'weeth', 'rseth', 'pufeth', 'eeth'];
+  if (wrappedEth.includes(symbolLower)) return false;
+
+  // Skip wrapped BTC variants
+  const wrappedBtc = ['wbtc', 'btc', 'tbtc', 'renbtc', 'sbtc', 'hbtc', 'obtc', 'pbtc', 'cbbtc'];
+  if (wrappedBtc.includes(symbolLower)) return false;
+
+  // Skip common bridged/wrapped patterns by symbol
+  if (symbolLower.startsWith('w') && symbolLower.length <= 5) return false; // wETH, wBTC
+  if (symbolLower.startsWith('st') && ['steth', 'stbtc', 'stmatic', 'stavax'].includes(symbolLower)) return false;
+  if (symbolLower.endsWith('.e') || symbolLower.endsWith('.b')) return false; // bridged tokens
+  if (symbolLower.includes('bridge')) return false;
+
+  // Skip by name patterns - bridged/wrapped tokens
+  if (nameLower.includes('wrapped')) return false;
+  if (nameLower.includes('bridged')) return false;
+  if (nameLower.includes('wormhole')) return false;
+  if (nameLower.includes('axelar')) return false;
+  if (nameLower.includes('multichain')) return false;
+  if (nameLower.includes('layerzero')) return false;
+  if (nameLower.includes('stargate')) return false;
+  if (nameLower.includes('synapse')) return false;
+  if (nameLower.includes('celer')) return false;
+  if (nameLower.includes('hop protocol')) return false;
+  if (nameLower.includes('across')) return false;
+
+  // Skip liquid staking derivatives
+  if (nameLower.includes('liquid staking')) return false;
+  if (nameLower.includes('staked eth')) return false;
+  if (nameLower.includes('staked ether')) return false;
+  if (nameLower.includes('lido')) return false;
+  if (nameLower.includes('rocket pool')) return false;
+  if (nameLower.includes('coinbase staked')) return false;
+  if (nameLower.includes('frax ether')) return false;
+
+  return true;
+}
+
 // Trending Tokens on Base - Using GeckoTerminal trending pools
 function TrendingTokensList() {
   const { data, isLoading, error } = useOnchainNetworkTrendingPools(
@@ -272,8 +320,8 @@ function TrendingTokensList() {
     const token = extractBaseToken(pool, included);
     const symbolLower = token.symbol.toLowerCase();
 
-    // Skip stablecoins and wrapped tokens
-    if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
+    // Only pure Base tokens - skip stablecoins, bridged, wrapped
+    if (!isPureBaseToken(token.symbol, token.name)) continue;
 
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
@@ -391,14 +439,14 @@ function TrendingTokensList() {
   );
 }
 
-// New/Recent Tokens - Newly created pools on Base
+// New/Recent Tokens - Newly created pools on Base (pure Base tokens only)
 function NewTokensList() {
   // Use NEW POOLS endpoint - recently created tokens
   const { data, isLoading, error } = useOnchainNetworkNewPools(
     'base',
-    { per_page: 50 },
+    { per_page: 100 },  // Get more to filter
     {
-      refetchInterval: 1 * 60 * 1000,  // Refresh every minute
+      refetchInterval: 1 * 60 * 1000,
       staleTime: 30 * 1000,
     }
   );
@@ -416,8 +464,8 @@ function NewTokensList() {
     const token = extractBaseToken(pool, included);
     const symbolLower = token.symbol.toLowerCase();
 
-    // Skip stablecoins and wrapped tokens
-    if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
+    // Only pure Base tokens - skip stablecoins, bridged, wrapped
+    if (!isPureBaseToken(token.symbol, token.name)) continue;
 
     // Skip if we've already seen this token
     if (seenSymbols.has(symbolLower)) continue;
