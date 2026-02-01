@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import { useOnchainNetworkTrendingPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
+import { useOnchainNetworkTrendingPools, useOnchainNetworkNewPools } from '@/neynar-web-sdk/src/coingecko/api-hooks';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 import sdk from '@farcaster/miniapp-sdk';
@@ -359,12 +359,12 @@ function TrendingTokensList() {
   );
 }
 
-// New Tokens - Using new pools endpoint for complete data (volume, price, MC)
+// New Tokens - Newly created tokens on Base (not trending, actually NEW)
 function NewTokensList() {
-  // Use new pools endpoint which has complete data including volume 1h
-  const { data, isLoading, error } = useOnchainNetworkTrendingPools(
+  // Use NEW POOLS endpoint - these are actually newly created tokens
+  const { data, isLoading, error } = useOnchainNetworkNewPools(
     'base',
-    { per_page: 100, duration: '1h' },  // 1h duration for new/recent tokens
+    { per_page: 100 },  // Get more to filter for those with logos
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
@@ -442,7 +442,7 @@ function NewTokensList() {
         const tokenAddress = token.address;
         const attrs = pool.attributes || pool;
 
-        // Extract 1h specific data
+        // Extract 1h specific data for new tokens
         const volume1h = attrs.volume_usd?.h1 ? parseFloat(attrs.volume_usd.h1) : null;
         const priceChange1h = attrs.price_change_percentage?.h1
           ? parseFloat(attrs.price_change_percentage.h1)
