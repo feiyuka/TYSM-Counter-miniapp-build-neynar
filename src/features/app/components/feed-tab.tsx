@@ -11,11 +11,10 @@ type FeedSection = 'casts' | 'tokens' | 'apps';
 type TokenSubTab = 'trending' | 'new';
 
 // Generate swap URL for token on Base
-// Uses Uniswap interface which works well in Farcaster/Warpcast browser
+// DexScreener provides easy access to swap via connected DEXes
 function getSwapUrl(tokenAddress: string): string {
-  // ETH as input, token as output on Base network
-  const baseChainId = 8453;
-  return `https://app.uniswap.org/swap?outputCurrency=${tokenAddress}&chain=base`;
+  // DexScreener token page - has "Buy" button that connects to DEXes
+  return `https://dexscreener.com/base/${tokenAddress}`;
 }
 
 // User Avatar Component for casts - fetches real-time photo
