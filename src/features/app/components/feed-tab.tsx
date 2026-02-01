@@ -83,8 +83,15 @@ function TrendingCastsSection() {
     );
   }
 
-  const openCast = (cast: Cast) => {
-    window.open(`https://warpcast.com/${cast.author.username}/${cast.hash.slice(0, 10)}`, '_blank');
+  const openCast = async (cast: Cast) => {
+    try {
+      // Use Farcaster SDK to open cast directly in the app
+      await sdk.actions.viewCast({ hash: cast.hash });
+    } catch (error) {
+      // Fallback to web if SDK fails
+      console.error('viewCast error:', error);
+      window.open(`https://warpcast.com/${cast.author.username}/${cast.hash.slice(0, 10)}`, '_blank');
+    }
   };
 
   return (
