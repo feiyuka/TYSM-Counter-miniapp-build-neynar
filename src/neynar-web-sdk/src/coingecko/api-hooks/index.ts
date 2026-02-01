@@ -68,7 +68,7 @@ export {
 export { usePing } from "./hooks/ping";
 
 // Search hooks
-export { useSearch } from "./hooks/search";
+export { useSearch, useTrendingSearch } from "./hooks/search";
 
 // Simple hooks
 export {
