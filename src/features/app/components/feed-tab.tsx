@@ -187,7 +187,7 @@ function extractBaseToken(pool: any, included?: any[]): TokenInfo {
 function TrendingTokensList() {
   const { data, isLoading, error } = useOnchainNetworkTrendingPools(
     'base',
-    { per_page: 20, duration: '24h' },
+    { per_page: 50, duration: '24h' },  // Increased to find more tokens with logos
     {
       refetchInterval: 3 * 60 * 1000,
       staleTime: 2 * 60 * 1000,
@@ -206,6 +206,9 @@ function TrendingTokensList() {
   for (const pool of pools) {
     const token = extractBaseToken(pool, included);
     const symbolLower = token.symbol.toLowerCase();
+
+    // Skip tokens without logos - user requirement: no logo = not in list
+    if (!token.image) continue;
 
     // Skip stablecoins and wrapped tokens
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
@@ -252,7 +255,8 @@ function TrendingTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">🔥</P>
-        <P className="opacity-60 text-sm">No trending tokens on Base right now</P>
+        <P className="opacity-60 text-sm">No trending tokens with logos found</P>
+        <P className="text-xs opacity-40 mt-1">Only tokens with verified logos are shown</P>
       </div>
     );
   }
@@ -277,21 +281,11 @@ function TrendingTokensList() {
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                {token.image ? (
-                  <img
-                    src={token.image}
-                    alt={token.symbol}
-                    className="w-10 h-10 rounded-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-lg font-bold ${token.image ? 'hidden' : ''}`}>
-                  {token.symbol.charAt(0).toUpperCase()}
-                </div>
+                <img
+                  src={token.image!}
+                  alt={token.symbol}
+                  className="w-10 h-10 rounded-full object-cover border border-amber-500/30"
+                />
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 text-[10px] font-bold flex items-center justify-center text-black">
                   {index + 1}
                 </span>
@@ -323,7 +317,7 @@ function TrendingTokensList() {
 function NewTokensList() {
   const { data, isLoading, error } = useOnchainNetworkNewPools(
     'base',
-    { per_page: 30 },
+    { per_page: 100 },  // Increased significantly - new tokens often lack logos
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
@@ -348,6 +342,9 @@ function NewTokensList() {
 
     const token = extractBaseToken(pool, included);
     const symbolLower = token.symbol.toLowerCase();
+
+    // Skip tokens without logos - user requirement: no logo = not in list
+    if (!token.image) continue;
 
     // Skip stablecoins and wrapped
     if (['usdc', 'usdt', 'dai', 'weth', 'eth', 'usd+', 'usdb'].includes(symbolLower)) continue;
@@ -392,7 +389,8 @@ function NewTokensList() {
     return (
       <div className="text-center py-6">
         <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No new tokens with liquidity found</P>
+        <P className="opacity-60 text-sm">No new tokens with logos found</P>
+        <P className="text-xs opacity-40 mt-1">Only tokens with verified logos are shown</P>
       </div>
     );
   }
@@ -419,21 +417,11 @@ function NewTokensList() {
           >
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                {token.image ? (
-                  <img
-                    src={token.image}
-                    alt={token.symbol}
-                    className="w-10 h-10 rounded-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      target.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-sm font-bold ${token.image ? 'hidden' : ''}`}>
-                  {token.symbol.charAt(0).toUpperCase()}
-                </div>
+                <img
+                  src={token.image!}
+                  alt={token.symbol}
+                  className="w-10 h-10 rounded-full object-cover border border-green-500/30"
+                />
                 <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
                   {index + 1}
                 </span>
