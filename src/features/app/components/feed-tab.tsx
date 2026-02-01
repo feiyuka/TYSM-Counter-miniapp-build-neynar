@@ -351,6 +351,32 @@ function TokensSection() {
   );
 }
 
+// Helper to get app name from frame data
+const getAppName = (frame: FrameV2WithFullAuthor): string => {
+  // Try manifest name first (most reliable for app name)
+  if (frame.manifest?.name) return frame.manifest.name;
+  // Then try metadata name
+  if ((frame.metadata as any)?.name) return (frame.metadata as any).name;
+  // Then title (button title, fallback)
+  if (frame.title) return frame.title;
+  // Extract from URL as last resort
+  try {
+    const url = new URL(frame.frames_url);
+    return url.hostname.replace('www.', '');
+  } catch {
+    return 'Mini App';
+  }
+};
+
+// Helper to get app icon/logo from frame data
+const getAppIcon = (frame: FrameV2WithFullAuthor): string | null => {
+  // Try manifest icon first (actual app icon)
+  if (frame.manifest?.iconUrl) return frame.manifest.iconUrl;
+  // Then frame image (preview image)
+  if (frame.image) return frame.image;
+  return null;
+};
+
 // Trending Mini Apps Section - 10 apps, no duplicates
 function TrendingAppsSection() {
   const { data, isLoading } = useFrameCatalog(
@@ -405,50 +431,56 @@ function TrendingAppsSection() {
 
   return (
     <div className="space-y-3">
-      {frames.slice(0, 10).map((frame, index) => (
-        <button
-          key={frame.frames_url}
-          onClick={() => openApp(frame)}
-          className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-blue-500/20 transition-colors border border-gray-700 hover:border-blue-500/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative flex-shrink-0">
-              {frame.image ? (
-                <img
-                  src={frame.image}
-                  alt={frame.title || 'App'}
-                  className="w-12 h-12 rounded-xl object-cover border border-blue-500/30"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl">
-                  📱
-                </div>
-              )}
-              <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-blue-500 text-[10px] font-bold flex items-center justify-center">
-                {index + 1}
-              </span>
+      {frames.slice(0, 10).map((frame, index) => {
+        const appName = getAppName(frame);
+        const appIcon = getAppIcon(frame);
+        const description = (frame.metadata as any)?.description || frame.manifest?.tagline;
+
+        return (
+          <button
+            key={frame.frames_url}
+            onClick={() => openApp(frame)}
+            className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-blue-500/20 transition-colors border border-gray-700 hover:border-blue-500/50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="relative flex-shrink-0">
+                {appIcon ? (
+                  <img
+                    src={appIcon}
+                    alt={appName}
+                    className="w-12 h-12 rounded-xl object-cover border border-blue-500/30"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-xl">
+                    📱
+                  </div>
+                )}
+                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-blue-500 text-[10px] font-bold flex items-center justify-center">
+                  {index + 1}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <P className="font-medium truncate">{appName}</P>
+                {frame.author && (
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {frame.author.pfp_url && (
+                      <img
+                        src={frame.author.pfp_url}
+                        alt={frame.author.username}
+                        className="w-4 h-4 rounded-full"
+                      />
+                    )}
+                    <P className="text-xs text-blue-400 truncate">@{frame.author.username}</P>
+                  </div>
+                )}
+                {description && (
+                  <P className="text-xs opacity-50 line-clamp-1 mt-0.5">{description}</P>
+                )}
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <P className="font-medium truncate">{frame.title || 'Untitled App'}</P>
-              {frame.author && (
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  {frame.author.pfp_url && (
-                    <img
-                      src={frame.author.pfp_url}
-                      alt={frame.author.username}
-                      className="w-4 h-4 rounded-full"
-                    />
-                  )}
-                  <P className="text-xs text-blue-400 truncate">@{frame.author.username}</P>
-                </div>
-              )}
-              {frame.metadata?.description && (
-                <P className="text-xs opacity-50 line-clamp-1 mt-0.5">{frame.metadata.description}</P>
-              )}
-            </div>
-          </div>
-        </button>
-      ))}
+          </button>
+        );
+      })}
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">Farcaster Mini Apps • 🔄 Auto-refresh 10min</P>
       </div>
