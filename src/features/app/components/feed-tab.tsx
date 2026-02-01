@@ -553,16 +553,25 @@ function TrendingAppsSection() {
     }
   };
 
-  // Helper to get app name - prioritize manifest, then title, then URL
+  // Helper to get app name - correct structure: manifest.frame.name (snake_case)
   const getAppName = (frame: FrameV2WithFullAuthor): string => {
-    // 1. Manifest name (from farcaster.json)
-    const manifestName = (frame.manifest as any)?.name;
-    if (manifestName && manifestName.trim()) return manifestName;
+    const manifest = frame.manifest as any;
+    const manifestFrame = manifest?.frame;
 
-    // 2. Button title
+    // 1. manifest.frame.name (the correct path!)
+    if (manifestFrame?.name && manifestFrame.name.trim()) {
+      return manifestFrame.name;
+    }
+
+    // 2. Button title from frame
     if (frame.title && frame.title.trim()) return frame.title;
 
-    // 3. Extract from URL
+    // 3. manifest.frame.button_title
+    if (manifestFrame?.button_title && manifestFrame.button_title.trim()) {
+      return manifestFrame.button_title;
+    }
+
+    // 4. Extract from URL
     try {
       const url = new URL(frame.frames_url);
       const hostname = url.hostname
@@ -581,23 +590,27 @@ function TrendingAppsSection() {
       // ignore
     }
 
-    // 4. Author's app
+    // 5. Author's app
     if (frame.author?.display_name) return `${frame.author.display_name}'s App`;
 
     return 'Mini App';
   };
 
-  // Helper to get app icon - prioritize manifest iconUrl, then splashImageUrl, then frame image
+  // Helper to get app icon - correct structure: manifest.frame.icon_url (snake_case)
   const getAppIcon = (frame: FrameV2WithFullAuthor): string | null => {
     const manifest = frame.manifest as any;
+    const manifestFrame = manifest?.frame;
 
-    // 1. Icon URL from manifest
-    if (manifest?.iconUrl) return manifest.iconUrl;
+    // 1. manifest.frame.icon_url (the correct path!)
+    if (manifestFrame?.icon_url) return manifestFrame.icon_url;
 
-    // 2. Splash image from manifest
-    if (manifest?.splashImageUrl) return manifest.splashImageUrl;
+    // 2. manifest.frame.splash_image_url
+    if (manifestFrame?.splash_image_url) return manifestFrame.splash_image_url;
 
-    // 3. Frame preview image
+    // 3. manifest.frame.image_url
+    if (manifestFrame?.image_url) return manifestFrame.image_url;
+
+    // 4. Frame preview image (og:image)
     if (frame.image && frame.image.trim()) return frame.image;
 
     return null;

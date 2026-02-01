@@ -317,6 +317,8 @@ export function useOnchainNetworkNewPools(
   const queryParams = new URLSearchParams();
   if (params?.page) queryParams.set("page", params.page.toString());
   if (params?.per_page) queryParams.set("per_page", params.per_page.toString());
+  // Include base_token to get token images in the response
+  queryParams.set("include", "base_token");
 
   return useApiQuery<OnchainPool[]>(
     ["coingecko", "onchain", "networks", "new-pools", network, params],
@@ -375,6 +377,8 @@ export function useOnchainNetworkTrendingPools(
   if (params?.page) queryParams.set("page", params.page.toString());
   if (params?.per_page) queryParams.set("per_page", params.per_page.toString());
   if (params?.duration) queryParams.set("duration", params.duration);
+  // Include base_token to get token images in the response
+  queryParams.set("include", "base_token");
 
   return useApiQuery<OnchainPool[]>(
     ["coingecko", "onchain", "networks", "trending-pools", network, params],
