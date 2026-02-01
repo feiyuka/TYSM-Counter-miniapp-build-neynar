@@ -125,14 +125,23 @@ const formatMarketCap = (cap: number | undefined) => {
   return `$${cap.toFixed(2)}`;
 };
 
-// Trending Tokens - Top 10 most trending in 24h
+// Excluded tokens - major coins, stablecoins, wrapped tokens
+const EXCLUDED_SYMBOLS = new Set([
+  'eth', 'weth', 'btc', 'wbtc', 'usdc', 'usdt', 'dai', 'busd', 'tusd', 'usdp',
+  'frax', 'lusd', 'susd', 'gusd', 'eurs', 'eurt', 'jeur', 'ageur', 'ceur',
+  'steth', 'wsteth', 'cbeth', 'reth', 'sfrxeth', 'frxeth', 'seth2',
+  'matic', 'wmatic', 'sol', 'wsol', 'avax', 'wavax', 'bnb', 'wbnb',
+  'link', 'uni', 'aave', 'crv', 'mkr', 'snx', 'comp', 'yfi', 'sushi',
+]);
+
+// Trending Tokens - Top 10 most trending in 24h (excluding major coins)
 function TrendingTokensList() {
   const { data, isLoading } = useCoinsMarkets(
     {
       vs_currency: 'usd',
       category: 'base-ecosystem',
       order: 'volume_desc', // Sort by volume for trending
-      per_page: 10,
+      per_page: 50, // Get more to filter
       sparkline: false,
       price_change_percentage: '24h',
     },
@@ -142,7 +151,11 @@ function TrendingTokensList() {
     }
   );
 
-  const coins = data?.pages?.flat() || [];
+  // Filter out major coins and stablecoins
+  const allCoins = data?.pages?.flat() || [];
+  const coins = allCoins.filter(coin =>
+    !EXCLUDED_SYMBOLS.has(coin.symbol?.toLowerCase() || '')
+  );
 
   if (isLoading) {
     return (
@@ -224,7 +237,8 @@ function NewTokensList() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const pools = data || [];
+  // Handle different response structures
+  const pools = Array.isArray(data) ? data : (data as any)?.data || [];
 
   if (isLoading) {
     return (
