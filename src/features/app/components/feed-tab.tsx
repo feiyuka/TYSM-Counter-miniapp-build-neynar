@@ -361,11 +361,11 @@ function TrendingTokensList() {
 
 // New Tokens - New AND trending tokens on Base (fresh tokens with activity)
 function NewTokensList() {
-  // Use trending pools with SHORT duration (6h) to get fresh/new tokens that are also trending
+  // Use trending pools with SHORT duration (1h) to get fresh/new tokens that are also trending
   // This gives tokens that are both NEW and have trading activity
   const { data, isLoading, error } = useOnchainNetworkTrendingPools(
     'base',
-    { per_page: 100, duration: '6h' },  // 6h = fresh tokens that are trending
+    { per_page: 100, duration: '1h' },  // 1h = very fresh tokens that are trending NOW
     {
       refetchInterval: 2 * 60 * 1000,
       staleTime: 1 * 60 * 1000,
@@ -592,9 +592,16 @@ function TrendingAppsSection() {
     );
   }
 
-  const openApp = (frame: FrameV2WithFullAuthor) => {
+  const openApp = async (frame: FrameV2WithFullAuthor) => {
     if (frame.frames_url) {
-      window.open(frame.frames_url, '_blank');
+      try {
+        // Use Farcaster SDK to open mini app directly in the app
+        await sdk.actions.openMiniApp({ url: frame.frames_url });
+      } catch (error) {
+        // Fallback to web if SDK fails
+        console.error('openMiniApp error:', error);
+        window.open(frame.frames_url, '_blank');
+      }
     }
   };
 
