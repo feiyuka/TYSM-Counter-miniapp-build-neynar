@@ -7,13 +7,11 @@ import { BottomTabs } from '@/features/app/components/bottom-tabs';
 import { CheckInTab } from '@/features/app/components/check-in-tab';
 import { LiveClaimsTab } from '@/features/app/components/live-claims-tab';
 import { LeaderboardTab } from '@/features/app/components/leaderboard-tab';
-import { AdminTab } from '@/features/app/components/admin-tab';
 
 const TABS = [
   { label: '🎁 Check-in' },
   { label: '📡 Live' },
   { label: '🏆 Leaderboard' },
-  { label: '⚙️ Admin' },
 ];
 
 export function MiniApp() {
@@ -27,8 +25,6 @@ export function MiniApp() {
         return <LiveClaimsTab />;
       case 2:
         return <LeaderboardTab />;
-      case 3:
-        return <AdminTab />;
       default:
         return <CheckInTab />;
     }

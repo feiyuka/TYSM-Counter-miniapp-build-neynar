@@ -613,7 +613,7 @@ export function CheckInTab() {
                 </div>
                 <div className="p-2 rounded bg-green-500/20 border border-green-400/60">
                   <P className="font-bold text-green-400">🎯 1 Month Milestone</P>
-                  <P className="opacity-70">Day 29: 50,000 | Day 30: 100,000 TYSM (one-time bonus)</P>
+                  <P className="opacity-70">Day 29: 500 | Day 30: 1000 TYSM (one-time bonus)</P>
                 </div>
                 <div className="p-2 rounded bg-red-500/20 border border-red-400/60">
                   <P className="font-bold text-red-400">⚠️ Miss a Day?</P>
