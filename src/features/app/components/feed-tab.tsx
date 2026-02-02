@@ -2,31 +2,11 @@
 
 import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
-import { useTrendingGlobalFeed, useFrameCatalog, useTrendingFungibles, useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
-import type { TrendingFungible } from '@/neynar-web-sdk/src/neynar/api-hooks';
+import { useTrendingGlobalFeed, useFrameCatalog, useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
 import sdk from '@farcaster/miniapp-sdk';
 
-type FeedSection = 'casts' | 'tokens' | 'apps';
-type TokenSubTab = 'trending' | 'new';
-
-// Open Farcaster native swap for token on Base
-// Uses sdk.actions.swapToken which opens the native Farcaster wallet swap UI
-async function openSwapForToken(tokenAddress: string): Promise<void> {
-  try {
-    // CAIP-19 format for ERC20 token on Base (chain ID 8453)
-    // Format: eip155:<chainId>/erc20:<tokenAddress>
-    const buyTokenCAIP19 = `eip155:8453/erc20:${tokenAddress}`;
-
-    await sdk.actions.swapToken({
-      buyToken: buyTokenCAIP19,
-    });
-  } catch (error) {
-    console.error('Swap error:', error);
-    // Fallback to DexScreener if SDK swap fails
-    window.open(`https://dexscreener.com/base/${tokenAddress}`, '_blank');
-  }
-}
+type FeedSection = 'casts' | 'apps';
 
 // User Avatar Component for casts - fetches real-time photo
 function CastAuthorAvatar({ fid, pfpUrl }: { fid: number; pfpUrl?: string }) {
@@ -128,356 +108,6 @@ function TrendingCastsSection() {
       ))}
       <div className="text-center pt-2">
         <P className="text-xs opacity-50">🔄 Auto-refreshes every 5 minutes</P>
-      </div>
-    </div>
-  );
-}
-
-// Helper functions for formatting
-const formatPrice = (price: number | string | undefined) => {
-  if (!price) return '$0.00';
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-  if (isNaN(numPrice)) return '$0.00';
-  if (numPrice < 0.0001) return `$${numPrice.toExponential(2)}`;
-  if (numPrice < 1) return `$${numPrice.toFixed(6)}`;
-  if (numPrice < 1000) return `$${numPrice.toFixed(2)}`;
-  return `$${numPrice.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
-};
-
-const formatMarketCap = (cap: number | string | undefined) => {
-  if (!cap) return 'N/A';
-  const numCap = typeof cap === 'string' ? parseFloat(cap) : cap;
-  if (isNaN(numCap)) return 'N/A';
-  if (numCap >= 1_000_000_000) return `$${(numCap / 1_000_000_000).toFixed(2)}B`;
-  if (numCap >= 1_000_000) return `$${(numCap / 1_000_000).toFixed(2)}M`;
-  if (numCap >= 1_000) return `$${(numCap / 1_000).toFixed(2)}K`;
-  return `$${numCap.toFixed(2)}`;
-};
-
-// Helper to check if token is a pure Base token (not bridged/wrapped/stablecoin)
-function isPureBaseToken(symbol: string, name: string): boolean {
-  const symbolLower = symbol.toLowerCase();
-  const nameLower = name.toLowerCase();
-
-  // Skip stablecoins
-  const stablecoins = ['usdc', 'usdt', 'dai', 'usd+', 'usdb', 'usdd', 'busd', 'tusd', 'frax', 'lusd', 'gusd', 'usdp', 'eurc', 'pyusd', 'ust', 'susd', 'mim', 'fei', 'usdx', 'dola'];
-  if (stablecoins.includes(symbolLower)) return false;
-
-  // Skip wrapped/bridged ETH variants
-  const wrappedEth = ['weth', 'eth', 'steth', 'reth', 'cbeth', 'wsteth', 'frxeth', 'sfrxeth', 'oeth', 'ankreth', 'sweth', 'meth', 'ezeth', 'weeth', 'rseth', 'pufeth', 'eeth'];
-  if (wrappedEth.includes(symbolLower)) return false;
-
-  // Skip wrapped BTC variants
-  const wrappedBtc = ['wbtc', 'btc', 'tbtc', 'renbtc', 'sbtc', 'hbtc', 'obtc', 'pbtc', 'cbbtc'];
-  if (wrappedBtc.includes(symbolLower)) return false;
-
-  // Skip common bridged/wrapped patterns by symbol
-  if (symbolLower.startsWith('w') && symbolLower.length <= 5) return false; // wETH, wBTC
-  if (symbolLower.startsWith('st') && ['steth', 'stbtc', 'stmatic', 'stavax'].includes(symbolLower)) return false;
-  if (symbolLower.endsWith('.e') || symbolLower.endsWith('.b')) return false; // bridged tokens
-  if (symbolLower.includes('bridge')) return false;
-
-  // Skip by name patterns - bridged/wrapped tokens
-  if (nameLower.includes('wrapped')) return false;
-  if (nameLower.includes('bridged')) return false;
-  if (nameLower.includes('wormhole')) return false;
-  if (nameLower.includes('axelar')) return false;
-  if (nameLower.includes('multichain')) return false;
-  if (nameLower.includes('layerzero')) return false;
-  if (nameLower.includes('stargate')) return false;
-  if (nameLower.includes('synapse')) return false;
-  if (nameLower.includes('celer')) return false;
-  if (nameLower.includes('hop protocol')) return false;
-  if (nameLower.includes('across')) return false;
-
-  // Skip liquid staking derivatives
-  if (nameLower.includes('liquid staking')) return false;
-  if (nameLower.includes('staked eth')) return false;
-  if (nameLower.includes('staked ether')) return false;
-  if (nameLower.includes('lido')) return false;
-  if (nameLower.includes('rocket pool')) return false;
-  if (nameLower.includes('coinbase staked')) return false;
-  if (nameLower.includes('frax ether')) return false;
-
-  return true;
-}
-
-// Trending Tokens on Base - Using Neynar Pulse API (24h trending)
-function TrendingTokensList() {
-  const { data: tokens = [], isLoading, error } = useTrendingFungibles(
-    { network: 'base', time_window: '24h' },
-    {
-      refetchInterval: 3 * 60 * 1000,
-      staleTime: 2 * 60 * 1000,
-    }
-  );
-
-  // Filter to only pure Base tokens
-  const filteredTokens = tokens.filter(token =>
-    isPureBaseToken(token.symbol || '', token.name || '')
-  ).slice(0, 10);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="animate-pulse p-3 rounded-lg bg-gray-800/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-700" />
-              <div className="flex-1">
-                <div className="h-4 bg-gray-700 rounded w-24 mb-1" />
-                <div className="h-3 bg-gray-700 rounded w-16" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    const errorMsg = error instanceof Error ? error.message : JSON.stringify(error);
-    return (
-      <div className="text-center py-6">
-        <P className="text-3xl mb-2">⚠️</P>
-        <P className="opacity-60 text-sm">Error loading trending tokens</P>
-        <P className="text-xs opacity-40 mt-1">{errorMsg}</P>
-      </div>
-    );
-  }
-
-  if (filteredTokens.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <P className="text-3xl mb-2">🔥</P>
-        <P className="opacity-60 text-sm">No trending tokens found</P>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {filteredTokens.map((token, index) => {
-        const handleSwap = () => {
-          if (token.contract_address) {
-            openSwapForToken(token.contract_address);
-          }
-        };
-
-        return (
-          <button
-            key={token.contract_address || index}
-            onClick={handleSwap}
-            className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-amber-500/20 transition-colors border border-gray-700 hover:border-amber-500/50"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative flex-shrink-0">
-                {token.logo ? (
-                  <img
-                    src={token.logo}
-                    alt={token.symbol}
-                    className="w-10 h-10 rounded-full object-cover border border-amber-500/30"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = `https://api.dicebear.com/9.x/shapes/svg?seed=${token.symbol}`;
-                    }}
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-sm font-bold border border-amber-500/30">
-                    {(token.symbol || '??').slice(0, 2)}
-                  </div>
-                )}
-                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-amber-500 text-[10px] font-bold flex items-center justify-center text-black">
-                  {index + 1}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <P className="font-medium truncate">{token.name}</P>
-                <div className="flex items-center gap-2">
-                  <P className="text-xs text-amber-400 uppercase">{token.symbol}</P>
-                  {token.volume_24h && (
-                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(token.volume_24h)}</P>
-                  )}
-                </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                {token.price_usd && (
-                  <P className="font-medium text-sm">{formatPrice(token.price_usd)}</P>
-                )}
-                {token.market_cap && (
-                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.market_cap)}</P>
-                )}
-                {token.price_change_24h !== undefined && token.price_change_24h !== null && (
-                  <P className={`text-xs font-medium ${token.price_change_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {token.price_change_24h >= 0 ? '↑' : '↓'}
-                    {Math.abs(token.price_change_24h).toFixed(2)}%
-                  </P>
-                )}
-              </div>
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// Recent/New Tokens on Base - Using Neynar Pulse API (1h trending = recently active)
-function NewTokensList() {
-  const { data: tokens = [], isLoading, error } = useTrendingFungibles(
-    { network: 'base', time_window: '1h' },
-    {
-      refetchInterval: 1 * 60 * 1000,
-      staleTime: 30 * 1000,
-    }
-  );
-
-  // Filter to only pure Base tokens
-  const filteredTokens = tokens.filter(token =>
-    isPureBaseToken(token.symbol || '', token.name || '')
-  ).slice(0, 10);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-2">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="animate-pulse p-3 rounded-lg bg-gray-800/50">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gray-700" />
-              <div className="flex-1">
-                <div className="h-4 bg-gray-700 rounded w-28 mb-1" />
-                <div className="h-3 bg-gray-700 rounded w-20" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-6">
-        <P className="text-3xl mb-2">⚠️</P>
-        <P className="opacity-60 text-sm">Error loading recent tokens</P>
-      </div>
-    );
-  }
-
-  if (filteredTokens.length === 0) {
-    return (
-      <div className="text-center py-6">
-        <P className="text-3xl mb-2">✨</P>
-        <P className="opacity-60 text-sm">No recent tokens found</P>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {filteredTokens.map((token, index) => {
-        const handleSwap = () => {
-          if (token.contract_address) {
-            openSwapForToken(token.contract_address);
-          }
-        };
-
-        return (
-          <button
-            key={token.contract_address || index}
-            onClick={handleSwap}
-            className="w-full text-left p-3 rounded-lg bg-gray-800/50 hover:bg-green-500/20 transition-colors border border-gray-700 hover:border-green-500/50"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative flex-shrink-0">
-                {token.logo ? (
-                  <img
-                    src={token.logo}
-                    alt={token.symbol}
-                    className="w-10 h-10 rounded-full object-cover border border-green-500/30"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = `https://api.dicebear.com/9.x/shapes/svg?seed=${token.symbol}`;
-                    }}
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-sm font-bold border border-green-500/30">
-                    {(token.symbol || '??').slice(0, 2)}
-                  </div>
-                )}
-                <span className="absolute -top-1 -left-1 w-5 h-5 rounded-full bg-green-500 text-[10px] font-bold flex items-center justify-center text-black">
-                  {index + 1}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <P className="font-medium truncate text-sm">{token.name}</P>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">HOT</span>
-                  <P className="text-xs text-green-400 uppercase">{token.symbol}</P>
-                  {token.volume_24h && (
-                    <P className="text-[10px] opacity-40">Vol: {formatMarketCap(token.volume_24h)}</P>
-                  )}
-                </div>
-              </div>
-              <div className="text-right flex-shrink-0">
-                {token.price_usd && (
-                  <P className="font-medium text-sm">{formatPrice(token.price_usd)}</P>
-                )}
-                {token.market_cap && (
-                  <P className="text-[10px] opacity-50">MC: {formatMarketCap(token.market_cap)}</P>
-                )}
-                {token.price_change_24h !== undefined && token.price_change_24h !== null && (
-                  <P className={`text-xs font-medium ${token.price_change_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                    {token.price_change_24h >= 0 ? '↑' : '↓'}
-                    {Math.abs(token.price_change_24h).toFixed(2)}%
-                  </P>
-                )}
-              </div>
-            </div>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// Tokens Section with sub-tabs
-function TokensSection() {
-  const [subTab, setSubTab] = useState<TokenSubTab>('trending');
-
-  return (
-    <div className="space-y-3">
-      {/* Sub-tabs */}
-      <div className="flex gap-2 mb-3">
-        <button
-          onClick={() => setSubTab('trending')}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-            subTab === 'trending'
-              ? 'bg-amber-500 text-black'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-          }`}
-        >
-          🔥 Trending
-        </button>
-        <button
-          onClick={() => setSubTab('new')}
-          className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-            subTab === 'new'
-              ? 'bg-green-500 text-black'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-          }`}
-        >
-          ⚡ Hot Now
-        </button>
-      </div>
-
-      {/* Content */}
-      {subTab === 'trending' ? <TrendingTokensList /> : <NewTokensList />}
-
-      <div className="text-center pt-2">
-        <P className="text-xs opacity-50">
-          Farcaster Pulse • Base Network • 🔄 Auto-refresh
-        </P>
       </div>
     </div>
   );
@@ -669,7 +299,6 @@ export function FeedTab() {
 
   const sections = [
     { id: 'casts' as FeedSection, label: '🔥 Casts', color: 'purple' },
-    { id: 'tokens' as FeedSection, label: '🪙 Tokens', color: 'amber' },
     { id: 'apps' as FeedSection, label: '📱 Apps', color: 'blue' },
   ];
 
@@ -693,8 +322,6 @@ export function FeedTab() {
                   activeSection === section.id
                     ? section.color === 'purple'
                       ? 'bg-purple-500 text-white'
-                      : section.color === 'amber'
-                      ? 'bg-amber-500 text-black'
                       : 'bg-blue-500 text-white'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                 }`}
@@ -710,8 +337,6 @@ export function FeedTab() {
       <Card className={`rounded-xl ${
         activeSection === 'casts'
           ? 'border border-purple-400/70'
-          : activeSection === 'tokens'
-          ? 'border border-amber-400/70'
           : 'border border-blue-400/70'
       }`}>
         <CardContent className="p-4">
@@ -722,16 +347,6 @@ export function FeedTab() {
                 <P className="text-xs text-purple-400">Top 10 • 24h</P>
               </div>
               <TrendingCastsSection />
-            </>
-          )}
-
-          {activeSection === 'tokens' && (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <H6>🪙 Base Tokens</H6>
-                <P className="text-xs text-amber-400">GeckoTerminal</P>
-              </div>
-              <TokensSection />
             </>
           )}
 
