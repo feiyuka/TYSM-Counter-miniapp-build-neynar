@@ -73,6 +73,21 @@ export function MiniApp() {
         </div>
       </div>
 
+      {/* Floating Book Icon - Navigate to Feed */}
+      {activeTab !== 1 && (
+        <button
+          onClick={() => setActiveTab(1)}
+          className="fixed bottom-24 right-4 z-50 w-14 h-14 rounded-full shadow-lg shadow-amber-500/30 hover:scale-110 transition-transform animate-bounce"
+          style={{ animationDuration: '2s' }}
+        >
+          <img
+            src="/floating-book-icon.png"
+            alt="Feed Trending"
+            className="w-full h-full rounded-full"
+          />
+        </button>
+      )}
+
       {/* Bottom Tab Navigation */}
       <BottomTabs
         tabs={TABS}
