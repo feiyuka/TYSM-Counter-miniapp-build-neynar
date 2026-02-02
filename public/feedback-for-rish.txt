@@ -1,0 +1,17 @@
+Hi Rish,
+
+I'm building "TYSM Counter" on Neynar App Studio. Great platform, but I really need a way to export/download my source code.
+
+Why I need this:
+- Backup to GitHub
+- Experiment with other AI tools (Cursor, Claude)
+- Local development & testing
+
+Simple solution: Add "Export to ZIP" button to download the app folder.
+
+I tried manual copying (100+ files, too slow) and creating tar.gz archive (6.3MB, no download method).
+
+Without export, creators feel locked in. Even a basic ZIP download would help a lot.
+
+Thanks!
+@feiyuka
