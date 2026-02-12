@@ -2,7 +2,14 @@ import "@/app/globals.css";
 import { ThemeClient } from "@/components/theme-client";
 import { ProvidersAndInitialization } from "@/features/app/providers-and-initialization";
 import { Caveat, Geist, Geist_Mono, Patrick_Hand } from "next/font/google";
+import { Metadata } from "next";
 import { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  other: {
+    'base:app_id': '698dbac53cbc7aff6d9c6b73',
+  },
+};
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
