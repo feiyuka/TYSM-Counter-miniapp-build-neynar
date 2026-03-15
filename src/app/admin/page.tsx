@@ -1,6 +1,7 @@
 import { getLeaderboardStats, getTopClaimers } from '@/db/actions/leaderboard-actions';
 import { getPoolStats, getRecentClaims } from '@/db/actions/claim-actions';
 import { PoolForm } from './pool-form';
+import { OnchainPoolForm } from './onchain-form';
 
 const CREATOR_FID = Number(process.env.NEXT_PUBLIC_USER_FID);
 
@@ -25,8 +26,13 @@ export default async function AdminPage() {
         <StatCard label="TYSM Tertinggi" value={stats.topTysm.toLocaleString()} emoji="🏆" />
       </div>
 
-      {/* Pool Management */}
-      <Section title="💧 Manajemen Pool TYSM">
+      {/* Onchain Pool Management */}
+      <Section title="⛓️ Onchain Top Up & Withdraw">
+        <OnchainPoolForm />
+      </Section>
+
+      {/* Pool Management (Database) */}
+      <Section title="💧 Pool TYSM (Database)">
         <PoolForm currentPool={poolStats.totalPool} totalClaimed={poolStats.totalClaimed} />
       </Section>
 
