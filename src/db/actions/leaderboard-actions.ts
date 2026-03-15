@@ -9,10 +9,10 @@ import { desc, eq, sql } from 'drizzle-orm';
  * Note: This uses a simplified version - in production, would integrate with Neynar scores
  */
 function getTierFromBalance(balance: number): string {
-  if (balance >= 5000) return '🏆 LEGENDARY';
-  if (balance >= 2500) return '💎 DIAMOND';
-  if (balance >= 1000) return '🥇 GOLD';
-  if (balance >= 500) return '🥈 SILVER';
+  if (balance >= 500000) return '🏆 LEGENDARY';
+  if (balance >= 250000) return '💎 DIAMOND';
+  if (balance >= 100000) return '🥇 GOLD';
+  if (balance >= 50000) return '🥈 SILVER';
   return '🥉 BRONZE';
 }
 

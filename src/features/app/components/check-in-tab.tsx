@@ -473,13 +473,25 @@ export function CheckInTab() {
         </div>
       )}
 
-      {/* Neynar Score */}
+      {/* Scores */}
       <Card className="border border-amber-400/50 rounded-lg">
         <CardContent className="p-3">
-          <H6>Neynar Score</H6>
-          <div className="mt-2 text-center p-3 rounded-md bg-amber-500/20 border border-amber-400/40">
-            <P className="text-3xl font-bold text-amber-400">{neynarScore.toFixed(2)}</P>
-            <P className="text-xs opacity-60 mt-1">Minimum required: {MIN_NEYNAR_SCORE}</P>
+          <H6>Score Check</H6>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <div className="text-center p-3 rounded-md bg-amber-500/20 border border-amber-400/40">
+              <P className="text-xs opacity-60 mb-1">Neynar Score</P>
+              <P className="text-2xl font-bold text-amber-400">{neynarScore.toFixed(2)}</P>
+              <P className="text-xs opacity-50 mt-1">min {MIN_NEYNAR_SCORE}</P>
+            </div>
+            <div className="text-center p-3 rounded-md bg-blue-500/20 border border-blue-400/40">
+              <P className="text-xs opacity-60 mb-1">Quotient Score</P>
+              <P className="text-2xl font-bold text-blue-400">
+                {neynarUser?.experimental?.neynar_user_score
+                  ? (neynarUser.experimental.neynar_user_score * 100).toFixed(0)
+                  : '—'}
+              </P>
+              <P className="text-xs opacity-50 mt-1">/ 100</P>
+            </div>
           </div>
           <div className={`mt-2 p-2 rounded-md text-center ${eligible ? 'bg-green-500/20 border border-green-400/50' : 'bg-red-500/20 border border-red-400/50'}`}>
             {eligible ? (
