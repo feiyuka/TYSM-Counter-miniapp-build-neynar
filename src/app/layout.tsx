@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <ThemeClient />
         <meta name="base:app_id" content="698dbac53cbc7aff6d9c6b73" />
+        <meta name="talentapp:project_verification" content="d46d89a80da305f2468a7e722199b625893cbda02a83a05966e61a0072370a0fcfb338c80c0ba7d35f9c9ac92525fe27b7c1db29331c5fbc15b2a7e6c836eb54" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} ${patrickHand.variable} antialiased`}
