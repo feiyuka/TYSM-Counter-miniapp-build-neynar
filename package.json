@@ -9,9 +9,9 @@
     "cleanup": "node scripts/cleanup.js",
     "deploy:raw": "vercel --prod",
     "deploy:vercel": "node --loader ts-node/esm scripts/deploy.ts",
-    "dev": "npm run db:push && next dev --turbopack",
-    "dev:webpack": "npm run db:push && next dev -p 3001",
-    "install:standalone": "npm install --ignore-workspace-root-check --no-workspaces --legacy-peer-deps",
+    "dev": "pnpm run db:push && next dev --turbopack",
+    "dev:webpack": "pnpm run db:push && next dev -p 3001",
+    "install:standalone": "pnpm install",
     "lint": "eslint .",
     "lint:file": "eslint",
     "lint:fix": "eslint . --fix",
@@ -22,8 +22,8 @@
     "type-check": "tsc --noEmit",
     "type-check:detailed": "tsc --noEmit --pretty --listFiles",
     "type-check:watch": "tsc --noEmit --watch",
-    "validate": "npm run type-check && npm run lint && npm run format:check",
-    "validate:fix": "npm run type-check && npm run lint:fix && npm run format"
+    "validate": "pnpm run type-check && pnpm run lint && pnpm run format:check",
+    "validate:fix": "pnpm run type-check && pnpm run lint:fix && pnpm run format"
   },
   "dependencies": {
     "@coingecko/coingecko-typescript": "1.11.3",
@@ -84,5 +84,19 @@
     "glob": ">=11.1.0",
     "js-yaml": ">=4.1.1",
     "valtio": ">=2.1.8"
+  },
+  "packageManager": "pnpm@10.30.3",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@openapitools/openapi-generator-cli",
+      "@tailwindcss/oxide",
+      "bufferutil",
+      "esbuild",
+      "keccak",
+      "sharp",
+      "unrs-resolver",
+      "utf-8-validate"
+    ]
   }
 }

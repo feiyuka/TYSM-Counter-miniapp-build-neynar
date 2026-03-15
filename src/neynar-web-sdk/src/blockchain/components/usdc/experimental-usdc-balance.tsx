@@ -69,13 +69,13 @@ export function ExperimentalUsdcBalance({
 
   const formattedBalance =
     balance && tokenDecimals
-      ? (Number(balance) / Math.pow(10, tokenDecimals)).toFixed(decimals)
+      ? (Number(balance) / Math.pow(10, Number(tokenDecimals))).toFixed(decimals)
       : "0.00";
 
   return (
     <span className={className}>
       {formattedBalance}
-      {showSymbol && symbol && ` ${symbol}`}
+      {showSymbol && typeof symbol === "string" && ` ${symbol}`}
     </span>
   );
 }
