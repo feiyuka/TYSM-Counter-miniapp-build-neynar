@@ -232,11 +232,14 @@ export function LiveClaimsTab() {
       <Card className="border border-amber-400/70 rounded-xl">
         <CardContent className="p-4">
           <div className="text-center mb-4">
-            <P className="text-xs opacity-60 mb-1">TYSM Reward Pool</P>
+            <div className="flex items-center justify-center gap-1 mb-1">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <P className="text-xs opacity-60">TYSM Pool Balance (Live)</P>
+            </div>
             <P className="text-3xl font-bold text-amber-400">
               {pool.remainingPool.toLocaleString()}
             </P>
-            <P className="text-xs opacity-50">of {pool.totalPool.toLocaleString()} TYSM</P>
+            <P className="text-xs opacity-50">TYSM remaining in contract</P>
           </div>
 
           <div className="w-full h-4 bg-gray-700 rounded-full overflow-hidden mb-3">

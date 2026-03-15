@@ -5,14 +5,48 @@ import { kv, claims } from '@/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 
 const POOL_KEY = 'total_pool';
-const DEFAULT_POOL = 991611; // Actual pool balance from TYSM contract on Base
+const DEFAULT_POOL = 991611;
+
+// TYSM Check-in contract on Base Network
+const CHECKIN_CONTRACT = '0xfEfcF3c2Aa08c6FF0BA3BD40ffEAD1F860A93d91';
+const BASE_RPC = 'https://base-rpc.publicnode.com';
 
 /**
- * Get total pool amount from KV store
+ * Fetch real pool balance directly from contract (getPoolBalance function)
+ * Function selector: 0x96365d44
+ */
+export async function getPoolBalanceFromContract(): Promise<number> {
+  try {
+    const response = await fetch(BASE_RPC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{ to: CHECKIN_CONTRACT, data: '0x96365d44' }, 'latest'],
+        id: 1,
+      }),
+      next: { revalidate: 60 }, // Cache for 60 seconds
+    });
+
+    const data = await response.json();
+    if (data.result && data.result !== '0x') {
+      const raw = BigInt(data.result);
+      // TYSM has 18 decimals
+      const balance = Number(raw / BigInt(10 ** 18));
+      return balance;
+    }
+  } catch (err) {
+    console.error('Failed to fetch pool balance from contract:', err);
+  }
+  return DEFAULT_POOL;
+}
+
+/**
+ * Get total pool amount - reads directly from contract
  */
 export async function getTotalPool(): Promise<number> {
-  const result = await db.select().from(kv).where(eq(kv.key, POOL_KEY)).limit(1);
-  return result[0] ? Number(result[0].value) : DEFAULT_POOL;
+  return getPoolBalanceFromContract();
 }
 
 /**
@@ -102,18 +136,18 @@ export async function getTotalClaimers(): Promise<number> {
 }
 
 /**
- * Get pool statistics
+ * Get pool statistics - pool balance read directly from contract
  */
 export async function getPoolStats() {
-  const [totalPool, totalClaimed, totalClaimers] = await Promise.all([
-    getTotalPool(),
+  const [contractPool, totalClaimed, totalClaimers] = await Promise.all([
+    getPoolBalanceFromContract(),
     getTotalClaimed(),
     getTotalClaimers(),
   ]);
 
   return {
-    totalPool,
-    remainingPool: totalPool - totalClaimed,
+    totalPool: contractPool,
+    remainingPool: contractPool, // contract already reflects remaining (pays out on checkin)
     totalClaimed,
     totalClaimers,
   };
