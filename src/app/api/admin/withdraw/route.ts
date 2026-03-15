@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseUnits } from 'viem';
 
 const NOTIFY_SECRET = process.env.NOTIFY_SECRET || 'tysm-notify-secret';
-const TYSM_CONTRACT = '0xfEfcF3c2Aa08c6FF0BA3BD40ffEAD1F860A93d91';
+// TYSM Token contract (ERC-20) on Base Network
+const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877';
 
 export async function POST(req: NextRequest) {
   // Verify secret

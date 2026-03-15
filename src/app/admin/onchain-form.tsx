@@ -5,8 +5,8 @@ import { useAccount, useConnect, useReadContract, useWriteContract, useWaitForTr
 import { parseUnits, formatUnits } from 'viem';
 import { topUpPool } from '@/db/actions/claim-actions';
 
-// TYSM Token contract on Base Network
-const TYSM_CONTRACT = '0xfEfcF3c2Aa08c6FF0BA3BD40ffEAD1F860A93d91' as const;
+// TYSM Token contract on Base Network (ERC-20)
+const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877' as const;
 
 // Pool wallet = server wallet (NEYNAR_WALLET_ADDRESS)
 const POOL_ADDRESS = '0x947234ebadb9480bf51cc8530793bd488a7ff7e9' as `0x${string}`;
