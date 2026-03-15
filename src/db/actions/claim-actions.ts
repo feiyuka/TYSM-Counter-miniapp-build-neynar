@@ -5,7 +5,7 @@ import { kv, claims } from '@/db/schema';
 import { desc, eq, sql } from 'drizzle-orm';
 
 const POOL_KEY = 'total_pool';
-const DEFAULT_POOL = 1000000;
+const DEFAULT_POOL = 991611; // Actual pool balance from TYSM contract on Base
 
 /**
  * Get total pool amount from KV store

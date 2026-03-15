@@ -159,8 +159,8 @@ function UserProfilePopup({
 
 export function LiveClaimsTab() {
   const [pool, setPool] = useState<PoolStats>({
-    totalPool: 100000000,
-    remainingPool: 100000000,
+    totalPool: 991611,
+    remainingPool: 991611,
     totalClaimed: 0,
     totalClaimers: 0,
   });
