@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "db:push": "[ -z \"$DATABASE_URL\" ] || drizzle-kit push --force --verbose </dev/null",
+    "prebuild": "rimraf .next",
     "build": "next build",
     "clean": "rimraf .next node_modules",
     "cleanup": "node scripts/cleanup.js",

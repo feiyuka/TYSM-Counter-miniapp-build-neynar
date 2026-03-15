@@ -5,7 +5,9 @@ import { Metadata } from "next";
 
 export async function generateMetadata({
   searchParams,
-}: PageProps<"/">): Promise<Metadata> {
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}): Promise<Metadata> {
   return getFarcasterPageMetadata({
     title: publicConfig.name,
     description: publicConfig.description,
