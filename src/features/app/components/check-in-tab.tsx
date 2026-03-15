@@ -382,7 +382,7 @@ export function CheckInTab() {
             </div>
             <div className="text-right">
               <P className="text-sm font-bold text-amber-400">Week {streak?.streakWeek || 1}</P>
-              <P className="text-xs opacity-60">{streak?.streakWeek || 1}x Multiplier</P>
+              <P className="text-xs opacity-60">{(streak?.streakWeek || 1) * 100}x Multiplier</P>
             </div>
           </div>
 
@@ -558,7 +558,7 @@ export function CheckInTab() {
               <div className="p-2 rounded bg-amber-500/20 border border-amber-400/60 mb-4">
                 <div className="flex items-center justify-between">
                   <P className="text-xs text-amber-400 font-bold">Week {streak?.streakWeek || 1} • Day {streak?.streakDay || 1}/7</P>
-                  <P className="text-xs opacity-60">{streak?.streakWeek || 1}x Multiplier</P>
+                  <P className="text-xs opacity-60">{(streak?.streakWeek || 1) * 100}x Multiplier</P>
                 </div>
               </div>
               <P className="text-xs font-bold text-yellow-400 mb-2">🎯 1 Month Milestones</P>
@@ -592,28 +592,28 @@ export function CheckInTab() {
               </div>
               <div className="space-y-2 text-sm">
                 <div className="p-2 rounded bg-black/20 border border-amber-400/60">
-                  <P className="font-bold text-amber-400">Week 1 (1x)</P>
-                  <P className="opacity-70">1, 2, 3, 4, 5, 6, 7 = 28 (7 bonus) = 35 TYSM</P>
+                  <P className="font-bold text-amber-400">Week 1 (1x × 100)</P>
+                  <P className="opacity-70">100, 200...700 = 2,800 (700 bonus) = 3,500 TYSM</P>
                 </div>
                 <div className="p-2 rounded bg-black/20 border border-amber-400/60">
-                  <P className="font-bold text-amber-400">Week 2 (2x)</P>
-                  <P className="opacity-70">2, 4, 6, 8, 10, 12, 14 = 56 (14 bonus) = 70 TYSM</P>
+                  <P className="font-bold text-amber-400">Week 2 (2x × 100)</P>
+                  <P className="opacity-70">200, 400...1,400 = 5,600 (1,400 bonus) = 7,000 TYSM</P>
                 </div>
                 <div className="p-2 rounded bg-black/20 border border-amber-400/60">
-                  <P className="font-bold text-amber-400">Week 3 (3x)</P>
-                  <P className="opacity-70">3, 6, 9, 12, 15, 18, 21 = 84 (21 bonus) = 105 TYSM</P>
+                  <P className="font-bold text-amber-400">Week 3 (3x × 100)</P>
+                  <P className="opacity-70">300, 600...2,100 = 8,400 (2,100 bonus) = 10,500 TYSM</P>
                 </div>
                 <div className="p-2 rounded bg-black/20 border border-amber-400/60">
-                  <P className="font-bold text-amber-400">Week 4 (4x)</P>
-                  <P className="opacity-70">4, 8, 12, 16, 20, 24, 28 = 112 (28 bonus) = 140 TYSM</P>
+                  <P className="font-bold text-amber-400">Week 4 (4x × 100)</P>
+                  <P className="opacity-70">400, 800...2,800 = 11,200 (2,800 bonus) = 14,000 TYSM</P>
                 </div>
                 <div className="p-2 rounded bg-amber-500/20 border border-amber-400/60">
-                  <P className="font-bold text-amber-400">♾️ Week 5, 6, 7... ∞</P>
-                  <P className="opacity-70">Multiplier keeps growing! Streak up to 1 year!</P>
+                  <P className="font-bold text-amber-400">♾️ Week 5 → Week 52 (max)</P>
+                  <P className="opacity-70">Grows to 52x! Max = 36,400 TYSM/day!</P>
                 </div>
                 <div className="p-2 rounded bg-green-500/20 border border-green-400/60">
                   <P className="font-bold text-green-400">🎯 1 Month Milestone</P>
-                  <P className="opacity-70">Day 29: 500 | Day 30: 1000 TYSM (one-time bonus)</P>
+                  <P className="opacity-70">Day 29: 50,000 | Day 30: 100,000 TYSM bonus!</P>
                 </div>
                 <div className="p-2 rounded bg-red-500/20 border border-red-400/60">
                   <P className="font-bold text-red-400">⚠️ Miss a Day?</P>
