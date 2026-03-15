@@ -8,9 +8,9 @@ import {
 // Cache for 1 hour - query strings create separate cache entries
 export const revalidate = 3600;
 
-const { appEnv, heroImageUrl, imageUrl } = publicConfig;
+const { heroImageUrl, imageUrl } = publicConfig;
 
-const showDevWarning = appEnv !== "production";
+const showDevWarning = false;
 
 export async function GET(
   request: NextRequest,
