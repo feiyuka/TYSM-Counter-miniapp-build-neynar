@@ -1,5 +1,6 @@
 import { getLeaderboardStats, getTopClaimers } from '@/db/actions/leaderboard-actions';
 import { getPoolStats, getRecentClaims } from '@/db/actions/claim-actions';
+import { PoolForm } from './pool-form';
 
 const CREATOR_FID = Number(process.env.NEXT_PUBLIC_USER_FID);
 
@@ -23,6 +24,11 @@ export default async function AdminPage() {
         <StatCard label="Streak Minggu Terpanjang" value={`Week ${stats.maxWeek}`} emoji="🔥" />
         <StatCard label="TYSM Tertinggi" value={stats.topTysm.toLocaleString()} emoji="🏆" />
       </div>
+
+      {/* Pool Management */}
+      <Section title="💧 Manajemen Pool TYSM">
+        <PoolForm currentPool={poolStats.totalPool} totalClaimed={poolStats.totalClaimed} />
+      </Section>
 
       {/* Leaderboard */}
       <Section title="🏆 Top 20 Users">

@@ -1,8 +1,43 @@
 'use server';
 
 import { db } from '@/neynar-db-sdk/db';
-import { claims } from '@/db/schema';
-import { desc, sql } from 'drizzle-orm';
+import { kv, claims } from '@/db/schema';
+import { desc, eq, sql } from 'drizzle-orm';
+
+const POOL_KEY = 'total_pool';
+const DEFAULT_POOL = 1000000;
+
+/**
+ * Get total pool amount from KV store
+ */
+export async function getTotalPool(): Promise<number> {
+  const result = await db.select().from(kv).where(eq(kv.key, POOL_KEY)).limit(1);
+  return result[0] ? Number(result[0].value) : DEFAULT_POOL;
+}
+
+/**
+ * Top up pool by adding amount
+ */
+export async function topUpPool(addAmount: number): Promise<number> {
+  const current = await getTotalPool();
+  const newTotal = current + addAmount;
+  await db
+    .insert(kv)
+    .values({ key: POOL_KEY, value: String(newTotal) })
+    .onConflictDoUpdate({ target: kv.key, set: { value: String(newTotal) } });
+  return newTotal;
+}
+
+/**
+ * Set pool total directly
+ */
+export async function setPoolTotal(amount: number): Promise<number> {
+  await db
+    .insert(kv)
+    .values({ key: POOL_KEY, value: String(amount) })
+    .onConflictDoUpdate({ target: kv.key, set: { value: String(amount) } });
+  return amount;
+}
 
 /**
  * Save a new claim record
@@ -69,8 +104,9 @@ export async function getTotalClaimers(): Promise<number> {
 /**
  * Get pool statistics
  */
-export async function getPoolStats(totalPool: number = 1000000) {
-  const [totalClaimed, totalClaimers] = await Promise.all([
+export async function getPoolStats() {
+  const [totalPool, totalClaimed, totalClaimers] = await Promise.all([
+    getTotalPool(),
     getTotalClaimed(),
     getTotalClaimers(),
   ]);
