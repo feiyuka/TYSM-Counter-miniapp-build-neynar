@@ -172,7 +172,7 @@ export function LiveClaimsTab() {
     async function loadData() {
       try {
         const [poolData, claimsData] = await Promise.all([
-          getPoolStats(1000000),
+          getPoolStats(),
           getRecentClaims(10),
         ]);
         setPool(poolData);
