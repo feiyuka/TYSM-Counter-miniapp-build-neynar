@@ -3,7 +3,6 @@ import { parseUnits } from 'viem';
 
 const NOTIFY_SECRET = process.env.NOTIFY_SECRET || 'tysm-notify-secret';
 const TYSM_CONTRACT = '0xfEfcF3c2Aa08c6FF0BA3BD40ffEAD1F860A93d91';
-const CREATOR_FID = Number(process.env.NEXT_PUBLIC_USER_FID);
 
 export async function POST(req: NextRequest) {
   // Verify secret

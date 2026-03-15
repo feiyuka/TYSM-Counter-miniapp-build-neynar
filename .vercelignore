@@ -1,0 +1,10 @@
+# Persisted settings from the studio environment - contains actively modified files
+# that cause race conditions during Vercel's file system scan
+.settings
+
+# Core dumps
+core.[0-9]*
+
+# Claude/LLM config
+.claude
+.llm
