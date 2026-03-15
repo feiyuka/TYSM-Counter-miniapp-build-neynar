@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
-import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
+import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { formatUnits } from 'viem';
@@ -300,6 +300,15 @@ export function CheckInTab() {
   const previewMilestone = previewTotalDays + 1 === 29 ? 50000 : previewTotalDays + 1 === 30 ? 100000 : 0;
   const previewReward = previewDailyReward + previewWeekBonus + previewMilestone;
 
+  // Calculate tier based on tysmBalance
+  const getTier = useCallback((balance: number) => {
+    if (balance >= 500000) return 'LEGENDARY';
+    if (balance >= 250000) return 'DIAMOND';
+    if (balance >= 100000) return 'GOLD';
+    if (balance >= 50000) return 'SILVER';
+    return 'BRONZE';
+  }, []);
+
   return (
     <div className="space-y-4 relative">
       {/* Add App Popup */}
@@ -497,7 +506,22 @@ export function CheckInTab() {
                     <button onClick={openTxInBrowser} className="mt-2 text-xs text-blue-400 underline">View on BaseScan →</button>
                   </div>
                 )}
-                <Button onClick={() => setShowSuccessPopup(false)}>Done</Button>
+                <div className="flex gap-2">
+                  <ShareButton
+                    text={`I just claimed ${claimedReward.toLocaleString()} $TYSM! Day ${streak?.totalStreakDays || 1} streak 🔥`}
+                    queryParams={{
+                      tysmBalance: (streak?.tysmBalance || 0).toString(),
+                      streakDay: (streak?.streakDay || 1).toString(),
+                      streakWeek: (streak?.streakWeek || 1).toString(),
+                      tier: getTier(streak?.tysmBalance || 0),
+                      username: user?.username || 'Player',
+                    }}
+                    variant="default"
+                  >
+                    Share
+                  </ShareButton>
+                  <Button onClick={() => setShowSuccessPopup(false)}>Done</Button>
+                </div>
               </div>
             </CardContent>
           </Card>
