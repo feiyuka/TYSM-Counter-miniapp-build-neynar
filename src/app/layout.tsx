@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <ThemeClient />
+        <meta name="base:app_id" content="698dbac53cbc7aff6d9c6b73" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} ${patrickHand.variable} antialiased`}
