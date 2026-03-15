@@ -1,9 +1,10 @@
 import { getLeaderboardStats, getTopClaimers } from '@/db/actions/leaderboard-actions';
 import { getPoolStats, getRecentClaims } from '@/db/actions/claim-actions';
-import { PoolForm } from './pool-form';
-import { OnchainPoolForm } from './onchain-form';
+import { PoolForm } from '@/app/admin/pool-form';
+import { OnchainPoolForm } from '@/app/admin/onchain-form';
+import { publicConfig } from '@/config/public-config';
 
-const CREATOR_FID = Number(process.env.NEXT_PUBLIC_USER_FID);
+const CREATOR_FID = publicConfig.fid;
 
 export default async function AdminPage() {
   const [stats, leaderboard, poolStats, recentClaims] = await Promise.all([

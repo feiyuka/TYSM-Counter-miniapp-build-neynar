@@ -10,7 +10,7 @@
     "cleanup": "node scripts/cleanup.js",
     "deploy:raw": "vercel --prod",
     "deploy:vercel": "node --loader ts-node/esm scripts/deploy.ts",
-    "dev": "pnpm run db:push && next dev --turbopack",
+    "dev": "pnpm run db:push && next dev",
     "dev:webpack": "pnpm run db:push && next dev -p 3001",
     "install:standalone": "pnpm install",
     "lint": "eslint .",

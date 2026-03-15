@@ -2,7 +2,7 @@
 
 import { db } from '@/neynar-db-sdk/db';
 import { kv, claims } from '@/db/schema';
-import { desc, eq, sql } from 'drizzle-orm';
+import { desc, sql } from 'drizzle-orm';
 
 const POOL_KEY = 'total_pool';
 const DEFAULT_POOL = 991611;

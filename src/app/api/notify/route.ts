@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/neynar-db-sdk/db';
 import { userStreaks } from '@/db/schema';
 import { isNotNull } from 'drizzle-orm';
-
-// Secret key to protect this endpoint - only cron job should call it
-const NOTIFY_SECRET = process.env.NOTIFY_SECRET || 'tysm-notify-secret';
+import { privateConfig } from '@/config/private-config';
 
 // Notification messages - 2 variants for morning and evening
 const MESSAGES = {
@@ -21,7 +19,7 @@ const MESSAGES = {
 export async function POST(req: NextRequest) {
   // Verify secret to prevent unauthorized calls
   const secret = req.headers.get('x-notify-secret');
-  if (secret !== NOTIFY_SECRET) {
+  if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -55,7 +53,7 @@ export async function POST(req: NextRequest) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': process.env.NEYNAR_API_KEY || '',
+            'x-api-key': privateConfig.neynarApiKey,
           },
           body: JSON.stringify({
             target_fids: batch,
@@ -96,7 +94,7 @@ export async function POST(req: NextRequest) {
 // GET endpoint for quick status check
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get('secret');
-  if (secret !== NOTIFY_SECRET) {
+  if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

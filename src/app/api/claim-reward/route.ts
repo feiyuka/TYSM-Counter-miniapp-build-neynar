@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { parseUnits } from 'viem';
 import { performCheckIn, getUserStreak } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
+import { privateConfig } from '@/config/private-config';
 
 // TYSM Token contract (ERC-20) on Base Network
 const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877';
@@ -84,8 +85,8 @@ export async function POST(req: NextRequest) {
     const sendResponse = await fetch('https://api.neynar.com/v2/farcaster/fungible/send', {
       method: 'POST',
       headers: {
-        'x-api-key': process.env.NEYNAR_API_KEY!,
-        'x-wallet-id': process.env.NEYNAR_WALLET_ID!,
+        'x-api-key': privateConfig.neynarApiKey,
+        'x-wallet-id': privateConfig.neynarWalletId,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

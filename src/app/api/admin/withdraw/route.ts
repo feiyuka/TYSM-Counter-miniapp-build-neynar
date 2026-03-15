@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseUnits } from 'viem';
+import { privateConfig } from '@/config/private-config';
 
-const NOTIFY_SECRET = process.env.NOTIFY_SECRET || 'tysm-notify-secret';
 // TYSM Token contract (ERC-20) on Base Network
 const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877';
 
 export async function POST(req: NextRequest) {
   // Verify secret
   const secret = req.headers.get('x-notify-secret');
-  if (secret !== NOTIFY_SECRET) {
+  if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -34,8 +34,8 @@ export async function POST(req: NextRequest) {
     const response = await fetch('https://api.neynar.com/v2/farcaster/fungible/send', {
       method: 'POST',
       headers: {
-        'x-api-key': process.env.NEYNAR_API_KEY!,
-        'x-wallet-id': process.env.NEYNAR_WALLET_ID!,
+        'x-api-key': privateConfig.neynarApiKey,
+        'x-wallet-id': privateConfig.neynarWalletId,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
