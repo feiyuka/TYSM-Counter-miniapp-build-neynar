@@ -12,10 +12,8 @@ import { MILESTONES } from '@/data/mocks';
 import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
 import {
   getOrCreateUserStreak,
-  performCheckIn,
   canCheckInToday,
 } from '@/db/actions/streak-actions';
-import { saveClaim } from '@/db/actions/claim-actions';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 
 // Constants - Use Warpcast mini app deep link format
@@ -167,7 +165,6 @@ export function CheckInTab() {
   const handleConfirmCheckIn = useCallback(async () => {
     if (!user || !walletAddress) return;
     setShowConfirmPopup(false);
-    setClaimedReward(contractData.previewReward);
     try {
       writeContract({
         address: TYSM_CHECKIN_ADDRESS,
@@ -177,48 +174,71 @@ export function CheckInTab() {
     } catch (error) {
       console.error('Check-in error:', error);
     }
-  }, [user, walletAddress, contractData.previewReward, writeContract]);
+  }, [user, walletAddress, writeContract]);
 
-  // Handle transaction success
+  // Handle transaction success - call server API to send x100 reward via server wallet
   useEffect(() => {
     const handleTxSuccess = async () => {
-      if (!txSuccess || !txData || !user || txProcessedRef.current === txData) return;
+      if (!txSuccess || !txData || !user || !walletAddress || txProcessedRef.current === txData) return;
 
       txProcessedRef.current = txData;
       setTxHash(txData);
 
-      const result = await performCheckIn(user.fid, user.username || 'user', user.pfpUrl);
-      await saveClaim(user.fid, user.username || 'user', claimedReward, txData, user.pfpUrl);
-
-      if (result.streak) {
-        setStreak({
-          tysmBalance: result.streak.tysmBalance,
-          lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
-          streakDay: result.streak.streakDay,
-          streakWeek: result.streak.streakWeek,
-          totalStreakDays: result.streak.totalStreakDays,
-        });
-      }
-
-      refetchCanCheckIn();
-      refetchContractStreak();
-      setTodayClaimed(true);
-
-      // Auto compose cast
       try {
-        await sdk.actions.composeCast({
-          text: `I just claimed ${claimedReward.toLocaleString()} $TYSM on day ${result.streak?.totalStreakDays || 1}! Week ${result.streak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
-          embeds: [APP_URL] as [string],
+        // Call backend API to calculate x100 reward and send TYSM from server wallet
+        const response = await fetch('/api/claim-reward', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fid: user.fid,
+            username: user.username || 'user',
+            pfpUrl: user.pfpUrl,
+            walletAddress,
+            txHash: txData,
+          }),
         });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Update displayed reward with actual x100 amount from server
+          setClaimedReward(result.reward);
+
+          if (result.streak) {
+            setStreak({
+              tysmBalance: result.streak.tysmBalance,
+              lastCheckIn: result.streak.lastCheckIn?.toISOString() || '',
+              streakDay: result.streak.streakDay,
+              streakWeek: result.streak.streakWeek,
+              totalStreakDays: result.streak.totalStreakDays,
+            });
+          }
+
+          refetchCanCheckIn();
+          refetchContractStreak();
+          setTodayClaimed(true);
+
+          // Auto compose cast with actual reward amount
+          try {
+            await sdk.actions.composeCast({
+              text: `I just claimed ${result.reward.toLocaleString()} $TYSM on day ${result.streak?.totalStreakDays || 1}! Week ${result.streak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
+              embeds: [APP_URL] as [string],
+            });
+          } catch (err) {
+            console.log('Share cancelled:', err);
+          }
+        } else {
+          console.error('Claim reward failed:', result.error);
+        }
       } catch (err) {
-        console.log('Share cancelled:', err);
+        console.error('Claim reward error:', err);
       }
 
       setShowSuccessPopup(true);
     };
 
     handleTxSuccess();
-  }, [txSuccess, txData, user, claimedReward, refetchCanCheckIn, refetchContractStreak]);
+  }, [txSuccess, txData, user, walletAddress, refetchCanCheckIn, refetchContractStreak]);
 
   const openTxInBrowser = useCallback(() => {
     if (txHash) window.open(`https://basescan.org/tx/${txHash}`, '_blank');
@@ -267,7 +287,18 @@ export function CheckInTab() {
     );
   }
 
-  const { canCheckInOnchain, timeRemainingOnchain, willResetOnchain, previewReward } = contractData;
+  const { canCheckInOnchain, timeRemainingOnchain, willResetOnchain } = contractData;
+
+  // Calculate x100 preview reward on frontend (matches server calculation)
+  const previewStreakDay = streak?.streakDay ?? 1;
+  const previewStreakWeek = streak?.streakWeek ?? 1;
+  const previewEffectiveWeek = Math.min(previewStreakWeek, 52);
+  const previewDailyReward = previewStreakDay * previewEffectiveWeek * 100;
+  const previewIsLastDay = previewStreakDay === 7;
+  const previewWeekBonus = previewIsLastDay ? 7 * previewEffectiveWeek * 100 : 0;
+  const previewTotalDays = streak?.totalStreakDays ?? 0;
+  const previewMilestone = previewTotalDays + 1 === 29 ? 50000 : previewTotalDays + 1 === 30 ? 100000 : 0;
+  const previewReward = previewDailyReward + previewWeekBonus + previewMilestone;
 
   return (
     <div className="space-y-4 relative">
