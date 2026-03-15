@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
 import { topUpPool } from '@/db/actions/claim-actions';
@@ -80,6 +80,20 @@ export function OnchainPoolForm() {
     return Number(formatUnits(val, decimals)).toLocaleString();
   };
 
+  // Update DB after successful top up tx — inside useEffect to avoid setState during render
+  useEffect(() => {
+    if (isSuccess && txHash && !dbUpdated && mode === 'topup') {
+      const amountNum = Number(amount);
+      if (amountNum > 0) {
+        setDbUpdated(true);
+        topUpPool(amountNum).then(() => {
+          setMessage(`✅ Top up ${amountNum.toLocaleString()} TYSM berhasil! Pool diperbarui.`);
+          setAmount('');
+        });
+      }
+    }
+  }, [isSuccess, txHash, dbUpdated, mode, amount]);
+
   async function handleTransaction() {
     if (!address || !amount || !POOL_ADDRESS) return;
     setMessage('');
@@ -89,7 +103,6 @@ export function OnchainPoolForm() {
       const amountBig = parseUnits(amount, decimals);
 
       if (mode === 'topup') {
-        // User sends TYSM to pool address
         writeContract({
           address: TYSM_CONTRACT,
           abi: ERC20_ABI,
@@ -97,8 +110,6 @@ export function OnchainPoolForm() {
           args: [POOL_ADDRESS, amountBig],
         });
       } else {
-        // Withdraw: pool sends TYSM back to user wallet
-        // This requires server wallet action via API
         const res = await fetch('/api/admin/withdraw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-notify-secret': 'tysm-notify-secret' },
@@ -117,18 +128,6 @@ export function OnchainPoolForm() {
       if (!error.message?.includes('rejected')) {
         setMessage('❌ Transaksi gagal. Coba lagi.');
       }
-    }
-  }
-
-  // Update DB after successful top up tx
-  if (isSuccess && txHash && !dbUpdated) {
-    setDbUpdated(true);
-    const amountNum = Number(amount);
-    if (amountNum > 0 && mode === 'topup') {
-      topUpPool(amountNum).then(() => {
-        setMessage(`✅ Top up ${amountNum.toLocaleString()} TYSM berhasil! Pool diperbarui.`);
-        setAmount('');
-      });
     }
   }
 
