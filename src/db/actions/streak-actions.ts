@@ -120,15 +120,19 @@ export async function performCheckIn(fid: number, username: string, pfpUrl?: str
     newTotalDays = 0;
   }
 
-  // Calculate reward
-  const dailyReward = newStreakDay * newStreakWeek;
-  const isLastDayOfWeek = newStreakDay === 7;
-  const weekBonus = isLastDayOfWeek ? 7 * newStreakWeek : 0;
+  // Calculate reward (100x multiplier)
+  const MULTIPLIER = 100;
+  const MAX_WEEK = 52; // Cap at 1 year
+  const effectiveWeek = Math.min(newStreakWeek, MAX_WEEK);
 
-  // Milestone bonuses (Day 29 = 500, Day 30 = 1000)
+  const dailyReward = newStreakDay * effectiveWeek * MULTIPLIER;
+  const isLastDayOfWeek = newStreakDay === 7;
+  const weekBonus = isLastDayOfWeek ? 7 * effectiveWeek * MULTIPLIER : 0;
+
+  // Milestone bonuses (Day 29 = 50,000, Day 30 = 100,000)
   let milestoneBonus = 0;
-  if (newTotalDays + 1 === 29) milestoneBonus = 500;
-  if (newTotalDays + 1 === 30) milestoneBonus = 1000;
+  if (newTotalDays + 1 === 29) milestoneBonus = 50000;
+  if (newTotalDays + 1 === 30) milestoneBonus = 100000;
 
   const totalReward = dailyReward + weekBonus + milestoneBonus;
 
