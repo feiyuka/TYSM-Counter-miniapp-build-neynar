@@ -15,8 +15,7 @@ const MAX_WEEK = 52;
 const MILESTONE_29 = 50000;
 const MILESTONE_30 = 100000;
 
-// Max reward per claim safety cap (Week 52, Day 7 + Week bonus + milestone)
-// 7 * 52 * 100 + 7 * 52 * 100 + 100000 = 72,800 + 72,800 + 100,000 = 245,600
+// Max reward per claim safety cap
 const MAX_REWARD_SAFETY_CAP = 300_000;
 
 export async function POST(req: NextRequest) {
@@ -36,16 +35,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid fid' }, { status: 400 });
     }
 
-    // Validate wallet address format
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
     }
 
-    // Get current streak BEFORE performing check-in (to calculate correct reward)
+    // Get current streak BEFORE performing check-in
     const currentStreak = await getUserStreak(fid);
 
     // Determine streak values for reward calculation
-    // If no streak or missed a day, it will reset to W1D1
     let streakDay = currentStreak?.streakDay ?? 1;
     let streakWeek = currentStreak?.streakWeek ?? 1;
     let totalDays = currentStreak?.totalStreakDays ?? 0;
@@ -75,13 +72,15 @@ export async function POST(req: NextRequest) {
 
     const totalReward = dailyReward + weekBonus + milestoneBonus;
 
-    // Safety cap to prevent any accidental huge payouts
+    // Safety cap
     if (totalReward > MAX_REWARD_SAFETY_CAP) {
       console.error(`Reward ${totalReward} exceeds safety cap for fid ${fid}`);
       return NextResponse.json({ error: 'Reward calculation error' }, { status: 500 });
     }
 
-    // Send TYSM from server wallet to user's wallet via Neynar API
+    console.log(`[claim-reward] fid=${fid} day=${streakDay} week=${streakWeek} reward=${totalReward}`);
+
+    // Send TYSM from server wallet to user wallet via Neynar API
     const sendResponse = await fetch('https://api.neynar.com/v2/farcaster/fungible/send', {
       method: 'POST',
       headers: {
@@ -102,6 +101,7 @@ export async function POST(req: NextRequest) {
     });
 
     const sendData = await sendResponse.json();
+    console.log(`[claim-reward] Neynar response status=${sendResponse.status}:`, JSON.stringify(sendData));
 
     if (!sendResponse.ok) {
       console.error('Server wallet send failed:', sendData);
@@ -111,12 +111,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const rewardTxHash = sendData.transaction_hash;
+    // transaction_hash may be at top level or nested
+    const rewardTxHash =
+      sendData.transaction_hash ??
+      sendData.data?.transaction_hash ??
+      contractTxHash;
 
     // Record check-in in database
     const result = await performCheckIn(fid, username || 'user', pfpUrl);
 
-    // Save claim record with the server wallet tx hash
+    // Save claim record with reward tx hash
     await saveClaim(fid, username || 'user', totalReward, rewardTxHash, pfpUrl);
 
     return NextResponse.json({

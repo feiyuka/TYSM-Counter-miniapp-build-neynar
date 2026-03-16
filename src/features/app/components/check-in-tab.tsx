@@ -217,6 +217,7 @@ export function CheckInTab() {
           refetchCanCheckIn();
           refetchContractStreak();
           setTodayClaimed(true);
+          setShowSuccessPopup(true);
 
           // Auto compose cast with actual reward amount
           try {
@@ -228,13 +229,16 @@ export function CheckInTab() {
             console.log('Share cancelled:', err);
           }
         } else {
+          // API failed — still show popup so user knows tx went through onchain
           console.error('Claim reward failed:', result.error);
+          setTodayClaimed(true);
+          setShowSuccessPopup(true);
         }
       } catch (err) {
         console.error('Claim reward error:', err);
+        setTodayClaimed(true);
+        setShowSuccessPopup(true);
       }
-
-      setShowSuccessPopup(true);
     };
 
     handleTxSuccess();
