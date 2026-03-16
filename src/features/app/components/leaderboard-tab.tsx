@@ -43,6 +43,7 @@ function UserAvatar({ fid, username, className }: { fid: number; username: strin
   const fallbackUrl = `https://api.dicebear.com/9.x/lorelei/svg?seed=${username}`;
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={userData?.pfp_url || fallbackUrl}
       alt={username}
@@ -90,6 +91,7 @@ function UserProfilePopup({
             <>
               {/* User Info */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-500/20 border border-blue-400/60 mb-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={userData.pfp_url || `https://api.dicebear.com/9.x/lorelei/svg?seed=${userData.username}`}
                   alt={userData.display_name || userData.username}

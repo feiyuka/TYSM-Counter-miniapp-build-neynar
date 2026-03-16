@@ -3,6 +3,7 @@
 export function CustomHeader() {
   return (
     <div className="flex items-center justify-center gap-3 py-2">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/1769648461618.png"
         alt="TYSM"

@@ -50,6 +50,7 @@ export function MiniApp() {
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-purple-400 hover:text-purple-300 transition-colors font-medium"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://neynar.com/favicon.ico"
                 alt="Neynar"

@@ -406,12 +406,14 @@ export function useOnchainNetworkTrendingPools(
  */
 export function useOnchainTokensRecentlyUpdated(
   params?: { include?: string; network?: string },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options?: ExtendedQueryOptions<any[]> & CoinGeckoHookOptions,
 ) {
   const queryParams = new URLSearchParams();
   if (params?.include) queryParams.set("include", params.include);
   if (params?.network) queryParams.set("network", params.network);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return useApiQuery<any[]>(
     ["coingecko", "onchain", "tokens", "info-recently-updated", params],
     `/api/coingecko/onchain/tokens/info-recently-updated?${queryParams}`,

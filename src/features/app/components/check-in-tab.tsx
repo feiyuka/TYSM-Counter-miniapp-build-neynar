@@ -49,6 +49,15 @@ export function CheckInTab() {
   // Ref to prevent double execution of tx success handler
   const txProcessedRef = useRef<string | null>(null);
 
+  // Calculate tier based on tysmBalance - MUST be before early returns
+  const getTier = useCallback((balance: number) => {
+    if (balance >= 500000) return 'LEGENDARY';
+    if (balance >= 250000) return 'DIAMOND';
+    if (balance >= 100000) return 'GOLD';
+    if (balance >= 50000) return 'SILVER';
+    return 'BRONZE';
+  }, []);
+
   // Check if user has added app before (using localStorage)
   useEffect(() => {
     if (user && typeof window !== 'undefined') {
@@ -304,15 +313,6 @@ export function CheckInTab() {
   const previewMilestone = previewTotalDays + 1 === 29 ? 50000 : previewTotalDays + 1 === 30 ? 100000 : 0;
   const previewReward = previewDailyReward + previewWeekBonus + previewMilestone;
 
-  // Calculate tier based on tysmBalance
-  const getTier = useCallback((balance: number) => {
-    if (balance >= 500000) return 'LEGENDARY';
-    if (balance >= 250000) return 'DIAMOND';
-    if (balance >= 100000) return 'GOLD';
-    if (balance >= 50000) return 'SILVER';
-    return 'BRONZE';
-  }, []);
-
   return (
     <div className="space-y-4 relative">
       {/* Add App Popup */}
@@ -356,6 +356,7 @@ export function CheckInTab() {
         <Card className="border border-amber-400/70 rounded-xl hover:bg-amber-500/10 transition-colors">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={user.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`} alt={user.displayName || user.username} className="w-12 h-12 rounded-full border border-amber-400/60" />
               <div className="flex-1">
                 <P className="font-bold">{user.displayName || user.username}</P>
@@ -599,6 +600,7 @@ export function CheckInTab() {
                 <button onClick={() => setShowProfilePopup(false)} className="text-gray-400 hover:text-white text-xl">✕</button>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/20 border border-amber-400/60 mb-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={user.pfpUrl || `https://api.dicebear.com/9.x/lorelei/svg?seed=${user.username}`} alt={user.displayName || user.username} className="w-12 h-12 rounded-full border border-amber-400/60" />
                 <div className="flex-1">
                   <P className="font-bold">{user.displayName || user.username}</P>

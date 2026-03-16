@@ -8,6 +8,17 @@ import sdk from '@farcaster/miniapp-sdk';
 
 type FeedSection = 'casts' | 'apps';
 
+// Type for frame manifest structure
+interface FrameManifest {
+  frame?: {
+    name?: string;
+    button_title?: string;
+    icon_url?: string;
+    splash_image_url?: string;
+    image_url?: string;
+  };
+}
+
 // User Avatar Component for casts - fetches real-time photo
 function CastAuthorAvatar({ fid, pfpUrl }: { fid: number; pfpUrl?: string }) {
   const { data: userData } = useUser(fid);
@@ -15,6 +26,7 @@ function CastAuthorAvatar({ fid, pfpUrl }: { fid: number; pfpUrl?: string }) {
   const imageUrl = userData?.pfp_url || pfpUrl || fallbackUrl;
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={imageUrl}
       alt="Author"
@@ -174,7 +186,7 @@ function TrendingAppsSection() {
 
   // Helper to get app name - correct structure: manifest.frame.name (snake_case)
   const getAppName = (frame: FrameV2WithFullAuthor): string => {
-    const manifest = frame.manifest as any;
+    const manifest = frame.manifest as FrameManifest;
     const manifestFrame = manifest?.frame;
 
     // 1. manifest.frame.name (the correct path!)
@@ -217,7 +229,7 @@ function TrendingAppsSection() {
 
   // Helper to get app icon - correct structure: manifest.frame.icon_url (snake_case)
   const getAppIcon = (frame: FrameV2WithFullAuthor): string | null => {
-    const manifest = frame.manifest as any;
+    const manifest = frame.manifest as FrameManifest;
     const manifestFrame = manifest?.frame;
 
     // 1. manifest.frame.icon_url (the correct path!)
@@ -250,6 +262,7 @@ function TrendingAppsSection() {
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
                 {appIcon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={appIcon}
                     alt={appName}
@@ -273,6 +286,7 @@ function TrendingAppsSection() {
                 {frame.author && (
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {frame.author.pfp_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={frame.author.pfp_url}
                         alt={frame.author.username || 'author'}

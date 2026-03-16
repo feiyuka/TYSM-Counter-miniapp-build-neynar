@@ -10,6 +10,7 @@ export function BackgroundLogo() {
       {/* Logo Frame with Border */}
       <div className="absolute inset-12 rounded-full border-2 border-amber-400/30 shadow-[0_0_60px_rgba(251,191,36,0.3)]">
         <div className="absolute inset-2 rounded-full border border-amber-300/20" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/1769648461618.png"
           alt=""
