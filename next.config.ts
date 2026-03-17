@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    // Type checking is run separately; skip the memory-intensive tsc pass during build
+    ignoreBuildErrors: true,
+  },
   // Expose VERCEL_PROJECT_PRODUCTION_URL to client-side code
   env: {
     NEXT_PUBLIC_VERCEL_PRODUCTION_URL:
