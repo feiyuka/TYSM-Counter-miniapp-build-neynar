@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog, useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
+
 type FeedSection = 'casts' | 'apps';
 
 // Type for frame manifest structure
