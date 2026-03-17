@@ -6,7 +6,6 @@ import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { formatUnits, encodeAbiParameters, parseAbiParameters } from 'viem';
-import sdk from '@farcaster/miniapp-sdk';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
 import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
@@ -52,7 +51,6 @@ export function CheckInTab() {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [showAddAppPopup, setShowAddAppPopup] = useState(false);
-  const [isAddingApp, setIsAddingApp] = useState(false);
 
   // Ref to prevent double execution of tx success handler
   const txProcessedRef = useRef<string | null>(null);
@@ -77,19 +75,11 @@ export function CheckInTab() {
     }
   }, [user]);
 
-  // Handle Add App + Enable Notifications
-  const handleAddApp = useCallback(async () => {
+  // Handle Add App - Base App handles this automatically, just record locally
+  const handleAddApp = useCallback(() => {
     if (!user) return;
-    setIsAddingApp(true);
-    try {
-      await sdk.actions.addMiniApp();
-      localStorage.setItem(`tysm_app_added_${user.fid}`, 'true');
-      setShowAddAppPopup(false);
-    } catch (error) {
-      console.error('Failed to add app:', error);
-    } finally {
-      setIsAddingApp(false);
-    }
+    localStorage.setItem(`tysm_app_added_${user.fid}`, 'true');
+    setShowAddAppPopup(false);
   }, [user]);
 
   const handleSkipAddApp = useCallback(() => {
@@ -237,12 +227,12 @@ export function CheckInTab() {
           setTodayClaimed(true);
           setShowSuccessPopup(true);
 
-          // Auto compose cast with actual reward amount
+          // Auto compose cast with actual reward amount (Base App compatible)
           try {
-            await sdk.actions.composeCast({
-              text: `I just claimed ${result.reward.toLocaleString()} $TYSM on day ${result.streak?.totalStreakDays || 1}! Week ${result.streak?.streakWeek || 1} streak 🔥\n\nClaim yours daily:`,
-              embeds: [APP_URL] as [string],
-            });
+            const shareText = encodeURIComponent(
+              `I just claimed ${result.reward.toLocaleString()} $TYSM on day ${result.streak?.totalStreakDays || 1}! Week ${result.streak?.streakWeek || 1} streak 🔥\n\nClaim yours daily: ${APP_URL}`
+            );
+            window.open(`https://warpcast.com/~/compose?text=${shareText}`, '_blank');
           } catch (err) {
             console.log('Share cancelled:', err);
           }
@@ -266,18 +256,11 @@ export function CheckInTab() {
     if (txHash) window.open(`https://basescan.org/tx/${txHash}`, '_blank');
   }, [txHash]);
 
-  const handleShareApp = useCallback(async () => {
-    try {
-      const shareText = streak && streak.totalStreakDays > 0
-        ? `I'm on a ${streak.totalStreakDays} day streak earning $TYSM! 🔥\n\nJoin me:`
-        : `Earn $TYSM tokens with daily check-ins! 🎁\n\nTry it:`;
-      await sdk.actions.composeCast({
-        text: shareText,
-        embeds: [APP_URL] as [string],
-      });
-    } catch (err) {
-      console.log('Share cancelled:', err);
-    }
+  const handleShareApp = useCallback(() => {
+    const text = streak && streak.totalStreakDays > 0
+      ? `I'm on a ${streak.totalStreakDays} day streak earning $TYSM! 🔥\n\nJoin me: ${APP_URL}`
+      : `Earn $TYSM tokens with daily check-ins! 🎁\n\nTry it: ${APP_URL}`;
+    window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`, '_blank');
   }, [streak]);
 
   // Loading state
@@ -345,8 +328,8 @@ export function CheckInTab() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleSkipAddApp} disabled={isAddingApp}>Maybe Later</Button>
-                  <Button onClick={handleAddApp} disabled={isAddingApp}>{isAddingApp ? '⏳ Adding...' : '✅ Add App'}</Button>
+                  <Button variant="outline" onClick={handleSkipAddApp}>Maybe Later</Button>
+                  <Button onClick={handleAddApp}>✅ Add App</Button>
                 </div>
               </div>
             </CardContent>

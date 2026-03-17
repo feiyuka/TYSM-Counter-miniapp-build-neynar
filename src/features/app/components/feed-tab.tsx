@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
 import { useTrendingGlobalFeed, useFrameCatalog, useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast, FrameV2WithFullAuthor } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
-import sdk from '@farcaster/miniapp-sdk';
-
 type FeedSection = 'casts' | 'apps';
 
 // Type for frame manifest structure
@@ -74,15 +72,8 @@ function TrendingCastsSection() {
     );
   }
 
-  const openCast = async (cast: Cast) => {
-    try {
-      // Use Farcaster SDK to open cast directly in the app
-      await sdk.actions.viewCast({ hash: cast.hash });
-    } catch (error) {
-      // Fallback to web if SDK fails
-      console.error('viewCast error:', error);
-      window.open(`https://warpcast.com/${cast.author.username}/${cast.hash.slice(0, 10)}`, '_blank');
-    }
+  const openCast = (cast: Cast) => {
+    window.open(`https://warpcast.com/${cast.author.username}/${cast.hash.slice(0, 10)}`, '_blank');
   };
 
   return (
@@ -171,16 +162,9 @@ function TrendingAppsSection() {
     );
   }
 
-  const openApp = async (frame: FrameV2WithFullAuthor) => {
+  const openApp = (frame: FrameV2WithFullAuthor) => {
     if (frame.frames_url) {
-      try {
-        // Use Farcaster SDK to open mini app directly in the app
-        await sdk.actions.openMiniApp({ url: frame.frames_url });
-      } catch (error) {
-        // Fallback to web if SDK fails
-        console.error('openMiniApp error:', error);
-        window.open(frame.frames_url, '_blank');
-      }
+      window.open(frame.frames_url, '_blank');
     }
   };
 

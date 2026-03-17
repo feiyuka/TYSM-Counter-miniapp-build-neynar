@@ -5,8 +5,10 @@ import {
   type CreateConnectorFn,
   http,
   type Transport,
+  injected,
 } from "wagmi";
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
+import { coinbaseWallet } from "wagmi/connectors";
 import type { Chain } from "viem";
 import {
   type SupportedChainName,
@@ -61,7 +63,11 @@ type NeynarWagmiProviderProps = {
 export function NeynarWagmiProvider({
   children,
   chains: chainNames = ["base", "mainnet"],
-  connectors = [farcasterMiniApp()],
+  connectors = [
+    farcasterMiniApp(),           // Farcaster / Warpcast wallet
+    coinbaseWallet({ appName: "TYSM Counter", preference: "smartWalletOnly" }), // Base App (Smart Wallet)
+    injected(),                   // MetaMask & other injected wallets
+  ],
 }: NeynarWagmiProviderProps) {
   // Map chain names (strings) to viem Chain objects
   // farcasterSupportedChainsByName is a curated list of chains that work with Farcaster
