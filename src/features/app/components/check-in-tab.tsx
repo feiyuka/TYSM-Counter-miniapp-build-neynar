@@ -5,7 +5,8 @@ import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
-import { formatUnits, encodeAbiParameters, parseAbiParameters } from 'viem';
+import { formatUnits } from 'viem';
+import { Attribution } from 'ox/erc8021';
 import type { UserStreak } from '@/features/app/types';
 import { MILESTONES } from '@/data/mocks';
 import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/features/app/utils';
@@ -18,13 +19,9 @@ import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin
 // Constants - Use Warpcast mini app deep link format
 const APP_URL = 'https://warpcast.com/~/frames/launch?domain=miniapp-generator-fid-544548-260128213922530.neynar.app';
 
-// Base Builder Code attribution (bc_rmi5daom)
-// ERC-8021 standard: dataSuffix appended to every onchain transaction
-const BUILDER_CODE = 'bc_rmi5daom';
-const BUILDER_CODE_DATA_SUFFIX = encodeAbiParameters(
-  parseAbiParameters('bytes32'),
-  [('0x' + Buffer.from(BUILDER_CODE).toString('hex').padEnd(64, '0')) as `0x${string}`]
-);
+// ERC-8021 Builder Code attribution — registered at base.dev
+// Appended to every check-in transaction so Base can attribute usage to this app
+const BUILDER_DATA_SUFFIX = Attribution.toDataSuffix({ codes: ['bc_rmi5daom'] });
 
 export function CheckInTab() {
   const { data: user, isLoading: userLoading } = useFarcasterUser();
@@ -178,7 +175,7 @@ export function CheckInTab() {
         address: TYSM_CHECKIN_ADDRESS,
         abi: TYSM_CHECKIN_ABI,
         functionName: 'checkIn',
-        dataSuffix: BUILDER_CODE_DATA_SUFFIX,
+        dataSuffix: BUILDER_DATA_SUFFIX,
       });
     } catch (error) {
       console.error('Check-in error:', error);
