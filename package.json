@@ -27,6 +27,7 @@
     "validate:fix": "pnpm run type-check && pnpm run lint:fix && pnpm run format"
   },
   "dependencies": {
+    "@base-org/account": "^2.5.2",
     "@coingecko/coingecko-typescript": "1.11.3",
     "@farcaster/miniapp-sdk": "0.2.1",
     "@farcaster/miniapp-wagmi-connector": "1.1.0",

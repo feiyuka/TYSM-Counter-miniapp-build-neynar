@@ -1,5 +1,4 @@
 "use client";
-import sdk from "@farcaster/miniapp-sdk";
 import { useEffect, useRef } from "react";
 import { useSetAtom } from "jotai";
 import {
@@ -10,24 +9,15 @@ import {
 } from "./farcaster-app-atoms";
 
 /**
- * Initialize Farcaster SDK and populate user atoms
+ * Initialize app and populate user atoms.
  *
- * Call this hook once at the app root level (in your main App component).
+ * Base App compatible — no Farcaster SDK required.
+ * `sdk.actions.ready()` is not needed: the app is ready when it loads.
+ * User identity comes from wagmi `useAccount` (wallet address).
  *
- * Handles:
- * - SDK initialization (sdk.actions.ready())
- * - Back button setup (if creator context)
- * - User context loading from Farcaster SDK
- * - Error handling for guest users
- *
- * @example
- * ```tsx
- * function App() {
- *   useInitializeFarcasterApp();
- *
- *   return <YourApp />;
- * }
- * ```
+ * Kept for backward compatibility with useFarcasterUser() hook.
+ * When running in Farcaster/Warpcast, SDK context is loaded if available.
+ * When running in Base App, user context is null (guest) — use useAccount instead.
  */
 export function useInitializeFarcasterApp() {
   const setFarcasterUser = useSetAtom(farcasterUserAtom);
@@ -42,31 +32,34 @@ export function useInitializeFarcasterApp() {
     hasInitializedRef.current = true;
 
     async function initialize() {
-      // Back button disabled - let Farcaster handle native navigation
-      // No custom returnUrl needed
-
-      // Step 1: Mark SDK as ready
-      await sdk.actions.ready();
+      // Base App: app is ready when it loads — no sdk.actions.ready() needed
       setSdkReady(true);
 
-      // Step 3: Load user context
+      // Try to load Farcaster user context (Warpcast only)
+      // In Base App this will gracefully return null
       try {
         setFarcasterUserLoading(true);
         setFarcasterUserError(null);
 
-        const context = await sdk.context;
-        if (context?.user) {
-          setFarcasterUser(context.user);
-        } else {
-          console.info(
-            "No Farcaster user context available - running as guest",
-          );
+        // Dynamic import so it doesn't crash in Base App environment
+        const { default: sdk } = await import("@farcaster/miniapp-sdk").catch(
+          () => ({ default: null }),
+        );
+
+        if (sdk) {
+          const context = await sdk.context;
+          if (context?.user) {
+            setFarcasterUser(context.user);
+          } else {
+            console.info(
+              "No Farcaster user context — running in Base App or guest mode",
+            );
+          }
         }
       } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to get user context";
-        console.error("Failed to get Farcaster user context:", error);
-        setFarcasterUserError(errorMessage);
+        // Silently handle — not an error in Base App context
+        console.info("Farcaster context not available:", error);
+        setFarcasterUserError(null);
       } finally {
         setFarcasterUserLoading(false);
       }
