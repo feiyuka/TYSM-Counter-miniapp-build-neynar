@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseUnits } from 'viem';
-import { performCheckIn, getUserStreak } from '@/db/actions/streak-actions';
+import { performCheckIn } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
 import { privateConfig } from '@/config/private-config';
 
 // TYSM Token contract (ERC-20) on Base Network
 const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877';
-
-// Reward formula constants (x100 multiplier, applied server-side)
-const MULTIPLIER = 100;
-const MAX_WEEK = 52;
-
-// Milestone bonuses
-const MILESTONE_29 = 50000;
-const MILESTONE_30 = 100000;
-
-// Max reward per claim safety cap
-const MAX_REWARD_SAFETY_CAP = 300_000;
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,46 +28,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
     }
 
-    // Get current streak BEFORE performing check-in
-    const currentStreak = await getUserStreak(fid);
+    // performCheckIn handles ALL logic:
+    // - Creates user if new
+    // - Checks if already checked in today
+    // - Resets streak if missed day
+    // - Calculates x100 reward (Day × Week × 100 + week bonus + milestone)
+    // - Updates DB with new streak/balance
+    const checkInResult = await performCheckIn(fid, username || 'user', pfpUrl);
 
-    // Determine streak values for reward calculation
-    let streakDay = currentStreak?.streakDay ?? 1;
-    let streakWeek = currentStreak?.streakWeek ?? 1;
-    let totalDays = currentStreak?.totalStreakDays ?? 0;
-
-    // Check if streak needs to reset (missed a day)
-    if (currentStreak?.lastCheckIn) {
-      const lastCheckIn = new Date(currentStreak.lastCheckIn);
-      const now = new Date();
-      const diffMs = now.getTime() - lastCheckIn.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      if (diffDays > 1) {
-        streakDay = 1;
-        streakWeek = 1;
-        totalDays = 0;
-      }
+    if (!checkInResult.success) {
+      return NextResponse.json(
+        { error: checkInResult.error || 'Check-in failed' },
+        { status: 400 }
+      );
     }
 
-    // Calculate x100 reward
-    const effectiveWeek = Math.min(streakWeek, MAX_WEEK);
-    const dailyReward = streakDay * effectiveWeek * MULTIPLIER;
-    const isLastDayOfWeek = streakDay === 7;
-    const weekBonus = isLastDayOfWeek ? 7 * effectiveWeek * MULTIPLIER : 0;
+    const totalReward = checkInResult.reward ?? 0;
 
-    let milestoneBonus = 0;
-    if (totalDays + 1 === 29) milestoneBonus = MILESTONE_29;
-    if (totalDays + 1 === 30) milestoneBonus = MILESTONE_30;
-
-    const totalReward = dailyReward + weekBonus + milestoneBonus;
-
-    // Safety cap
-    if (totalReward > MAX_REWARD_SAFETY_CAP) {
-      console.error(`Reward ${totalReward} exceeds safety cap for fid ${fid}`);
-      return NextResponse.json({ error: 'Reward calculation error' }, { status: 500 });
-    }
-
-    console.log(`[claim-reward] fid=${fid} day=${streakDay} week=${streakWeek} reward=${totalReward}`);
+    console.log(
+      `[claim-reward] fid=${fid} ` +
+      `day=${checkInResult.streak?.streakDay} week=${checkInResult.streak?.streakWeek} ` +
+      `daily=${checkInResult.dailyReward} weekBonus=${checkInResult.weekBonus} ` +
+      `milestone=${checkInResult.milestoneBonus} total=${totalReward}`
+    );
 
     // Send TYSM from server wallet to user wallet via Neynar API
     const sendResponse = await fetch('https://api.neynar.com/v2/farcaster/fungible/send', {
@@ -101,13 +73,29 @@ export async function POST(req: NextRequest) {
     });
 
     const sendData = await sendResponse.json();
-    console.log(`[claim-reward] Neynar response status=${sendResponse.status}:`, JSON.stringify(sendData));
+    console.log(
+      `[claim-reward] Neynar response status=${sendResponse.status}:`,
+      JSON.stringify(sendData)
+    );
 
     if (!sendResponse.ok) {
       console.error('Server wallet send failed:', sendData);
+      // DB already updated — still return success so user knows their streak is recorded
+      // but flag that token send failed
       return NextResponse.json(
-        { error: sendData.message || 'Failed to send TYSM reward' },
-        { status: 500 }
+        {
+          success: true,
+          reward: totalReward,
+          dailyReward: checkInResult.dailyReward,
+          weekBonus: checkInResult.weekBonus,
+          milestoneBonus: checkInResult.milestoneBonus,
+          txHash: contractTxHash,
+          contractTxHash,
+          streak: checkInResult.streak,
+          wasReset: checkInResult.wasReset,
+          tokenSendFailed: true,
+          tokenSendError: sendData.message || 'Failed to send TYSM reward',
+        }
       );
     }
 
@@ -117,22 +105,19 @@ export async function POST(req: NextRequest) {
       sendData.data?.transaction_hash ??
       contractTxHash;
 
-    // Record check-in in database
-    const result = await performCheckIn(fid, username || 'user', pfpUrl);
-
     // Save claim record with reward tx hash
     await saveClaim(fid, username || 'user', totalReward, rewardTxHash, pfpUrl);
 
     return NextResponse.json({
       success: true,
       reward: totalReward,
-      dailyReward,
-      weekBonus,
-      milestoneBonus,
+      dailyReward: checkInResult.dailyReward,
+      weekBonus: checkInResult.weekBonus,
+      milestoneBonus: checkInResult.milestoneBonus,
       txHash: rewardTxHash,
       contractTxHash,
-      streak: result.streak,
-      wasReset: result.wasReset,
+      streak: checkInResult.streak,
+      wasReset: checkInResult.wasReset,
     });
 
   } catch (err) {

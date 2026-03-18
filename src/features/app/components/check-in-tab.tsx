@@ -51,6 +51,7 @@ export function CheckInTab() {
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [showStreakInfo, setShowStreakInfo] = useState(false);
   const [showAddAppPopup, setShowAddAppPopup] = useState(false);
+  const [tokenSendFailed, setTokenSendFailed] = useState(false);
 
   // Ref to prevent double execution of tx success handler
   const txProcessedRef = useRef<string | null>(null);
@@ -211,6 +212,7 @@ export function CheckInTab() {
         if (result.success) {
           // Update displayed reward with actual x100 amount from server
           setClaimedReward(result.reward);
+          setTokenSendFailed(result.tokenSendFailed === true);
 
           if (result.streak) {
             setStreak({
@@ -226,19 +228,10 @@ export function CheckInTab() {
           refetchContractStreak();
           setTodayClaimed(true);
           setShowSuccessPopup(true);
-
-          // Auto compose cast with actual reward amount (Base App compatible)
-          try {
-            const shareText = encodeURIComponent(
-              `I just claimed ${result.reward.toLocaleString()} $TYSM on day ${result.streak?.totalStreakDays || 1}! Week ${result.streak?.streakWeek || 1} streak 🔥\n\nClaim yours daily: ${APP_URL}`
-            );
-            window.open(`https://warpcast.com/~/compose?text=${shareText}`, '_blank');
-          } catch (err) {
-            console.log('Share cancelled:', err);
-          }
         } else {
           // API failed — still show popup so user knows tx went through onchain
           console.error('Claim reward failed:', result.error);
+          setTokenSendFailed(true);
           setTodayClaimed(true);
           setShowSuccessPopup(true);
         }
@@ -490,33 +483,42 @@ export function CheckInTab() {
           <Card>
             <CardContent className="p-4">
               <div className="text-center">
-                <P className="text-5xl mb-3">🎉</P>
-                <H6>Claim Successful!</H6>
-                <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-400 my-4">
-                  <P className="text-3xl font-bold text-amber-400">{claimedReward} TYSM</P>
-                  <P className="text-xs opacity-60 mt-1">sent to your wallet</P>
-                </div>
+                <P className="text-5xl mb-3">{tokenSendFailed ? '⚠️' : '🎉'}</P>
+                <H6>{tokenSendFailed ? 'Check-in Recorded!' : 'Claim Successful!'}</H6>
+                {tokenSendFailed ? (
+                  <div className="p-3 rounded-lg bg-yellow-500/20 border border-yellow-400/60 my-3">
+                    <P className="text-yellow-300 font-bold text-sm">Streak saved ✅</P>
+                    <P className="text-xs opacity-70 mt-1">TYSM token transfer is pending — pool may be refilling. Your streak is recorded and reward will be sent shortly.</P>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-400 my-4">
+                    <P className="text-3xl font-bold text-amber-400">{claimedReward.toLocaleString()} TYSM</P>
+                    <P className="text-xs opacity-60 mt-1">sent to your wallet</P>
+                  </div>
+                )}
                 {txHash && (
                   <div className="p-2 bg-black/30 rounded mb-4">
-                    <P className="text-xs opacity-50 mb-1">Transaction Hash</P>
+                    <P className="text-xs opacity-50 mb-1">Check-in TX</P>
                     <P className="text-xs font-mono text-green-300 break-all">{txHash.slice(0, 10)}...{txHash.slice(-8)}</P>
                     <button onClick={openTxInBrowser} className="mt-2 text-xs text-blue-400 underline">View on BaseScan →</button>
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <ShareButton
-                    text={`I just claimed ${claimedReward.toLocaleString()} $TYSM! Day ${streak?.totalStreakDays || 1} streak 🔥`}
-                    queryParams={{
-                      tysmBalance: (streak?.tysmBalance || 0).toString(),
-                      streakDay: (streak?.streakDay || 1).toString(),
-                      streakWeek: (streak?.streakWeek || 1).toString(),
-                      tier: getTier(streak?.tysmBalance || 0),
-                      username: user?.username || 'Player',
-                    }}
-                    variant="default"
-                  >
-                    Share
-                  </ShareButton>
+                  {!tokenSendFailed && (
+                    <ShareButton
+                      text={`I just claimed ${claimedReward.toLocaleString()} $TYSM! Day ${streak?.totalStreakDays || 1} streak 🔥`}
+                      queryParams={{
+                        tysmBalance: (streak?.tysmBalance || 0).toString(),
+                        streakDay: (streak?.streakDay || 1).toString(),
+                        streakWeek: (streak?.streakWeek || 1).toString(),
+                        tier: getTier(streak?.tysmBalance || 0),
+                        username: user?.username || 'Player',
+                      }}
+                      variant="default"
+                    >
+                      Share
+                    </ShareButton>
+                  )}
                   <Button onClick={() => setShowSuccessPopup(false)}>Done</Button>
                 </div>
               </div>
