@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/neynar-db-sdk/db';
 import { userStreaks } from '@/db/schema';
-import { isNotNull } from 'drizzle-orm';
+import { isNotNull, lte, and } from 'drizzle-orm';
 import { privateConfig } from '@/config/private-config';
+import { publicConfig } from '@/config/public-config';
 
-// Notification messages - 2 variants for morning and evening
+// App UUID from WEBHOOK_URL — used for mini-app notifications
+// Format: https://api.neynar.com/f/app/{UUID}/event
+const APP_UUID = publicConfig.webhookUrl
+  ? publicConfig.webhookUrl.match(/app\/([^/]+)\/event/)?.[1] ?? ''
+  : '';
+
+// Notification messages
 const MESSAGES = {
   morning: {
     title: '☀️ Morning Check-in',
@@ -17,7 +24,7 @@ const MESSAGES = {
 };
 
 export async function POST(req: NextRequest) {
-  // Verify secret to prevent unauthorized calls
+  // Verify secret via header
   const secret = req.headers.get('x-notify-secret');
   if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -28,28 +35,35 @@ export async function POST(req: NextRequest) {
   const message = MESSAGES[type];
 
   try {
-    // Get all users who have checked in at least once
+    // Only notify real Farcaster users (fid < 10_000_000 = not pseudo-fid from wallet)
+    // Pseudo-fids are derived from wallet addresses and cannot receive Farcaster notifications
     const users = await db
       .select({ fid: userStreaks.fid })
       .from(userStreaks)
-      .where(isNotNull(userStreaks.lastCheckIn));
+      .where(and(
+        isNotNull(userStreaks.lastCheckIn),
+        lte(userStreaks.fid, 10_000_000), // real Farcaster FIDs only
+      ));
 
     if (users.length === 0) {
-      return NextResponse.json({ success: true, sent: 0, message: 'No users to notify' });
+      return NextResponse.json({ success: true, sent: 0, message: 'No Farcaster users to notify' });
     }
 
     const fids = users.map((u) => u.fid);
+    console.log(`[notify] Sending ${type} notification to ${fids.length} users, app_uuid=${APP_UUID}`);
 
-    // Send notification via Neynar API in batches of 100
+    // Correct Neynar endpoint for mini-app notifications
+    // https://docs.neynar.com/reference/publish-frame-notifications
     const BATCH_SIZE = 100;
     let totalSent = 0;
     let totalFailed = 0;
+    const errors: string[] = [];
 
     for (let i = 0; i < fids.length; i += BATCH_SIZE) {
       const batch = fids.slice(i, i + BATCH_SIZE);
 
       try {
-        const response = await fetch('https://api.neynar.com/v2/farcaster/frame/notifications', {
+        const response = await fetch('https://api.neynar.com/v2/farcaster/notification', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -60,28 +74,37 @@ export async function POST(req: NextRequest) {
             notification: {
               title: message.title,
               body: message.body,
+              target_url: publicConfig.homeUrl,
             },
           }),
         });
 
+        const responseText = await response.text();
+
         if (response.ok) {
           totalSent += batch.length;
+          console.log(`[notify] Batch ${Math.floor(i / BATCH_SIZE) + 1}: sent ${batch.length}`);
         } else {
           totalFailed += batch.length;
-          console.error('Notification batch failed:', await response.text());
+          const errMsg = `Batch ${Math.floor(i / BATCH_SIZE) + 1} failed (${response.status}): ${responseText}`;
+          console.error('[notify]', errMsg);
+          errors.push(errMsg);
         }
       } catch (err) {
         totalFailed += batch.length;
-        console.error('Notification batch error:', err);
+        const errMsg = `Batch ${Math.floor(i / BATCH_SIZE) + 1} error: ${err}`;
+        console.error('[notify]', errMsg);
+        errors.push(errMsg);
       }
     }
 
     return NextResponse.json({
-      success: true,
+      success: totalSent > 0 || totalFailed === 0,
       type,
       totalUsers: fids.length,
       sent: totalSent,
       failed: totalFailed,
+      errors: errors.length > 0 ? errors : undefined,
       message: message.body,
     });
 
@@ -91,9 +114,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET endpoint for quick status check
+// GET endpoint — status check (header auth only, no query param secret)
 export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret');
+  const secret = req.headers.get('x-notify-secret');
   if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -101,11 +124,15 @@ export async function GET(req: NextRequest) {
   const users = await db
     .select({ fid: userStreaks.fid })
     .from(userStreaks)
-    .where(isNotNull(userStreaks.lastCheckIn));
+    .where(and(
+      isNotNull(userStreaks.lastCheckIn),
+      lte(userStreaks.fid, 10_000_000),
+    ));
 
   return NextResponse.json({
     status: 'ok',
     totalUsersToNotify: users.length,
+    appUuid: APP_UUID,
     messages: MESSAGES,
   });
 }

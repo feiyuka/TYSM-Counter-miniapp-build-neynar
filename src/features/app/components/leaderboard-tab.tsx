@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, H6, P, Button } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
+import { useAccount } from 'wagmi';
 import { getTopClaimers, getUserRank, getLeaderboardStats } from '@/db/actions/leaderboard-actions';
 import { getRankBadge, getRankStyle } from '@/features/app/utils';
 import { useUser, useCastsByUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
@@ -168,7 +169,17 @@ function UserProfilePopup({
 }
 
 export function LeaderboardTab() {
-  const { data: user } = useFarcasterUser();
+  const { data: farcasterUser } = useFarcasterUser();
+  const { address: walletAddress } = useAccount();
+  const mountedRef = useRef(true);
+
+  // Build unified user — Farcaster user or wallet-only user
+  const user = farcasterUser ?? (walletAddress ? {
+    fid: parseInt(walletAddress.slice(-8), 16),
+    username: walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4),
+    displayName: 'Base User',
+  } : null);
+
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<UserRank | null>(null);
   const [stats, setStats] = useState<LeaderboardStats>({
@@ -180,6 +191,11 @@ export function LeaderboardTab() {
   const [selectedUser, setSelectedUser] = useState<SelectedUser | null>(null);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
     async function loadData() {
       try {
         const [topClaimers, leaderboardStats] = await Promise.all([
@@ -187,23 +203,25 @@ export function LeaderboardTab() {
           getLeaderboardStats(),
         ]);
 
+        if (!mountedRef.current) return;
         setLeaderboard(topClaimers);
         setStats(leaderboardStats);
 
-        // Get user's rank if logged in
-        if (user) {
-          const userRank = await getUserRank(user.fid);
-          setMyRank(userRank);
+        // Only fetch rank for real Farcaster users (not pseudo-fids from wallet)
+        // Pseudo-fids (> 10_000_000) don't have leaderboard entries under normal fid lookups
+        if (farcasterUser?.fid) {
+          const userRank = await getUserRank(farcasterUser.fid);
+          if (mountedRef.current) setMyRank(userRank);
         }
       } catch (error) {
         console.error('Failed to load leaderboard:', error);
       } finally {
-        setLoading(false);
+        if (mountedRef.current) setLoading(false);
       }
     }
 
     loadData();
-  }, [user]);
+  }, [farcasterUser?.fid]);
 
   const handleUserClick = useCallback((fid: number, username: string) => {
     setSelectedUser({ fid, username });
@@ -260,12 +278,12 @@ export function LeaderboardTab() {
         </Card>
       )}
 
-      {/* Not logged in state */}
+      {/* Not logged in state — only show if truly no user AND no wallet */}
       {!user && (
         <Card className="border border-amber-400/70 rounded-xl">
           <CardContent className="p-4 text-center">
             <P className="text-2xl mb-2">🔐</P>
-            <P className="text-sm opacity-70">Connect to Farcaster to see your ranking</P>
+            <P className="text-sm opacity-70">Connect your wallet or open in Farcaster to see your ranking</P>
           </CardContent>
         </Card>
       )}

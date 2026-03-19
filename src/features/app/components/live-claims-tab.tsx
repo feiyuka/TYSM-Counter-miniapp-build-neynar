@@ -161,8 +161,8 @@ function UserProfilePopup({
 
 export function LiveClaimsTab() {
   const [pool, setPool] = useState<PoolStats>({
-    totalPool: 991611,
-    remainingPool: 991611,
+    totalPool: 0,
+    remainingPool: 0,
     totalClaimed: 0,
     totalClaimers: 0,
   });
@@ -193,7 +193,9 @@ export function LiveClaimsTab() {
     return () => clearInterval(interval);
   }, []);
 
-  const poolPercentage = ((pool.remainingPool / pool.totalPool) * 100).toFixed(1);
+  const poolPercentage = pool.totalPool > 0
+    ? ((pool.remainingPool / pool.totalPool) * 100).toFixed(1)
+    : '100.0';
 
   const openTxInBrowser = (txHash: string) => {
     window.open(`https://basescan.org/tx/${txHash}`, '_blank');

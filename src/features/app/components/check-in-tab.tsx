@@ -13,6 +13,7 @@ import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/featur
 import {
   getOrCreateUserStreak,
   canCheckInToday,
+  calculateReward,
 } from '@/db/actions/streak-actions';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 
@@ -54,7 +55,8 @@ export function CheckInTab() {
     return null;
   }, [farcasterUser, walletAddress, effectiveFid]);
 
-  const userLoading = farcasterLoading && !walletAddress;
+  // Loading: wait for Farcaster only if wallet not connected yet
+  const userLoading = farcasterLoading && !walletAddress && !farcasterUser;
 
   // Fetch real Neynar Score from API (only for Farcaster users with real FID)
   const { data: neynarUser, isLoading: scoreLoading } = useUser(
@@ -316,16 +318,13 @@ export function CheckInTab() {
 
   const { canCheckInOnchain, timeRemainingOnchain, willResetOnchain } = contractData;
 
-  // Calculate x100 preview reward on frontend (matches server calculation)
-  const previewStreakDay = streak?.streakDay ?? 1;
-  const previewStreakWeek = streak?.streakWeek ?? 1;
-  const previewEffectiveWeek = Math.min(previewStreakWeek, 52);
-  const previewDailyReward = previewStreakDay * previewEffectiveWeek * 100;
-  const previewIsLastDay = previewStreakDay === 7;
-  const previewWeekBonus = previewIsLastDay ? 7 * previewEffectiveWeek * 100 : 0;
-  const previewTotalDays = streak?.totalStreakDays ?? 0;
-  const previewMilestone = previewTotalDays + 1 === 29 ? 50000 : previewTotalDays + 1 === 30 ? 100000 : 0;
-  const previewReward = previewDailyReward + previewWeekBonus + previewMilestone;
+  // Preview reward using shared calculateReward — same logic as server
+  const previewCalc = calculateReward(
+    streak?.streakDay ?? 1,
+    streak?.streakWeek ?? 1,
+    streak?.totalStreakDays ?? 0,
+  );
+  const previewReward = previewCalc.totalReward;
 
   return (
     <div className="space-y-4 relative">
