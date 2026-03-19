@@ -13,8 +13,8 @@ import { meetsMinimumScore, getTimeUntilReset, MIN_NEYNAR_SCORE } from '@/featur
 import {
   getOrCreateUserStreak,
   canCheckInToday,
-  calculateReward,
 } from '@/db/actions/streak-actions';
+import { calculateReward } from '@/db/actions/streak-utils';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 
 // Constants - Use Warpcast mini app deep link format
