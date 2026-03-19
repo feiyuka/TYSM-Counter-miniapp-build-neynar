@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (typeof fid !== 'number' || fid <= 0) {
+    // fid can be real Farcaster FID or pseudo-fid derived from wallet address (up to ~4 billion)
+    if (typeof fid !== 'number' || fid <= 0 || fid > 4294967295) {
       return NextResponse.json({ error: 'Invalid fid' }, { status: 400 });
     }
 

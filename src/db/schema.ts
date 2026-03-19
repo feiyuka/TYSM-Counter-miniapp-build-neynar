@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, integer, bigint, timestamp } from "drizzle-orm/pg-core";
 
 /**
  * Key-Value Store Table
@@ -29,10 +29,10 @@ export const kv = pgTable("kv", {
  */
 export const userStreaks = pgTable("user_streaks", {
   id: uuid("id").primaryKey().defaultRandom(),
-  fid: integer("fid").notNull().unique(),
+  fid: bigint("fid", { mode: "number" }).notNull().unique(),
   username: text("username").notNull(),
   pfpUrl: text("pfp_url"),
-  tysmBalance: integer("tysm_balance").notNull().default(0),
+  tysmBalance: bigint("tysm_balance", { mode: "number" }).notNull().default(0),
   lastCheckIn: timestamp("last_check_in"),
   streakDay: integer("streak_day").notNull().default(1),
   streakWeek: integer("streak_week").notNull().default(1),
@@ -47,10 +47,10 @@ export const userStreaks = pgTable("user_streaks", {
  */
 export const claims = pgTable("claims", {
   id: uuid("id").primaryKey().defaultRandom(),
-  fid: integer("fid").notNull(),
+  fid: bigint("fid", { mode: "number" }).notNull(),
   username: text("username").notNull(),
   pfpUrl: text("pfp_url"),
-  amount: integer("amount").notNull(),
+  amount: bigint("amount", { mode: "number" }).notNull(),
   txHash: text("tx_hash").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

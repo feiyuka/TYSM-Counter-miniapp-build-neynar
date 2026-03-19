@@ -24,18 +24,50 @@ const APP_URL = 'https://warpcast.com/~/frames/launch?domain=miniapp-generator-f
 const BUILDER_DATA_SUFFIX = Attribution.toDataSuffix({ codes: ['bc_rmi5daom'] });
 
 export function CheckInTab() {
-  const { data: user, isLoading: userLoading } = useFarcasterUser();
+  const { data: farcasterUser, isLoading: farcasterLoading } = useFarcasterUser();
   const { address: walletAddress } = useAccount();
 
-  // Fetch real Neynar Score from API with experimental features
+  // Derive a stable numeric ID from wallet address for Base App users
+  // For Farcaster users: use real FID
+  // For Base App users (no FID): derive pseudo-fid from wallet address
+  const effectiveFid = useMemo(() => {
+    if (farcasterUser?.fid) return farcasterUser.fid;
+    if (walletAddress) {
+      // Take last 8 hex chars of address → convert to number (max ~4 billion)
+      // Add large offset to avoid collision with real FIDs
+      return parseInt(walletAddress.slice(-8), 16);
+    }
+    return 0;
+  }, [farcasterUser?.fid, walletAddress]);
+
+  // Build unified user object — Farcaster user or wallet-only user
+  const user = useMemo(() => {
+    if (farcasterUser) return farcasterUser;
+    if (walletAddress) {
+      return {
+        fid: effectiveFid,
+        username: walletAddress.slice(0, 6) + '...' + walletAddress.slice(-4),
+        displayName: 'Base User',
+        pfpUrl: `https://api.dicebear.com/9.x/lorelei/svg?seed=${walletAddress}`,
+      };
+    }
+    return null;
+  }, [farcasterUser, walletAddress, effectiveFid]);
+
+  const userLoading = farcasterLoading && !walletAddress;
+
+  // Fetch real Neynar Score from API (only for Farcaster users with real FID)
   const { data: neynarUser, isLoading: scoreLoading } = useUser(
-    user?.fid ?? 0,
+    farcasterUser?.fid ?? 0,
     { x_neynar_experimental: true },
-    { enabled: !!user?.fid }
+    { enabled: !!farcasterUser?.fid }
   );
 
-  // Real Neynar Score from API (0-1 range)
-  const neynarScore = neynarUser?.experimental?.neynar_user_score ?? 0;
+  // Base App users: auto-eligible (no Neynar Score available)
+  // Farcaster users: use real Neynar Score
+  const neynarScore = farcasterUser
+    ? (neynarUser?.experimental?.neynar_user_score ?? 0)
+    : MIN_NEYNAR_SCORE; // Base App users are considered eligible
 
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
@@ -267,15 +299,15 @@ export function CheckInTab() {
     );
   }
 
-  // Guest user state
+  // Guest user state — no Farcaster AND no wallet connected
   if (!user) {
     return (
       <div className="space-y-4 relative">
         <Card className="border border-amber-400/70 rounded-xl">
           <CardContent className="p-6 text-center">
             <P className="text-4xl mb-3">🔐</P>
-            <H6>Connect to Farcaster</H6>
-            <P className="text-sm opacity-70 mt-2">Open this app in Farcaster to start earning TYSM tokens!</P>
+            <H6>Connect Your Wallet</H6>
+            <P className="text-sm opacity-70 mt-2">Open in Farcaster or connect a wallet to start earning TYSM tokens!</P>
           </CardContent>
         </Card>
       </div>

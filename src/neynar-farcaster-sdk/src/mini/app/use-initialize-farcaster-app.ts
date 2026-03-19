@@ -1,4 +1,5 @@
 "use client";
+import sdk from "@farcaster/miniapp-sdk";
 import { useEffect, useRef } from "react";
 import { useSetAtom } from "jotai";
 import {
@@ -9,15 +10,11 @@ import {
 } from "./farcaster-app-atoms";
 
 /**
- * Initialize app and populate user atoms.
+ * Initialize app — dual compatible: Warpcast + Base App.
  *
- * Base App compatible — no Farcaster SDK required.
- * `sdk.actions.ready()` is not needed: the app is ready when it loads.
- * User identity comes from wagmi `useAccount` (wallet address).
- *
- * Kept for backward compatibility with useFarcasterUser() hook.
- * When running in Farcaster/Warpcast, SDK context is loaded if available.
- * When running in Base App, user context is null (guest) — use useAccount instead.
+ * - Warpcast: sdk.actions.ready() WAJIB dipanggil agar app tidak freeze/blank
+ * - Base App: sdk.actions.ready() adalah no-op, aman dipanggil
+ * - Identity: gunakan wagmi useAccount() untuk wallet address di kedua platform
  */
 export function useInitializeFarcasterApp() {
   const setFarcasterUser = useSetAtom(farcasterUserAtom);
@@ -32,32 +29,31 @@ export function useInitializeFarcasterApp() {
     hasInitializedRef.current = true;
 
     async function initialize() {
-      // Base App: app is ready when it loads — no sdk.actions.ready() needed
+      // WAJIB untuk Warpcast — tanpa ini app blank/freeze di Farcaster
+      // Di Base App ini no-op (aman)
+      try {
+        await sdk.actions.ready();
+      } catch {
+        // Base App tidak support ini — bukan error
+      }
+
       setSdkReady(true);
 
-      // Try to load Farcaster user context (Warpcast only)
-      // In Base App this will gracefully return null
+      // Load Farcaster user context (Warpcast only)
+      // Di Base App, context = null — gunakan useAccount() untuk identity
       try {
         setFarcasterUserLoading(true);
         setFarcasterUserError(null);
 
-        // Dynamic import so it doesn't crash in Base App environment
-        const { default: sdk } = await import("@farcaster/miniapp-sdk").catch(
-          () => ({ default: null }),
-        );
-
-        if (sdk) {
-          const context = await sdk.context;
-          if (context?.user) {
-            setFarcasterUser(context.user);
-          } else {
-            console.info(
-              "No Farcaster user context — running in Base App or guest mode",
-            );
-          }
+        const context = await sdk.context;
+        if (context?.user) {
+          setFarcasterUser(context.user);
+        } else {
+          console.info(
+            "No Farcaster user context — running in Base App or guest mode",
+          );
         }
       } catch (error) {
-        // Silently handle — not an error in Base App context
         console.info("Farcaster context not available:", error);
         setFarcasterUserError(null);
       } finally {
