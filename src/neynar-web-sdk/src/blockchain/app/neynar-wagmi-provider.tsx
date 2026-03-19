@@ -5,7 +5,6 @@ import {
   type CreateConnectorFn,
   http,
   type Transport,
-  injected,
 } from "wagmi";
 import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { coinbaseWallet } from "wagmi/connectors";
@@ -66,7 +65,6 @@ export function NeynarWagmiProvider({
   connectors = [
     farcasterMiniApp(),           // Farcaster / Warpcast wallet
     coinbaseWallet({ appName: "TYSM Counter", preference: "smartWalletOnly" }), // Base App (Smart Wallet)
-    injected(),                   // MetaMask & other injected wallets
   ],
 }: NeynarWagmiProviderProps) {
   // Map chain names (strings) to viem Chain objects
