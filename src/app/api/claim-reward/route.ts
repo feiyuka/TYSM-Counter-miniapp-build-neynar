@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseUnits } from 'viem';
 import { performCheckIn } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
 import { privateConfig } from '@/config/private-config';
@@ -12,29 +11,18 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const { fid, username, pfpUrl, walletAddress, txHash: contractTxHash } = body;
 
-    // Validate required fields
+    // Validate inputs
     if (!fid || !walletAddress || !contractTxHash) {
-      return NextResponse.json(
-        { error: 'Missing required fields: fid, walletAddress, txHash' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing: fid, walletAddress, txHash' }, { status: 400 });
     }
-
-    // fid can be real Farcaster FID or pseudo-fid derived from wallet address (up to ~4 billion)
     if (typeof fid !== 'number' || fid <= 0 || fid > 4294967295) {
       return NextResponse.json({ error: 'Invalid fid' }, { status: 400 });
     }
-
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
     }
 
-    // performCheckIn handles ALL logic:
-    // - Creates user if new
-    // - Checks if already checked in today
-    // - Resets streak if missed day
-    // - Calculates x100 reward (Day × Week × 100 + week bonus + milestone)
-    // - Updates DB with new streak/balance
+    // Perform check-in: handles streak logic, reward calc, DB update
     const checkInResult = await performCheckIn(fid, username || 'user', pfpUrl);
 
     if (!checkInResult.success) {
@@ -47,13 +35,18 @@ export async function POST(req: NextRequest) {
     const totalReward = checkInResult.reward ?? 0;
 
     console.log(
-      `[claim-reward] fid=${fid} ` +
+      `[claim-reward] fid=${fid} username=${username} ` +
       `day=${checkInResult.streak?.streakDay} week=${checkInResult.streak?.streakWeek} ` +
       `daily=${checkInResult.dailyReward} weekBonus=${checkInResult.weekBonus} ` +
       `milestone=${checkInResult.milestoneBonus} total=${totalReward}`
     );
 
+    // Always save claim record first (before trying to send tokens)
+    // This ensures live claims feed shows up even if token send is delayed
+    await saveClaim(fid, username || 'user', totalReward, contractTxHash, pfpUrl);
+
     // Send TYSM from server wallet to user wallet via Neynar API
+    // Amount format: plain decimal string (e.g. "100" for 100 TYSM)
     const sendResponse = await fetch('https://api.neynar.com/v2/farcaster/fungible/send', {
       method: 'POST',
       headers: {
@@ -65,7 +58,7 @@ export async function POST(req: NextRequest) {
         recipients: [
           {
             address: walletAddress,
-            amount: parseUnits(String(totalReward), 18).toString(),
+            amount: String(totalReward),
           },
         ],
         token_address: TYSM_CONTRACT,
@@ -73,41 +66,34 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    const sendData = await sendResponse.json();
+    const sendData = await sendResponse.json().catch(() => ({}));
+
     console.log(
-      `[claim-reward] Neynar response status=${sendResponse.status}:`,
-      JSON.stringify(sendData)
+      `[claim-reward] Neynar send status=${sendResponse.status}:`,
+      JSON.stringify(sendData).slice(0, 200)
     );
 
     if (!sendResponse.ok) {
-      console.error('Server wallet send failed:', sendData);
-      // DB already updated — still return success so user knows their streak is recorded
-      // but flag that token send failed
-      return NextResponse.json(
-        {
-          success: true,
-          reward: totalReward,
-          dailyReward: checkInResult.dailyReward,
-          weekBonus: checkInResult.weekBonus,
-          milestoneBonus: checkInResult.milestoneBonus,
-          txHash: contractTxHash,
-          contractTxHash,
-          streak: checkInResult.streak,
-          wasReset: checkInResult.wasReset,
-          tokenSendFailed: true,
-          tokenSendError: sendData.message || 'Failed to send TYSM reward',
-        }
-      );
+      console.error('[claim-reward] Token send failed:', sendData);
+      // Streak + claim record already saved — inform user reward is pending
+      return NextResponse.json({
+        success: true,
+        reward: totalReward,
+        dailyReward: checkInResult.dailyReward,
+        weekBonus: checkInResult.weekBonus,
+        milestoneBonus: checkInResult.milestoneBonus,
+        txHash: contractTxHash,
+        streak: checkInResult.streak,
+        wasReset: checkInResult.wasReset,
+        tokenSendFailed: true,
+        tokenSendError: sendData?.message || `Send failed (${sendResponse.status})`,
+      });
     }
 
-    // transaction_hash may be at top level or nested
     const rewardTxHash =
       sendData.transaction_hash ??
       sendData.data?.transaction_hash ??
       contractTxHash;
-
-    // Save claim record with reward tx hash
-    await saveClaim(fid, username || 'user', totalReward, rewardTxHash, pfpUrl);
 
     return NextResponse.json({
       success: true,
@@ -119,10 +105,11 @@ export async function POST(req: NextRequest) {
       contractTxHash,
       streak: checkInResult.streak,
       wasReset: checkInResult.wasReset,
+      tokenSendFailed: false,
     });
 
   } catch (err) {
-    console.error('Claim reward error:', err);
+    console.error('[claim-reward] Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
