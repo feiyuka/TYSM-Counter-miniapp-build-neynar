@@ -48,6 +48,18 @@ const nextConfig: NextConfig = {
   },
   devIndicators: false,
   reactCompiler: true,
+  webpack: (config) => {
+    // Stub out missing optional dependencies that are pulled in transitively
+    // by wagmi connectors (metamask-sdk, walletconnect/pino) but are not
+    // available in the web build. Without these aliases webpack creates error
+    // module factories that throw at prerender time.
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@react-native-async-storage/async-storage': false,
+      'pino-pretty': false,
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
