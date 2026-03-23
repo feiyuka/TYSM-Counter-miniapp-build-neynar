@@ -70,6 +70,9 @@ export async function getFarcasterPageMetadata({
       images: [ogImageUrlValue],
     },
     other: {
+      // fc:frame = Warpcast/Farcaster format (required for Warpcast)
+      "fc:frame": JSON.stringify(embed),
+      // fc:miniapp = Base App format (required for Base App)
       "fc:miniapp": JSON.stringify(embed),
     },
   };
