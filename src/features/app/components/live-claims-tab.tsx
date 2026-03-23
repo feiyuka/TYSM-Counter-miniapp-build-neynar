@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, H6, P } from '@neynar/ui';
-import { getRecentClaims, getPoolStats } from '@/db/actions/claim-actions';
 
 interface PoolStats {
   totalPool: number;
@@ -37,13 +36,11 @@ export function LiveClaimsTab() {
 
     async function loadData() {
       try {
-        const [poolData, claimsData] = await Promise.all([
-          getPoolStats(),
-          getRecentClaims(20),
-        ]);
+        const res = await fetch('/api/live-claims');
+        const data = await res.json();
         if (!mounted) return;
-        setPool(poolData);
-        setClaims(claimsData as LiveClaim[]);
+        if (data.stats) setPool(data.stats);
+        if (data.claims) setClaims(data.claims as LiveClaim[]);
       } catch (e) {
         console.error('LiveClaimsTab error:', e);
       } finally {

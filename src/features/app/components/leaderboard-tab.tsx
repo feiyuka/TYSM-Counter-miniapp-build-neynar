@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, H6, P, Button } from '@neynar/ui';
 import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { useAccount } from 'wagmi';
-import { getTopClaimers, getUserRank, getLeaderboardStats } from '@/db/actions/leaderboard-actions';
 import { getRankBadge, getRankStyle } from '@/features/app/utils';
 import { useUser, useCastsByUser } from '@/neynar-web-sdk/src/neynar/api-hooks';
 import type { Cast } from '@/neynar-web-sdk/src/neynar/api-hooks/sdk-response-types';
@@ -198,21 +197,16 @@ export function LeaderboardTab() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [topClaimers, leaderboardStats] = await Promise.all([
-          getTopClaimers(10),
-          getLeaderboardStats(),
-        ]);
+        const url = farcasterUser?.fid
+          ? `/api/leaderboard?fid=${farcasterUser.fid}`
+          : '/api/leaderboard';
+        const res = await fetch(url);
+        const data = await res.json();
 
         if (!mountedRef.current) return;
-        setLeaderboard(topClaimers);
-        setStats(leaderboardStats);
-
-        // Only fetch rank for real Farcaster users (not pseudo-fids from wallet)
-        // Pseudo-fids (> 10_000_000) don't have leaderboard entries under normal fid lookups
-        if (farcasterUser?.fid) {
-          const userRank = await getUserRank(farcasterUser.fid);
-          if (mountedRef.current) setMyRank(userRank);
-        }
+        if (data.top10) setLeaderboard(data.top10);
+        if (data.stats) setStats(data.stats);
+        if (data.userRank) setMyRank(data.userRank);
       } catch (error) {
         console.error('Failed to load leaderboard:', error);
       } finally {

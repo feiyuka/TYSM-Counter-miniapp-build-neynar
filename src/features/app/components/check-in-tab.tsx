@@ -7,7 +7,6 @@ import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagm
 import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
 import { getTimeUntilReset } from '@/features/app/utils';
-import { getOrCreateUserStreak, canCheckInToday } from '@/db/actions/streak-actions';
 import { calculateReward } from '@/db/actions/streak-utils';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 import type { UserStreak } from '@/features/app/types';
@@ -64,17 +63,18 @@ export function CheckInTab() {
     if (!user) return;
     setStreakLoading(true);
     try {
-      const data = await getOrCreateUserStreak(user.fid, user.username || 'user');
-      if (data) {
+      const res = await fetch(`/api/user-streak?fid=${user.fid}&username=${encodeURIComponent(user.username || 'user')}`);
+      const data = await res.json();
+      if (data.streak) {
+        const s = data.streak;
         setStreak({
-          tysmBalance: data.tysmBalance,
-          lastCheckIn: data.lastCheckIn?.toISOString() || '',
-          streakDay: data.streakDay,
-          streakWeek: data.streakWeek,
-          totalStreakDays: data.totalStreakDays,
+          tysmBalance: s.tysmBalance,
+          lastCheckIn: s.lastCheckIn ? new Date(s.lastCheckIn).toISOString() : '',
+          streakDay: s.streakDay,
+          streakWeek: s.streakWeek,
+          totalStreakDays: s.totalStreakDays,
         });
-        const canCheck = await canCheckInToday(user.fid);
-        setTodayClaimed(!canCheck);
+        setTodayClaimed(!data.canCheckIn);
       }
     } catch (e) {
       console.error('loadStreak error:', e);
