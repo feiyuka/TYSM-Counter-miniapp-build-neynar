@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       const batch = fids.slice(i, i + BATCH_SIZE);
 
       try {
-        const response = await fetch('https://api.neynar.com/v2/farcaster/notification', {
+        const response = await fetch('https://api.neynar.com/v2/farcaster/frame/notifications/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
