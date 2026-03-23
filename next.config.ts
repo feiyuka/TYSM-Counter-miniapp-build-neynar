@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     // Type checking is run separately; skip the memory-intensive tsc pass during build
     ignoreBuildErrors: true,
   },
+  // Disable output file tracing to avoid a Next.js 16 build trace bug where
+  // the _not-found page's .nft.json file is not generated during
+  // "Collecting build traces", causing an ENOENT error that fails the build.
+  // Vercel handles its own file tracing independently.
+  outputFileTracing: false,
   // Expose VERCEL_PROJECT_PRODUCTION_URL to client-side code
   env: {
     NEXT_PUBLIC_VERCEL_PRODUCTION_URL:

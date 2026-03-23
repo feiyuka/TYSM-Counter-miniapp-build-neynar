@@ -13,26 +13,32 @@ export async function GET() {
   }
 }
 
+// Shared manifest fields used by both "frame" (Warpcast) and "miniapp" (Base App)
+const manifestFields = {
+  version: "1",
+  name: publicConfig.name.slice(0, 32),
+  homeUrl: publicConfig.homeUrl,
+  iconUrl: publicConfig.iconUrl,
+  splashImageUrl: publicConfig.splashImageUrl,
+  splashBackgroundColor: publicConfig.splashBackgroundColor,
+  subtitle: publicConfig.subtitle.slice(0, 30),
+  description: publicConfig.description.slice(0, 170),
+  primaryCategory: publicConfig.primaryCategory,
+  tags: publicConfig.tags.slice(0, 5).map((tag) => tag.slice(0, 20)),
+  heroImageUrl: publicConfig.heroImageUrl,
+  tagline: publicConfig.tagline.slice(0, 30),
+  ogTitle: publicConfig.name.slice(0, 32),
+  ogDescription: publicConfig.shortDescription.slice(0, 100),
+  ogImageUrl: publicConfig.heroImageUrl,
+  canonicalDomain: publicConfig.canonicalDomain.slice(0, 1024),
+  requiredChains: publicConfig.requiredChains,
+  webhookUrl: publicConfig.webhookUrl,
+};
+
 const config = {
   accountAssociation,
-  miniapp: {
-    version: "1",
-    name: publicConfig.name.slice(0, 32),
-    homeUrl: publicConfig.homeUrl,
-    iconUrl: publicConfig.iconUrl,
-    splashImageUrl: publicConfig.splashImageUrl,
-    splashBackgroundColor: publicConfig.splashBackgroundColor,
-    subtitle: publicConfig.subtitle.slice(0, 30),
-    description: publicConfig.description.slice(0, 170),
-    primaryCategory: publicConfig.primaryCategory,
-    tags: publicConfig.tags.slice(0, 5).map((tag) => tag.slice(0, 20)),
-    heroImageUrl: publicConfig.heroImageUrl,
-    tagline: publicConfig.tagline.slice(0, 30),
-    ogTitle: publicConfig.name.slice(0, 32),
-    ogDescription: publicConfig.shortDescription.slice(0, 100),
-    ogImageUrl: publicConfig.heroImageUrl,
-    canonicalDomain: publicConfig.canonicalDomain.slice(0, 1024),
-    requiredChains: publicConfig.requiredChains,
-    webhookUrl: publicConfig.webhookUrl,
-  },
+  // "frame" key = Farcaster/Warpcast format (required for Warpcast compatibility)
+  frame: manifestFields,
+  // "miniapp" key = Base App format (required for Base App)
+  miniapp: manifestFields,
 };
