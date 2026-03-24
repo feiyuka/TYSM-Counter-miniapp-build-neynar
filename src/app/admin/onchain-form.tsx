@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, formatUnits } from 'viem';
-import { topUpPool } from '@/db/actions/claim-actions';
 
 // TYSM Token contract on Base Network (ERC-20)
 const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877' as const;
@@ -86,7 +85,11 @@ export function OnchainPoolForm() {
       const amountNum = Number(amount);
       if (amountNum > 0) {
         setDbUpdated(true);
-        topUpPool(amountNum).then(() => {
+        fetch('/api/admin/pool', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-notify-secret': 'tysm-notify-secret' },
+          body: JSON.stringify({ action: 'topup', amount: amountNum }),
+        }).then(() => {
           setMessage(`✅ Top up ${amountNum.toLocaleString()} TYSM berhasil! Pool diperbarui.`);
           setAmount('');
         });

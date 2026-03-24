@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { topUpPool, setPoolTotal } from '@/db/actions/claim-actions';
 
 export function PoolForm({ currentPool, totalClaimed }: { currentPool: number; totalClaimed: number }) {
   const [addAmount, setAddAmount] = useState('');
@@ -16,8 +15,13 @@ export function PoolForm({ currentPool, totalClaimed }: { currentPool: number; t
     if (!amount || amount <= 0) return setMessage('Masukkan jumlah yang valid');
     setLoading(true);
     try {
-      const newTotal = await topUpPool(amount);
-      setMessage(`✅ Pool berhasil ditambah! Total pool sekarang: ${newTotal.toLocaleString()} TYSM`);
+      const res = await fetch('/api/admin/pool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-notify-secret': 'tysm-notify-secret' },
+        body: JSON.stringify({ action: 'topup', amount }),
+      });
+      const data = await res.json();
+      setMessage(`✅ Pool berhasil ditambah! Total pool sekarang: ${data.newTotal?.toLocaleString()} TYSM`);
       setAddAmount('');
     } catch {
       setMessage('❌ Gagal top up pool');
@@ -30,8 +34,13 @@ export function PoolForm({ currentPool, totalClaimed }: { currentPool: number; t
     if (!amount || amount <= 0) return setMessage('Masukkan jumlah yang valid');
     setLoading(true);
     try {
-      const newTotal = await setPoolTotal(amount);
-      setMessage(`✅ Pool diset ke ${newTotal.toLocaleString()} TYSM`);
+      const res = await fetch('/api/admin/pool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-notify-secret': 'tysm-notify-secret' },
+        body: JSON.stringify({ action: 'set', amount }),
+      });
+      const data = await res.json();
+      setMessage(`✅ Pool diset ke ${data.newTotal?.toLocaleString()} TYSM`);
       setSetAmount('');
     } catch {
       setMessage('❌ Gagal set pool');
