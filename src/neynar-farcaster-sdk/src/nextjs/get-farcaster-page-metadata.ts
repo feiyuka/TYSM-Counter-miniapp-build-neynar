@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import { MiniAppEmbedNext } from "@farcaster/miniapp-sdk";
 import { parsePageSearchParams } from "./helpers";
 
 type FarcasterPageMetadataProps = {
@@ -40,7 +39,7 @@ export async function getFarcasterPageMetadata({
   const ogImageUrlValue = `${shareImageRoot}/og${conditionalQueryString}`;
   const farcasterImageUrlValue = `${shareImageRoot}/farcaster${conditionalQueryString}`;
 
-  const embed: MiniAppEmbedNext = {
+  const embed = {
     version: "next",
     imageUrl: farcasterImageUrlValue,
     button: {

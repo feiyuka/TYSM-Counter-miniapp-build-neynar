@@ -11,14 +11,13 @@ import {
 /**
  * Initialize app — dual compatible: Warpcast + Base App.
  *
- * Base App migration (April 9, 2026):
- * - sdk.actions.ready() is NOT needed — removed per Base App migration docs
- * - In Base App: no Farcaster user context → use wagmi useAccount() for identity
- * - In Warpcast: loads FID + user from Farcaster SDK context
+ * CRITICAL: sdk.actions.ready() MUST be called in Warpcast to dismiss the
+ * splash screen. Without it, Warpcast shows splash forever and app never loads.
  *
- * Identity strategy:
- * - Farcaster/Warpcast: farcasterUser.fid (real FID)
- * - Base App: wallet address from useAccount() (no FID)
+ * Base App (after April 9, 2026): sdk.actions.ready() is not needed but
+ * calling it is safe — it gracefully no-ops if not in Warpcast context.
+ *
+ * Strategy: always try to call sdk.actions.ready(), catch silently if fails.
  */
 export function useInitializeFarcasterApp() {
   const setFarcasterUser = useSetAtom(farcasterUserAtom);
@@ -33,32 +32,40 @@ export function useInitializeFarcasterApp() {
     hasInitializedRef.current = true;
 
     async function initialize() {
-      // Mark SDK as ready immediately — no sdk.actions.ready() needed
-      // Per Base App migration docs: "Not needed. Your app is ready to display when it loads."
-      setSdkReady(true);
-
-      // Try to load Farcaster user context (Warpcast only)
-      // In Base App: context is null → identity comes from wagmi useAccount()
       try {
         setFarcasterUserLoading(true);
         setFarcasterUserError(null);
 
-        // Dynamic import to avoid crashing in Base App where SDK may not be initialized
+        // Dynamic import — safe in both Warpcast and Base App
         const { default: sdk } = await import("@farcaster/miniapp-sdk");
+
+        // MUST call ready() in Warpcast to dismiss splash screen.
+        // In Base App this is a no-op — safe to call always.
+        try {
+          await sdk.actions.ready();
+        } catch {
+          // Not in Warpcast context — fine, continue
+        }
+
+        // Mark app as ready
+        setSdkReady(true);
+
+        // Load Farcaster user context (Warpcast only)
+        // In Base App: context is null → identity from wagmi useAccount()
         const context = await Promise.race([
           sdk.context,
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
         ]);
 
         if (context && typeof context === "object" && "user" in context && context.user) {
           setFarcasterUser(context.user as Parameters<typeof setFarcasterUser>[0]);
         } else {
-          // Base App or guest — identity from wallet address via useAccount()
           console.info("[TYSM] No Farcaster context — Base App or browser mode");
         }
       } catch {
-        // Not in Farcaster — normal for Base App
-        console.info("[TYSM] Farcaster SDK not available — running in Base App mode");
+        // SDK not available — Base App or browser
+        console.info("[TYSM] SDK not available — Base App mode");
+        setSdkReady(true);
         setFarcasterUserError(null);
       } finally {
         setFarcasterUserLoading(false);
