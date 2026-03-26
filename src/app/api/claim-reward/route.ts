@@ -96,9 +96,10 @@ export async function POST(req: NextRequest) {
           recipients: [
             {
               fid: recipientFid,
-              // Neynar API requires amount in smallest unit (wei = 10^18)
-              // TYSM has 18 decimals: multiply whole tokens by 10^18
-              amount: totalReward * (10 ** 18),
+              // Neynar API accepts WHOLE token amounts (not wei).
+              // Verified onchain: amount:1 → 1 TYSM transferred (1e18 wei).
+              // amount:100 → 100 TYSM, amount:600 → 600 TYSM, etc.
+              amount: totalReward,
             },
           ],
         }),
