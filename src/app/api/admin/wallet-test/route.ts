@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
         body: JSON.stringify({
           network: 'base',
           fungible_contract_address: TYSM_CONTRACT,
-          recipients: [{ fid: testFid, amount: 1 }],
+          recipients: [{ fid: testFid, amount: 1 * (10 ** 18) }], // 1 TYSM in wei
         }),
       });
       const sendData = await sendRes.json().catch(() => ({}));
