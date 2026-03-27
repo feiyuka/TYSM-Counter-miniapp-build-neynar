@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
-import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
+import { useFarcasterUser, useShare } from '@/neynar-farcaster-sdk/mini';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
@@ -57,6 +57,7 @@ export function CheckInTab() {
   const [apiLoading, setApiLoading] = useState(false);
   const txProcessedRef = useRef<string | null>(null);
 
+  const { share } = useShare();
   const { writeContract, data: txData, isPending: txPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txData });
 
@@ -118,19 +119,38 @@ export function CheckInTab() {
       .then((r) => r.json())
       .then((result) => {
         if (result.success) {
-          setClaimedReward(result.reward ?? 0);
+          const reward = result.reward ?? 0;
+          const updatedStreak = result.streak;
+          setClaimedReward(reward);
           setTokenSendFailed(result.tokenSendFailed === true);
-          if (result.streak) {
+          if (updatedStreak) {
             setStreak({
-              tysmBalance: result.streak.tysmBalance,
-              lastCheckIn: result.streak.lastCheckIn ?? '',
-              streakDay: result.streak.streakDay,
-              streakWeek: result.streak.streakWeek,
-              totalStreakDays: result.streak.totalStreakDays,
+              tysmBalance: updatedStreak.tysmBalance,
+              lastCheckIn: updatedStreak.lastCheckIn ?? '',
+              streakDay: updatedStreak.streakDay,
+              streakWeek: updatedStreak.streakWeek,
+              totalStreakDays: updatedStreak.totalStreakDays,
             });
           }
           setTodayClaimed(true);
           setShowSuccess(true);
+
+          // Auto-trigger Farcaster compose immediately after successful claim
+          if (!result.tokenSendFailed) {
+            share({
+              text: `Just claimed ${reward.toLocaleString()} $TYSM on Day ${updatedStreak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`,
+              queryParams: {
+                tysmBalance: String(updatedStreak?.tysmBalance ?? 0),
+                streakDay: String(updatedStreak?.streakDay ?? 1),
+                streakWeek: String(updatedStreak?.streakWeek ?? 1),
+                tier: getTier(updatedStreak?.tysmBalance ?? 0),
+                username: user?.username ?? 'Player',
+                share: 'true',
+              },
+              channelKey: 'base',
+              close: false,
+            }).catch(() => {/* ignore if user cancels */});
+          }
         } else {
           console.error('claim-reward error:', result.error);
           setTokenSendFailed(true);
@@ -246,26 +266,10 @@ export function CheckInTab() {
                   View TX on BaseScan →
                 </button>
               )}
-              <P className="text-xs text-gray-500 mb-2">Brag to your Farcaster friends 👇</P>
-              <div className="flex gap-2">
-                <ShareButton
-                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
-                  queryParams={{
-                    tysmBalance: String(streak?.tysmBalance ?? 0),
-                    streakDay: String(streak?.streakDay ?? 1),
-                    streakWeek: String(streak?.streakWeek ?? 1),
-                    tier: getTier(streak?.tysmBalance ?? 0),
-                    username: user.username ?? 'Player',
-                  }}
-                  channelKey="base"
-                  onSuccess={() => { setShowSuccess(false); resetTx(); }}
-                  variant="default"
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold"
-                >
-                  🚀 Post to Farcaster
-                </ShareButton>
-                <Button variant="outline" className="flex-1" onClick={() => { setShowSuccess(false); resetTx(); }}>Skip</Button>
-              </div>
+              {!tokenSendFailed && (
+                <P className="text-xs text-amber-400/70 mb-2">🚀 Farcaster compose opened automatically</P>
+              )}
+              <Button className="w-full" onClick={() => { setShowSuccess(false); resetTx(); }}>Done</Button>
             </CardContent>
           </Card>
         </div>
