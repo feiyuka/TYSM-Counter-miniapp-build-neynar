@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
-import { useFarcasterUser, useShare } from '@/neynar-farcaster-sdk/mini';
+import { useFarcasterUser, useShare, ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
@@ -266,10 +266,25 @@ export function CheckInTab() {
                   View TX on BaseScan →
                 </button>
               )}
-              {!tokenSendFailed && (
-                <P className="text-xs text-amber-400/70 mb-2">🚀 Farcaster compose opened automatically</P>
-              )}
-              <Button className="w-full" onClick={() => { setShowSuccess(false); resetTx(); }}>Done</Button>
+              <div className="flex gap-2 mt-1">
+                <ShareButton
+                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
+                  queryParams={{
+                    tysmBalance: String(streak?.tysmBalance ?? 0),
+                    streakDay: String(streak?.streakDay ?? 1),
+                    streakWeek: String(streak?.streakWeek ?? 1),
+                    tier: getTier(streak?.tysmBalance ?? 0),
+                    username: user.username ?? 'Player',
+                  }}
+                  channelKey="base"
+                  onSuccess={() => { setShowSuccess(false); resetTx(); }}
+                  variant="default"
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold"
+                >
+                  🚀 Share
+                </ShareButton>
+                <Button variant="outline" className="flex-1" onClick={() => { setShowSuccess(false); resetTx(); }}>Done</Button>
+              </div>
             </CardContent>
           </Card>
         </div>
