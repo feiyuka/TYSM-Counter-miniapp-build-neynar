@@ -246,9 +246,10 @@ export function CheckInTab() {
                   View TX on BaseScan →
                 </button>
               )}
+              <P className="text-xs text-gray-500 mb-2">Brag to your Farcaster friends 👇</P>
               <div className="flex gap-2">
                 <ShareButton
-                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM! Day ${streak?.totalStreakDays ?? 1} streak 🔥`}
+                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
                   queryParams={{
                     tysmBalance: String(streak?.tysmBalance ?? 0),
                     streakDay: String(streak?.streakDay ?? 1),
@@ -256,12 +257,14 @@ export function CheckInTab() {
                     tier: getTier(streak?.tysmBalance ?? 0),
                     username: user.username ?? 'Player',
                   }}
-                  variant="outline"
-                  className="flex-1"
+                  channelKey="base"
+                  onSuccess={() => { setShowSuccess(false); resetTx(); }}
+                  variant="default"
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold"
                 >
-                  🚀 Share
+                  🚀 Post to Farcaster
                 </ShareButton>
-                <Button className="flex-1" onClick={() => { setShowSuccess(false); resetTx(); }}>Done</Button>
+                <Button variant="outline" className="flex-1" onClick={() => { setShowSuccess(false); resetTx(); }}>Skip</Button>
               </div>
             </CardContent>
           </Card>
