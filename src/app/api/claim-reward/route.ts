@@ -7,6 +7,27 @@ import { privateConfig } from '@/config/private-config';
 const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877';
 
 /**
+ * Fetch Neynar user score for a FID.
+ * Returns null on error (fail open — don't block legit users due to API downtime).
+ * Pseudo-FIDs (Base App wallet users > 10M) are exempt.
+ */
+async function fetchNeynarScore(fid: number): Promise<number | null> {
+  if (fid > 10_000_000) return null; // Base App wallet user — exempt
+  try {
+    const res = await fetch(
+      `https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}&viewer_fid=${fid}`,
+      { headers: { 'x-api-key': privateConfig.neynarApiKey } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const user = data?.users?.[0];
+    return user?.experimental?.neynar_user_score ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Look up a Farcaster FID from a wallet address via Neynar API.
  * Returns null if not found or if address has no Farcaster account.
  */
@@ -41,6 +62,19 @@ export async function POST(req: NextRequest) {
     }
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
+    }
+
+    // Score guard: real Farcaster users need Neynar score >= 0.5 to claim
+    // Runs server-side so it cannot be bypassed via direct API calls
+    if (fid <= 10_000_000) {
+      const neynarScore = await fetchNeynarScore(fid);
+      if (neynarScore !== null && neynarScore < 0.5) {
+        console.warn(`[claim-reward] Score guard blocked fid=${fid} score=${neynarScore}`);
+        return NextResponse.json(
+          { error: `Score too low (${(neynarScore * 100).toFixed(0)}/100). Minimum score of 50 required to claim TYSM.` },
+          { status: 403 }
+        );
+      }
     }
 
     // Perform check-in: handles streak logic, reward calc, DB update
