@@ -46,6 +46,8 @@ export function CheckInTab() {
   const [streak, setStreak] = useState<UserStreak | null>(null);
   const [streakLoading, setStreakLoading] = useState(true);
   const [todayClaimed, setTodayClaimed] = useState(false);
+  const [neynarScore, setNeynarScore] = useState<number | null>(null);
+  const [scoreQualified, setScoreQualified] = useState(true);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(getTimeUntilReset());
   const [showConfirm, setShowConfirm] = useState(false);
@@ -76,6 +78,8 @@ export function CheckInTab() {
         });
         setTodayClaimed(!data.canCheckIn);
       }
+      if (data.neynarScore !== undefined) setNeynarScore(data.neynarScore);
+      if (data.scoreQualified !== undefined) setScoreQualified(data.scoreQualified);
     } catch (e) {
       console.error('loadStreak error:', e);
     } finally {
@@ -243,22 +247,20 @@ export function CheckInTab() {
                 </button>
               )}
               <div className="flex gap-2">
-                {!tokenSendFailed && (
-                  <ShareButton
-                    text={`Just claimed ${claimedReward.toLocaleString()} $TYSM! Day ${streak?.totalStreakDays ?? 1} streak 🔥`}
-                    queryParams={{
-                      tysmBalance: String(streak?.tysmBalance ?? 0),
-                      streakDay: String(streak?.streakDay ?? 1),
-                      streakWeek: String(streak?.streakWeek ?? 1),
-                      tier: getTier(streak?.tysmBalance ?? 0),
-                      username: user.username ?? 'Player',
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Share
-                  </ShareButton>
-                )}
+                <ShareButton
+                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM! Day ${streak?.totalStreakDays ?? 1} streak 🔥`}
+                  queryParams={{
+                    tysmBalance: String(streak?.tysmBalance ?? 0),
+                    streakDay: String(streak?.streakDay ?? 1),
+                    streakWeek: String(streak?.streakWeek ?? 1),
+                    tier: getTier(streak?.tysmBalance ?? 0),
+                    username: user.username ?? 'Player',
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  🚀 Share
+                </ShareButton>
                 <Button className="flex-1" onClick={() => { setShowSuccess(false); resetTx(); }}>Done</Button>
               </div>
             </CardContent>
@@ -278,7 +280,18 @@ export function CheckInTab() {
             />
             <div className="flex-1 min-w-0">
               <P className="font-bold truncate">{user.displayName || user.username}</P>
-              <P className="text-xs text-gray-400">Week {weekMultiplier} • {weekMultiplier * 100}x multiplier</P>
+              <div className="flex items-center gap-2 flex-wrap">
+                <P className="text-xs text-gray-400">Week {weekMultiplier} • {weekMultiplier * 100}x multiplier</P>
+                {neynarScore !== null && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                    scoreQualified
+                      ? 'bg-green-500/20 text-green-400 border border-green-400/40'
+                      : 'bg-red-500/20 text-red-400 border border-red-400/40'
+                  }`}>
+                    {scoreQualified ? '✓' : '✗'} Score {(neynarScore * 100).toFixed(0)}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="text-right flex-shrink-0">
               <P className="text-xl font-bold text-amber-400">{(streak?.tysmBalance ?? 0).toLocaleString()}</P>
@@ -336,6 +349,14 @@ export function CheckInTab() {
               >
                 Try Again
               </button>
+            </div>
+          ) : !scoreQualified ? (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-400/40 text-center">
+              <P className="text-red-400 font-bold text-sm mb-1">⛔ Score Too Low</P>
+              <P className="text-xs text-gray-400">
+                Your Neynar score ({neynarScore !== null ? (neynarScore * 100).toFixed(0) : '—'}/100) must be ≥50 to claim.
+              </P>
+              <P className="text-xs text-gray-500 mt-1">Build your Farcaster reputation to qualify.</P>
             </div>
           ) : (
             <div>
