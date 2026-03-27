@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
+import { useFarcasterUser, useShare } from '@/neynar-farcaster-sdk/mini';
 import { useAccount } from 'wagmi';
 
 // How Streaks Work popup
@@ -168,8 +168,26 @@ export function CustomHeader() {
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const { data: farcasterUser } = useFarcasterUser();
   const { address: walletAddress } = useAccount();
+  const { share } = useShare();
+
+  async function handleShare() {
+    if (isSharing) return;
+    setIsSharing(true);
+    try {
+      await share({
+        text: 'Earning $TYSM daily with streaks! Check in every day on Base Network and stack your rewards 🔥',
+        channelKey: 'base',
+        close: false,
+      });
+    } catch {
+      // ignore cancel
+    } finally {
+      setIsSharing(false);
+    }
+  }
 
   const pfpUrl = farcasterUser?.pfpUrl || (walletAddress ? `https://api.dicebear.com/9.x/lorelei/svg?seed=${walletAddress}` : null);
 
@@ -210,8 +228,16 @@ export function CustomHeader() {
           <h1 className="text-lg font-bold text-amber-400">TYSM Counter</h1>
         </div>
 
-        {/* Right: Bell + Info */}
+        {/* Right: Share + Bell + Info */}
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleShare}
+            disabled={isSharing}
+            className="w-9 h-9 rounded-full bg-amber-500/30 border border-amber-400/70 flex items-center justify-center hover:bg-amber-500/50 active:scale-95 transition-all disabled:opacity-50"
+            title="Share TYSM"
+          >
+            <span className="text-base">{isSharing ? '⏳' : '🚀'}</span>
+          </button>
           <button
             onClick={() => setShowNotif(true)}
             className="w-9 h-9 rounded-full bg-blue-500/20 border border-blue-400/50 flex items-center justify-center hover:bg-blue-500/40 transition-colors"
