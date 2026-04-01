@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
-import { useFarcasterUser, useShare, ShareButton } from '@/neynar-farcaster-sdk/mini';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract } from 'wagmi';
 import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
 import { getTimeUntilReset } from '@/features/app/utils';
@@ -53,13 +53,24 @@ export function CheckInTab() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [claimedReward, setClaimedReward] = useState(0);
+  const [claimedStreakSnap, setClaimedStreakSnap] = useState<UserStreak | null>(null);
   const [tokenSendFailed, setTokenSendFailed] = useState(false);
   const [apiLoading, setApiLoading] = useState(false);
   const txProcessedRef = useRef<string | null>(null);
 
-  const { share } = useShare();
   const { writeContract, data: txData, isPending: txPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txData });
+
+  // Check contract canCheckIn — prevents revert by reading onchain state first
+  const { data: contractCanCheckIn } = useReadContract({
+    address: TYSM_CHECKIN_ADDRESS,
+    abi: TYSM_CHECKIN_ABI,
+    functionName: 'canCheckIn',
+    args: walletAddress ? [walletAddress] : undefined,
+    query: { enabled: !!walletAddress },
+  });
+  // contractCanCheckIn = [canCheck: bool, timeRemaining: bigint, willReset: bool]
+  const contractAllows = !walletAddress || !contractCanCheckIn || contractCanCheckIn[0] === true;
 
   // Load streak from DB
   const loadStreak = useCallback(async () => {
@@ -124,33 +135,18 @@ export function CheckInTab() {
           setClaimedReward(reward);
           setTokenSendFailed(result.tokenSendFailed === true);
           if (updatedStreak) {
-            setStreak({
+            const snap: UserStreak = {
               tysmBalance: updatedStreak.tysmBalance,
               lastCheckIn: updatedStreak.lastCheckIn ?? '',
               streakDay: updatedStreak.streakDay,
               streakWeek: updatedStreak.streakWeek,
               totalStreakDays: updatedStreak.totalStreakDays,
-            });
+            };
+            setStreak(snap);
+            setClaimedStreakSnap(snap);
           }
           setTodayClaimed(true);
           setShowSuccess(true);
-
-          // Auto-trigger Farcaster compose immediately after successful claim
-          if (!result.tokenSendFailed) {
-            share({
-              text: `Just claimed ${reward.toLocaleString()} $TYSM on Day ${updatedStreak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`,
-              queryParams: {
-                tysmBalance: String(updatedStreak?.tysmBalance ?? 0),
-                streakDay: String(updatedStreak?.streakDay ?? 1),
-                streakWeek: String(updatedStreak?.streakWeek ?? 1),
-                tier: getTier(updatedStreak?.tysmBalance ?? 0),
-                username: user?.username ?? 'Player',
-                share: 'true',
-              },
-              channelKey: 'base',
-              close: false,
-            }).catch(() => {/* ignore if user cancels */});
-          }
         } else {
           console.error('claim-reward error:', result.error);
           setTokenSendFailed(true);
@@ -173,7 +169,27 @@ export function CheckInTab() {
     streak?.totalStreakDays ?? 0,
   );
 
+  const weekMultiplier = streak?.streakWeek ?? 1;
+  const nextMilestone = MILESTONES.find((m) => m.day > (streak?.totalStreakDays ?? 0));
   const isLoading = (farcasterLoading && !walletAddress && !farcasterUser) || streakLoading;
+
+  // Can user check in? Both DB and contract must agree
+  const canCheckIn = !todayClaimed && contractAllows && scoreQualified;
+
+  function handleConfirmCheckIn() {
+    setShowConfirm(false);
+    writeContract({
+      address: TYSM_CHECKIN_ADDRESS,
+      abi: TYSM_CHECKIN_ABI,
+      functionName: 'checkIn',
+      dataSuffix: BUILDER_DATA_SUFFIX,
+    });
+  }
+
+  function handleCloseSuccess() {
+    setShowSuccess(false);
+    resetTx();
+  }
 
   if (isLoading) {
     return (
@@ -199,9 +215,6 @@ export function CheckInTab() {
     );
   }
 
-  const weekMultiplier = streak?.streakWeek ?? 1;
-  const nextMilestone = MILESTONES.find((m) => m.day > (streak?.totalStreakDays ?? 0));
-
   return (
     <div className="space-y-3">
 
@@ -225,15 +238,7 @@ export function CheckInTab() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Cancel</Button>
-                <Button className="flex-1" onClick={() => {
-                  setShowConfirm(false);
-                  writeContract({
-                    address: TYSM_CHECKIN_ADDRESS,
-                    abi: TYSM_CHECKIN_ABI,
-                    functionName: 'checkIn',
-                    dataSuffix: BUILDER_DATA_SUFFIX,
-                  });
-                }}>Confirm</Button>
+                <Button className="flex-1" onClick={handleConfirmCheckIn}>Confirm</Button>
               </div>
             </CardContent>
           </Card>
@@ -245,8 +250,17 @@ export function CheckInTab() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-sm">
             <CardContent className="p-5 text-center">
+              {/* Close button top-right */}
+              <div className="flex justify-end mb-1">
+                <button
+                  onClick={handleCloseSuccess}
+                  className="text-gray-400 hover:text-white text-xl leading-none"
+                >✕</button>
+              </div>
+
               <P className="text-5xl mb-3">{tokenSendFailed ? '⚠️' : '🎉'}</P>
               <H6>{tokenSendFailed ? 'Streak Saved!' : 'Claimed!'}</H6>
+
               {!tokenSendFailed ? (
                 <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-400 my-3">
                   <P className="text-3xl font-bold text-amber-400">{claimedReward.toLocaleString()}</P>
@@ -258,32 +272,35 @@ export function CheckInTab() {
                   <P className="text-xs text-gray-400 mt-1">Token transfer pending — your reward will arrive shortly.</P>
                 </div>
               )}
+
               {txHash && (
                 <button
                   onClick={() => window.open(`https://basescan.org/tx/${txHash}`, '_blank')}
-                  className="text-xs text-blue-400 underline mb-4 block"
+                  className="text-xs text-blue-400 underline mb-3 block mx-auto"
                 >
                   View TX on BaseScan →
                 </button>
               )}
-              <div className="flex gap-2 mt-1">
+
+              {/* Share button — always visible, user-initiated (browser allows popup) */}
+              <div className="flex gap-2">
                 <ShareButton
-                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
+                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${claimedStreakSnap?.totalStreakDays ?? streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
                   queryParams={{
-                    tysmBalance: String(streak?.tysmBalance ?? 0),
-                    streakDay: String(streak?.streakDay ?? 1),
-                    streakWeek: String(streak?.streakWeek ?? 1),
-                    tier: getTier(streak?.tysmBalance ?? 0),
+                    tysmBalance: String(claimedStreakSnap?.tysmBalance ?? streak?.tysmBalance ?? 0),
+                    streakDay: String(claimedStreakSnap?.streakDay ?? streak?.streakDay ?? 1),
+                    streakWeek: String(claimedStreakSnap?.streakWeek ?? streak?.streakWeek ?? 1),
+                    tier: getTier(claimedStreakSnap?.tysmBalance ?? streak?.tysmBalance ?? 0),
                     username: user.username ?? 'Player',
                   }}
                   channelKey="base"
-                  onSuccess={() => { setShowSuccess(false); resetTx(); }}
+                  onSuccess={handleCloseSuccess}
                   variant="default"
                   className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold"
                 >
                   🚀 Share
                 </ShareButton>
-                <Button variant="outline" className="flex-1" onClick={() => { setShowSuccess(false); resetTx(); }}>Done</Button>
+                <Button variant="outline" className="flex-1" onClick={handleCloseSuccess}>Done</Button>
               </div>
             </CardContent>
           </Card>
@@ -337,7 +354,6 @@ export function CheckInTab() {
             </div>
           </div>
 
-          {/* Check-in button area */}
           {todayClaimed ? (
             <div className="p-3 rounded-lg bg-green-500/20 border border-green-400/60 text-center">
               <P className="text-green-400 font-bold">✅ Checked in today!</P>
@@ -366,7 +382,7 @@ export function CheckInTab() {
             <div className="p-3 text-center">
               <P className="text-red-400 font-bold text-sm">❌ Transaction cancelled</P>
               <button
-                onClick={() => { resetTx(); }}
+                onClick={() => resetTx()}
                 className="mt-2 px-4 py-2 rounded-lg bg-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/50 transition-colors"
               >
                 Try Again
@@ -382,7 +398,7 @@ export function CheckInTab() {
             </div>
           ) : (
             <div>
-              {!todayClaimed && countdown.total < 3600000 && (
+              {countdown.total < 3600000 && (
                 <div className="mb-2 p-2 rounded bg-yellow-500/20 border border-yellow-400/40 text-center">
                   <P className="text-yellow-400 text-xs font-bold">⚠️ Less than 1h left! Check in now!</P>
                 </div>
