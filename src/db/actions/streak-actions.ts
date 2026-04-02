@@ -6,11 +6,14 @@ import { eq } from 'drizzle-orm';
 import { calculateReward } from '@/db/actions/streak-utils';
 
 /**
- * Get UTC date string "YYYY-MM-DD" — ensures consistent timezone handling
+ * Contract constants (read from Base Network):
+ * COOLDOWN = 72000 seconds (20 hours) — minimum time between check-ins
+ * STREAK_WINDOW = 172800 seconds (48 hours) — max gap before streak resets
+ *
+ * We use these server-side so DB logic stays in sync with contract behavior.
  */
-function getUTCDateString(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+const COOLDOWN_MS = 72_000 * 1000;       // 20 hours in ms
+const STREAK_WINDOW_MS = 172_800 * 1000; // 48 hours in ms
 
 /**
  * Get user's current streak data
@@ -32,7 +35,6 @@ export async function getOrCreateUserStreak(fid: number, username: string, pfpUr
   const existing = await getUserStreak(fid);
 
   if (existing) {
-    // Update username/pfpUrl if changed
     const needsUpdate = existing.username !== username || (pfpUrl && existing.pfpUrl !== pfpUrl);
     if (needsUpdate) {
       await db
@@ -44,7 +46,6 @@ export async function getOrCreateUserStreak(fid: number, username: string, pfpUr
     return existing;
   }
 
-  // Create new user record
   await db.insert(userStreaks).values({
     fid,
     username,
@@ -59,33 +60,31 @@ export async function getOrCreateUserStreak(fid: number, username: string, pfpUr
 }
 
 /**
- * Check if user can check in today (UTC day boundary)
+ * Check if user can check in based on contract COOLDOWN (20 hours).
+ * Uses lastCheckIn timestamp from DB — same logic as contract.
  */
 export async function canCheckInToday(fid: number): Promise<boolean> {
   const streak = await getUserStreak(fid);
   if (!streak || !streak.lastCheckIn) return true;
 
-  const lastDay = getUTCDateString(new Date(streak.lastCheckIn));
-  const todayDay = getUTCDateString(new Date());
+  const lastCheckInMs = new Date(streak.lastCheckIn).getTime();
+  const nowMs = Date.now();
 
-  return lastDay < todayDay;
+  return (nowMs - lastCheckInMs) >= COOLDOWN_MS;
 }
 
 /**
- * Check if user missed a day (more than 1 UTC day gap → streak should reset)
+ * Check if user missed the streak window (48 hours gap → streak resets).
+ * Matches contract STREAK_WINDOW logic.
  */
 export async function shouldResetStreak(fid: number): Promise<boolean> {
   const streak = await getUserStreak(fid);
   if (!streak || !streak.lastCheckIn) return false;
 
-  const lastDay = getUTCDateString(new Date(streak.lastCheckIn));
-  const todayDay = getUTCDateString(new Date());
+  const lastCheckInMs = new Date(streak.lastCheckIn).getTime();
+  const nowMs = Date.now();
 
-  const last = new Date(lastDay + 'T00:00:00Z');
-  const today = new Date(todayDay + 'T00:00:00Z');
-  const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-
-  return diffDays > 1;
+  return (nowMs - lastCheckInMs) > STREAK_WINDOW_MS;
 }
 
 /**
@@ -96,13 +95,13 @@ export async function performCheckIn(fid: number, username: string, pfpUrl?: str
   const streak = await getOrCreateUserStreak(fid, username, pfpUrl);
   if (!streak) throw new Error('Failed to create user streak');
 
-  // Check if already checked in today (UTC)
+  // Check cooldown (20h) — must match contract
   const canCheck = await canCheckInToday(fid);
   if (!canCheck) {
-    return { success: false as const, error: 'Already checked in today', streak };
+    return { success: false as const, error: 'Cooldown active — check in again after 20 hours', streak };
   }
 
-  // Check if streak should reset (missed a day)
+  // Check if streak should reset (48h window exceeded)
   const needsReset = await shouldResetStreak(fid);
 
   // Determine streak values for THIS check-in
@@ -113,13 +112,13 @@ export async function performCheckIn(fid: number, username: string, pfpUrl?: str
   if (needsReset) {
     checkInStreakDay = 1;
     checkInStreakWeek = 1;
-    checkInTotalDays = 0; // will become 1 after increment
+    checkInTotalDays = 0;
   }
 
-  // Calculate reward using this check-in's streak state
+  // Calculate reward
   const rewardCalc = calculateReward(checkInStreakDay, checkInStreakWeek, checkInTotalDays);
 
-  // Advance streak values for next check-in
+  // Advance streak: Day 7 → next week
   const nextStreakDay = rewardCalc.isLastDayOfWeek ? 1 : checkInStreakDay + 1;
   const nextStreakWeek = rewardCalc.isLastDayOfWeek ? checkInStreakWeek + 1 : checkInStreakWeek;
   const nextTotalDays = checkInTotalDays + 1;

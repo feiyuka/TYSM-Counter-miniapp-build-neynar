@@ -6,7 +6,6 @@ import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract, useSimulateContract } from 'wagmi';
 import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
-import { getTimeUntilReset } from '@/features/app/utils';
 import { calculateReward } from '@/db/actions/streak-utils';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
 import type { UserStreak } from '@/features/app/types';
@@ -21,11 +20,19 @@ function getTier(balance: number) {
   return 'BRONZE';
 }
 
+/** Format ms remaining into { hours, minutes, seconds } */
+function msToHMS(ms: number) {
+  const total = Math.max(0, ms);
+  const seconds = Math.floor((total / 1000) % 60);
+  const minutes = Math.floor((total / 1000 / 60) % 60);
+  const hours = Math.floor(total / 1000 / 60 / 60);
+  return { hours, minutes, seconds, total };
+}
+
 export function CheckInTab() {
   const { data: farcasterUser, isLoading: farcasterLoading } = useFarcasterUser();
   const { address: walletAddress } = useAccount();
 
-  // Unified user identity
   const effectiveFid = useMemo(() => {
     if (farcasterUser?.fid) return farcasterUser.fid;
     if (walletAddress) return parseInt(walletAddress.slice(-8), 16);
@@ -49,28 +56,29 @@ export function CheckInTab() {
   const [neynarScore, setNeynarScore] = useState<number | null>(null);
   const [scoreQualified, setScoreQualified] = useState(true);
   const [txHash, setTxHash] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(getTimeUntilReset());
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [claimedReward, setClaimedReward] = useState(0);
   const [claimedStreakSnap, setClaimedStreakSnap] = useState<UserStreak | null>(null);
   const [tokenSendFailed, setTokenSendFailed] = useState(false);
   const [apiLoading, setApiLoading] = useState(false);
+  // Countdown based on server-returned ms until next check-in (20h cooldown)
+  const [countdownMs, setCountdownMs] = useState(0);
   const txProcessedRef = useRef<string | null>(null);
 
   const { writeContract, data: txData, isPending: txPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txData });
 
-  // Read canCheckIn from contract — source of truth for whether tx will succeed
-  const { data: contractCanCheckIn, isLoading: contractLoading } = useReadContract({
+  // Source of truth: read canCheckIn from contract (refetch every 30s)
+  const { data: contractCanCheckIn, isLoading: contractLoading, refetch: refetchContract } = useReadContract({
     address: TYSM_CHECKIN_ADDRESS,
     abi: TYSM_CHECKIN_ABI,
     functionName: 'canCheckIn',
     args: walletAddress ? [walletAddress as `0x${string}`] : undefined,
-    query: { enabled: !!walletAddress, refetchInterval: 10_000 },
+    query: { enabled: !!walletAddress, refetchInterval: 30_000 },
   });
 
-  // Simulate checkIn — if simulation fails, tx will revert. Only enable when canCheckIn is true.
+  // Simulate checkIn only when contract says we can — catches any revert before sending
   const canCheckOnchain = contractCanCheckIn?.[0] === true;
   const { data: simulateData, error: simulateError } = useSimulateContract({
     address: TYSM_CHECKIN_ADDRESS,
@@ -79,8 +87,8 @@ export function CheckInTab() {
     query: { enabled: !!walletAddress && canCheckOnchain && !todayClaimed },
   });
 
-  // Contract allows if: loaded + canCheckIn=true + simulation succeeds
-  const contractAllows = !contractLoading && canCheckOnchain && !simulateError;
+  // Contract timeRemaining (seconds) for countdown when cooldown is active
+  const contractTimeRemaining = contractCanCheckIn?.[1] ? Number(contractCanCheckIn[1]) * 1000 : 0;
 
   // Load streak from DB
   const loadStreak = useCallback(async () => {
@@ -99,6 +107,8 @@ export function CheckInTab() {
           totalStreakDays: s.totalStreakDays,
         });
         setTodayClaimed(!data.canCheckIn);
+        // Use server-returned ms for initial countdown
+        if (data.msUntilNextCheckIn) setCountdownMs(data.msUntilNextCheckIn);
       }
       if (data.neynarScore !== undefined) setNeynarScore(data.neynarScore);
       if (data.scoreQualified !== undefined) setScoreQualified(data.scoreQualified);
@@ -111,13 +121,30 @@ export function CheckInTab() {
 
   useEffect(() => { loadStreak(); }, [loadStreak]);
 
-  // Countdown timer
+  // Sync countdown from contract timeRemaining when available
   useEffect(() => {
-    const t = setInterval(() => setCountdown(getTimeUntilReset()), 1000);
-    return () => clearInterval(t);
-  }, []);
+    if (contractTimeRemaining > 0) setCountdownMs(contractTimeRemaining);
+  }, [contractTimeRemaining]);
 
-  // Handle tx success → call backend for x100 reward
+  // Countdown ticker — decrements every second
+  useEffect(() => {
+    if (countdownMs <= 0) return;
+    const t = setInterval(() => {
+      setCountdownMs(prev => {
+        const next = prev - 1000;
+        if (next <= 0) {
+          // Cooldown expired — refetch contract and DB state
+          refetchContract();
+          loadStreak();
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(t);
+  }, [countdownMs, refetchContract, loadStreak]);
+
+  // Handle tx success → call backend for reward
   useEffect(() => {
     if (!txSuccess || !txData || !user || !walletAddress) return;
     if (txProcessedRef.current === txData) return;
@@ -137,26 +164,28 @@ export function CheckInTab() {
         txHash: txData,
       }),
     })
-      .then((r) => r.json())
-      .then((result) => {
+      .then(r => r.json())
+      .then(result => {
         if (result.success) {
           const reward = result.reward ?? 0;
-          const updatedStreak = result.streak;
+          const s = result.streak;
           setClaimedReward(reward);
           setTokenSendFailed(result.tokenSendFailed === true);
-          if (updatedStreak) {
+          if (s) {
             const snap: UserStreak = {
-              tysmBalance: updatedStreak.tysmBalance,
-              lastCheckIn: updatedStreak.lastCheckIn ?? '',
-              streakDay: updatedStreak.streakDay,
-              streakWeek: updatedStreak.streakWeek,
-              totalStreakDays: updatedStreak.totalStreakDays,
+              tysmBalance: s.tysmBalance,
+              lastCheckIn: s.lastCheckIn ?? '',
+              streakDay: s.streakDay,
+              streakWeek: s.streakWeek,
+              totalStreakDays: s.totalStreakDays,
             };
             setStreak(snap);
             setClaimedStreakSnap(snap);
           }
           setTodayClaimed(true);
+          setCountdownMs(72_000 * 1000); // reset to 20h countdown
           setShowSuccess(true);
+          refetchContract();
         } else {
           console.error('claim-reward error:', result.error);
           setTokenSendFailed(true);
@@ -164,35 +193,19 @@ export function CheckInTab() {
           setShowSuccess(true);
         }
       })
-      .catch((e) => {
+      .catch(e => {
         console.error('claim-reward fetch error:', e);
         setTodayClaimed(true);
         setShowSuccess(true);
       })
       .finally(() => setApiLoading(false));
-  }, [txSuccess, txData, user, walletAddress]);
-
-  // Preview reward calc
-  const previewCalc = calculateReward(
-    streak?.streakDay ?? 1,
-    streak?.streakWeek ?? 1,
-    streak?.totalStreakDays ?? 0,
-  );
-
-  const weekMultiplier = streak?.streakWeek ?? 1;
-  const nextMilestone = MILESTONES.find((m) => m.day > (streak?.totalStreakDays ?? 0));
-  const isLoading = (farcasterLoading && !walletAddress && !farcasterUser) || streakLoading;
-
-  // Can user check in? Both DB and contract must agree
-  const canCheckIn = !todayClaimed && contractAllows && scoreQualified;
+  }, [txSuccess, txData, user, walletAddress, refetchContract]);
 
   function handleConfirmCheckIn() {
     setShowConfirm(false);
     if (simulateData?.request) {
-      // Use simulate result — guaranteed not to revert
       writeContract({ ...simulateData.request, dataSuffix: BUILDER_DATA_SUFFIX });
     } else {
-      // Fallback: send directly (simulate may not be ready yet)
       writeContract({
         address: TYSM_CHECKIN_ADDRESS,
         abi: TYSM_CHECKIN_ABI,
@@ -207,10 +220,25 @@ export function CheckInTab() {
     resetTx();
   }
 
+  const previewCalc = calculateReward(
+    streak?.streakDay ?? 1,
+    streak?.streakWeek ?? 1,
+    streak?.totalStreakDays ?? 0,
+  );
+
+  const weekMultiplier = streak?.streakWeek ?? 1;
+  const nextMilestone = MILESTONES.find(m => m.day > (streak?.totalStreakDays ?? 0));
+  const isLoading = (farcasterLoading && !walletAddress && !farcasterUser) || streakLoading;
+  const countdown = msToHMS(countdownMs);
+  const lessThan1h = countdownMs > 0 && countdownMs < 3_600_000;
+
+  // Ready to claim: DB + contract + score all agree
+  const contractAllows = !contractLoading && canCheckOnchain && !simulateError;
+
   if (isLoading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3].map(i => (
           <Card key={i} className="border border-amber-400/30 rounded-xl animate-pulse">
             <CardContent className="p-4"><div className="h-16 bg-amber-500/10 rounded" /></CardContent>
           </Card>
@@ -246,10 +274,10 @@ export function CheckInTab() {
                 <P className="text-xs text-gray-400 mb-1">You will receive</P>
                 <P className="text-2xl font-bold text-amber-400">{previewCalc.totalReward.toLocaleString()} TYSM</P>
                 {previewCalc.weekBonus > 0 && (
-                  <P className="text-xs text-green-400 mt-1">+{previewCalc.weekBonus.toLocaleString()} week bonus! 🎉</P>
+                  <P className="text-xs text-green-400 mt-1">{previewCalc.weekBonus.toLocaleString()} week bonus! 🎉</P>
                 )}
                 {previewCalc.milestoneBonus > 0 && (
-                  <P className="text-xs text-yellow-400 mt-1">+{previewCalc.milestoneBonus.toLocaleString()} milestone bonus! 🏆</P>
+                  <P className="text-xs text-yellow-400 mt-1">{previewCalc.milestoneBonus.toLocaleString()} milestone bonus! 🏆</P>
                 )}
               </div>
               <div className="flex gap-2">
@@ -266,17 +294,11 @@ export function CheckInTab() {
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-sm">
             <CardContent className="p-5 text-center">
-              {/* Close button top-right */}
               <div className="flex justify-end mb-1">
-                <button
-                  onClick={handleCloseSuccess}
-                  className="text-gray-400 hover:text-white text-xl leading-none"
-                >✕</button>
+                <button onClick={handleCloseSuccess} className="text-gray-400 hover:text-white text-xl">✕</button>
               </div>
-
               <P className="text-5xl mb-3">{tokenSendFailed ? '⚠️' : '🎉'}</P>
               <H6>{tokenSendFailed ? 'Streak Saved!' : 'Claimed!'}</H6>
-
               {!tokenSendFailed ? (
                 <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-400 my-3">
                   <P className="text-3xl font-bold text-amber-400">{claimedReward.toLocaleString()}</P>
@@ -288,7 +310,6 @@ export function CheckInTab() {
                   <P className="text-xs text-gray-400 mt-1">Token transfer pending — your reward will arrive shortly.</P>
                 </div>
               )}
-
               {txHash && (
                 <button
                   onClick={() => window.open(`https://basescan.org/tx/${txHash}`, '_blank')}
@@ -297,8 +318,6 @@ export function CheckInTab() {
                   View TX on BaseScan →
                 </button>
               )}
-
-              {/* Share button — always visible, user-initiated (browser allows popup) */}
               <div className="flex gap-2">
                 <ShareButton
                   text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${claimedStreakSnap?.totalStreakDays ?? streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
@@ -336,7 +355,7 @@ export function CheckInTab() {
             <div className="flex-1 min-w-0">
               <P className="font-bold truncate">{user.displayName || user.username}</P>
               <div className="flex items-center gap-2 flex-wrap">
-                <P className="text-xs text-gray-400">Week {weekMultiplier} • {weekMultiplier * 100}x multiplier</P>
+                <P className="text-xs text-gray-400">Week {weekMultiplier} • {weekMultiplier * 100}x</P>
                 {neynarScore !== null && (
                   <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     scoreQualified
@@ -370,17 +389,22 @@ export function CheckInTab() {
             </div>
           </div>
 
+          {/* States: claimed → pending → confirming → score fail → contract loading → not allowed → ready */}
           {todayClaimed ? (
             <div className="p-3 rounded-lg bg-green-500/20 border border-green-400/60 text-center">
-              <P className="text-green-400 font-bold">✅ Checked in today!</P>
-              <div className="flex justify-center gap-3 mt-2 font-mono text-sm">
-                <span className="bg-black/30 px-2 py-1 rounded text-amber-400">{String(countdown.hours).padStart(2,'0')}h</span>
-                <span className="text-gray-500 self-center">:</span>
-                <span className="bg-black/30 px-2 py-1 rounded text-amber-400">{String(countdown.minutes).padStart(2,'0')}m</span>
-                <span className="text-gray-500 self-center">:</span>
-                <span className="bg-black/30 px-2 py-1 rounded text-amber-400">{String(countdown.seconds).padStart(2,'0')}s</span>
-              </div>
-              <P className="text-xs text-gray-500 mt-1">until next check-in</P>
+              <P className="text-green-400 font-bold">✅ Checked in!</P>
+              {countdownMs > 0 && (
+                <>
+                  <div className="flex justify-center gap-3 mt-2 font-mono text-sm">
+                    <span className="bg-black/30 px-2 py-1 rounded text-amber-400">{String(countdown.hours).padStart(2,'0')}h</span>
+                    <span className="text-gray-500 self-center">:</span>
+                    <span className="bg-black/30 px-2 py-1 rounded text-amber-400">{String(countdown.minutes).padStart(2,'0')}m</span>
+                    <span className="text-gray-500 self-center">:</span>
+                    <span className="bg-black/30 px-2 py-1 rounded text-amber-400">{String(countdown.seconds).padStart(2,'0')}s</span>
+                  </div>
+                  <P className="text-xs text-gray-500 mt-1">until next check-in (20h cooldown)</P>
+                </>
+              )}
             </div>
           ) : txPending ? (
             <div className="p-4 text-center">
@@ -396,10 +420,13 @@ export function CheckInTab() {
             </div>
           ) : txError ? (
             <div className="p-3 text-center">
-              <P className="text-red-400 font-bold text-sm">❌ Transaction cancelled</P>
+              <P className="text-red-400 font-bold text-sm">❌ Transaction failed</P>
+              <P className="text-xs text-gray-400 mt-1">
+                {(txError as Error).message?.includes('revert') ? 'Contract rejected — cooldown may still be active.' : 'Transaction cancelled.'}
+              </P>
               <button
-                onClick={() => resetTx()}
-                className="mt-2 px-4 py-2 rounded-lg bg-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/50 transition-colors"
+                onClick={() => { resetTx(); refetchContract(); }}
+                className="mt-2 px-4 py-2 rounded-lg bg-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/50"
               >
                 Try Again
               </button>
@@ -408,9 +435,8 @@ export function CheckInTab() {
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-400/40 text-center">
               <P className="text-red-400 font-bold text-sm mb-1">⛔ Score Too Low</P>
               <P className="text-xs text-gray-400">
-                Your Neynar score ({neynarScore !== null ? (neynarScore * 100).toFixed(0) : '—'}/100) must be ≥50 to claim.
+                Neynar score ({neynarScore !== null ? (neynarScore * 100).toFixed(0) : '—'}/100) must be ≥50.
               </P>
-              <P className="text-xs text-gray-500 mt-1">Build your Farcaster reputation to qualify.</P>
             </div>
           ) : contractLoading ? (
             <div className="p-4 text-center">
@@ -419,12 +445,12 @@ export function CheckInTab() {
             </div>
           ) : !contractAllows ? (
             <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-400/40 text-center">
-              <P className="text-orange-400 font-bold text-sm">⏳ Not ready yet</P>
+              <P className="text-orange-400 font-bold text-sm">⏳ Cooldown active</P>
               <P className="text-xs text-gray-400 mt-1">
-                {simulateError ? 'Contract check failed — try again in a moment.' : 'Cooldown active on Base Network.'}
+                {simulateError ? 'Contract not ready — try again shortly.' : 'Wait for 20h cooldown to expire.'}
               </P>
               <button
-                onClick={() => resetTx()}
+                onClick={() => { resetTx(); refetchContract(); }}
                 className="mt-2 px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-bold"
               >
                 Refresh
@@ -432,9 +458,9 @@ export function CheckInTab() {
             </div>
           ) : (
             <div>
-              {countdown.total < 3600000 && (
+              {lessThan1h && (
                 <div className="mb-2 p-2 rounded bg-yellow-500/20 border border-yellow-400/40 text-center">
-                  <P className="text-yellow-400 text-xs font-bold">⚠️ Less than 1h left! Check in now!</P>
+                  <P className="text-yellow-400 text-xs font-bold">⚠️ Check in soon before streak window closes!</P>
                 </div>
               )}
               <button
@@ -443,7 +469,7 @@ export function CheckInTab() {
               >
                 🔥 Claim {previewCalc.totalReward.toLocaleString()} TYSM
               </button>
-              <P className="text-xs text-center text-gray-500 mt-2">Onchain tx • Base Network</P>
+              <P className="text-xs text-center text-gray-500 mt-2">Onchain tx • Base Network • 20h cooldown</P>
             </div>
           )}
         </CardContent>
@@ -483,7 +509,7 @@ export function CheckInTab() {
             />
           </div>
           <div className="space-y-2">
-            {MILESTONES.map((milestone) => {
+            {MILESTONES.map(milestone => {
               const achieved = (streak?.totalStreakDays ?? 0) >= milestone.day;
               const isNext = nextMilestone?.day === milestone.day;
               return (
@@ -523,9 +549,9 @@ export function CheckInTab() {
           <P className="text-xs font-bold text-gray-300 mb-2">❓ How rewards work</P>
           <div className="space-y-1 text-xs text-gray-400">
             <p>• Reward = Day × Week × 100 TYSM</p>
-            <p>• Day 7 bonus = 7 × Week × 100</p>
-            <p>• Week multiplier grows up to 52x</p>
-            <p>• Miss a day → streak resets to Week 1 Day 1</p>
+            <p>• Day 7 bonus = 7 × Week × 100 (extra!)</p>
+            <p>• Check in every 20h • Miss 48h = streak resets</p>
+            <p>• Week multiplier grows every 7 days (up to 52x)</p>
           </div>
         </CardContent>
       </Card>
