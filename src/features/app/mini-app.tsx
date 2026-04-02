@@ -1,34 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useFarcasterUser } from '@/neynar-farcaster-sdk/mini';
 import { CustomHeader } from '@/features/app/components/custom-header';
 import { BackgroundLogo } from '@/features/app/components/background-logo';
 import { BottomTabs } from '@/features/app/components/bottom-tabs';
 import { CheckInTab } from '@/features/app/components/check-in-tab';
 import { LiveClaimsTab } from '@/features/app/components/live-claims-tab';
 import { LeaderboardTab } from '@/features/app/components/leaderboard-tab';
-import { AdminTab } from '@/features/app/components/admin-tab';
 
-const CREATOR_FID = Number(process.env.NEXT_PUBLIC_USER_FID ?? 0);
-
-const BASE_TABS = [
+const TABS = [
   { label: '🎁 Check-in' },
   { label: '📡 Live' },
   { label: '🏆 Top' },
 ];
 
-const ADMIN_TABS = [
-  ...BASE_TABS,
-  { label: '👑 Admin' },
-];
-
 export function MiniApp() {
   const [activeTab, setActiveTab] = useState(0);
-  const { data: farcasterUser } = useFarcasterUser();
-
-  const isCreator = farcasterUser?.fid === CREATOR_FID;
-  const tabs = isCreator ? ADMIN_TABS : BASE_TABS;
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -38,8 +25,6 @@ export function MiniApp() {
         return <LiveClaimsTab />;
       case 2:
         return <LeaderboardTab />;
-      case 3:
-        return isCreator ? <AdminTab /> : <CheckInTab />;
       default:
         return <CheckInTab />;
     }
@@ -87,7 +72,7 @@ export function MiniApp() {
 
       {/* Bottom Tab Navigation */}
       <BottomTabs
-        tabs={tabs}
+        tabs={TABS}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
