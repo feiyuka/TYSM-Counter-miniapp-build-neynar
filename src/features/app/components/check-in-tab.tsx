@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Card, CardContent, Button, H6, P } from '@neynar/ui';
 import { useFarcasterUser, ShareButton } from '@/neynar-farcaster-sdk/mini';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract, useSimulateContract } from 'wagmi';
 import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
 import { getTimeUntilReset } from '@/features/app/utils';
@@ -61,16 +61,26 @@ export function CheckInTab() {
   const { writeContract, data: txData, isPending: txPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txData });
 
-  // Check contract canCheckIn — prevents revert by reading onchain state first
-  const { data: contractCanCheckIn } = useReadContract({
+  // Read canCheckIn from contract — source of truth for whether tx will succeed
+  const { data: contractCanCheckIn, isLoading: contractLoading } = useReadContract({
     address: TYSM_CHECKIN_ADDRESS,
     abi: TYSM_CHECKIN_ABI,
     functionName: 'canCheckIn',
-    args: walletAddress ? [walletAddress] : undefined,
-    query: { enabled: !!walletAddress },
+    args: walletAddress ? [walletAddress as `0x${string}`] : undefined,
+    query: { enabled: !!walletAddress, refetchInterval: 10_000 },
   });
-  // contractCanCheckIn = [canCheck: bool, timeRemaining: bigint, willReset: bool]
-  const contractAllows = !walletAddress || !contractCanCheckIn || contractCanCheckIn[0] === true;
+
+  // Simulate checkIn — if simulation fails, tx will revert. Only enable when canCheckIn is true.
+  const canCheckOnchain = contractCanCheckIn?.[0] === true;
+  const { data: simulateData, error: simulateError } = useSimulateContract({
+    address: TYSM_CHECKIN_ADDRESS,
+    abi: TYSM_CHECKIN_ABI,
+    functionName: 'checkIn',
+    query: { enabled: !!walletAddress && canCheckOnchain && !todayClaimed },
+  });
+
+  // Contract allows if: loaded + canCheckIn=true + simulation succeeds
+  const contractAllows = !contractLoading && canCheckOnchain && !simulateError;
 
   // Load streak from DB
   const loadStreak = useCallback(async () => {
@@ -178,12 +188,18 @@ export function CheckInTab() {
 
   function handleConfirmCheckIn() {
     setShowConfirm(false);
-    writeContract({
-      address: TYSM_CHECKIN_ADDRESS,
-      abi: TYSM_CHECKIN_ABI,
-      functionName: 'checkIn',
-      dataSuffix: BUILDER_DATA_SUFFIX,
-    });
+    if (simulateData?.request) {
+      // Use simulate result — guaranteed not to revert
+      writeContract({ ...simulateData.request, dataSuffix: BUILDER_DATA_SUFFIX });
+    } else {
+      // Fallback: send directly (simulate may not be ready yet)
+      writeContract({
+        address: TYSM_CHECKIN_ADDRESS,
+        abi: TYSM_CHECKIN_ABI,
+        functionName: 'checkIn',
+        dataSuffix: BUILDER_DATA_SUFFIX,
+      });
+    }
   }
 
   function handleCloseSuccess() {
@@ -395,6 +411,24 @@ export function CheckInTab() {
                 Your Neynar score ({neynarScore !== null ? (neynarScore * 100).toFixed(0) : '—'}/100) must be ≥50 to claim.
               </P>
               <P className="text-xs text-gray-500 mt-1">Build your Farcaster reputation to qualify.</P>
+            </div>
+          ) : contractLoading ? (
+            <div className="p-4 text-center">
+              <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+              <P className="text-xs text-gray-400 mt-2">Checking onchain status...</P>
+            </div>
+          ) : !contractAllows ? (
+            <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-400/40 text-center">
+              <P className="text-orange-400 font-bold text-sm">⏳ Not ready yet</P>
+              <P className="text-xs text-gray-400 mt-1">
+                {simulateError ? 'Contract check failed — try again in a moment.' : 'Cooldown active on Base Network.'}
+              </P>
+              <button
+                onClick={() => resetTx()}
+                className="mt-2 px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-bold"
+              >
+                Refresh
+              </button>
             </div>
           ) : (
             <div>
