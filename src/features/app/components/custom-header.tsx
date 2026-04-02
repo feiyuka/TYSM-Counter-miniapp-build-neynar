@@ -18,19 +18,19 @@ function HowItWorksPopup({ onClose }: { onClose: () => void }) {
           <div className="space-y-3 text-sm">
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-400/40">
               <p className="font-bold text-amber-400 mb-1">Daily Reward Formula</p>
-              <p className="text-gray-200 font-mono">Day × Week TYSM</p>
-              <p className="text-gray-400 text-xs mt-1">Example: Day 3, Week 2 = 3×2 = 6 TYSM</p>
+              <p className="text-gray-200 font-mono">Day × Week × 100 TYSM</p>
+              <p className="text-gray-400 text-xs mt-1">Example: Day 3, Week 2 = 3×2×100 = 600 TYSM</p>
             </div>
 
             <div className="p-3 rounded-lg bg-green-500/10 border border-green-400/40">
               <p className="font-bold text-green-400 mb-1">🎉 Week Completion Bonus</p>
-              <p className="text-gray-200">On Day 7: extra 7 × Week TYSM bonus</p>
+              <p className="text-gray-200">On Day 7: extra 7 × Week × 100 TYSM bonus</p>
               <p className="text-gray-400 text-xs mt-1">Streak resets to Day 1 of next week</p>
             </div>
 
             <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/40">
               <p className="font-bold text-blue-400 mb-1">🚀 Booster (Week Multiplier)</p>
-              <p className="text-gray-200">Each week boosts your rewards further</p>
+              <p className="text-gray-200">Each week boosts your pool payout ×100</p>
               <p className="text-gray-400 text-xs mt-1">Week 1 = 100x · Week 2 = 200x · Week 52 = 5200x</p>
               <p className="text-gray-500 text-xs mt-0.5">Streak runs up to 1 year (52 weeks)</p>
             </div>

@@ -598,8 +598,8 @@ export function CheckInTab() {
         <CardContent className="p-3">
           <P className="text-xs font-bold text-gray-300 mb-2">❓ How rewards work</P>
           <div className="space-y-1 text-xs text-gray-400">
-            <p>• Reward = Day × Week TYSM (e.g. Day 3 Week 2 = 6 TYSM)</p>
-            <p>• Day 7 bonus = 7 × Week extra TYSM</p>
+            <p>• Reward = Day × Week × 100 TYSM (e.g. Day 3 Week 2 = 600 TYSM)</p>
+            <p>• Day 7 bonus = 7 × Week × 100 extra TYSM</p>
             <p>• Check in every 20h • Miss 48h = streak resets</p>
             <p>• Booster grows weekly: Week 1 = 100x, Week 52 = 5200x (up to 1 year)</p>
           </div>

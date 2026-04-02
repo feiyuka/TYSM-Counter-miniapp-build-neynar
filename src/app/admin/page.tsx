@@ -81,13 +81,28 @@ export default async function AdminPage({
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
         <StatCard label="Total Users" value={stats.totalClaimers.toLocaleString()} emoji="👥" color="#60a5fa" />
         <StatCard label="Aktif (48h)" value={activeUsers48h.toLocaleString()} emoji="🔥" color="#4ade80" />
         <StatCard label="Total Claims" value={totalClaimsCount.toLocaleString()} emoji="📋" color="#a78bfa" />
         <StatCard label="Total TYSM Diklaim" value={poolStats.totalClaimed.toLocaleString()} emoji="💰" color="#FFD700" />
         <StatCard label="Streak Minggu Terpanjang" value={`Week ${stats.maxWeek}`} emoji="🚀" color="#f97316" />
         <StatCard label="TYSM Balance Tertinggi" value={stats.topTysm.toLocaleString()} emoji="🏆" color="#FFD700" />
+      </div>
+
+      {/* Booster Info */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        <div style={{ background: '#111', border: '1px solid #854d0e', borderRadius: '12px', padding: '14px' }}>
+          <p style={{ color: '#f97316', fontWeight: 'bold', fontSize: '12px', marginBottom: '6px' }}>🚀 Booster Formula (Pool Wallet)</p>
+          <p style={{ color: '#fde68a', fontSize: '14px', fontWeight: 'bold', fontFamily: 'monospace' }}>Day × Week × 100 TYSM</p>
+          <p style={{ color: '#666', fontSize: '11px', marginTop: '4px' }}>Contoh: Day 3 Week 2 = 600 TYSM dikirim dari pool</p>
+        </div>
+        <div style={{ background: '#111', border: '1px solid #1e3a5f', borderRadius: '12px', padding: '14px' }}>
+          <p style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '12px', marginBottom: '6px' }}>📅 Week Booster Range</p>
+          <p style={{ color: '#ddd', fontSize: '12px' }}>Week 1 = <span style={{ color: '#4ade80' }}>100x</span></p>
+          <p style={{ color: '#ddd', fontSize: '12px' }}>Week 52 = <span style={{ color: '#f97316', fontWeight: 'bold' }}>5,200x</span></p>
+          <p style={{ color: '#666', fontSize: '11px', marginTop: '2px' }}>Streak hingga 1 tahun (52 minggu)</p>
+        </div>
       </div>
 
       {/* Onchain Pool Management */}
