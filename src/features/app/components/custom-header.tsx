@@ -36,8 +36,8 @@ function HowItWorksPopup({ onClose }: { onClose: () => void }) {
 
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-400/40">
               <p className="font-bold text-yellow-400 mb-1">🏆 1 Month Milestones</p>
-              <p className="text-gray-200">Day 29: +50,000 TYSM bonus</p>
-              <p className="text-gray-200">Day 30: +100,000 TYSM bonus</p>
+              <p className="text-gray-200">Day 29: +500 TYSM bonus</p>
+              <p className="text-gray-200">Day 30: +1,000 TYSM bonus</p>
             </div>
 
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-400/40">

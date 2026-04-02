@@ -292,24 +292,28 @@ export function CheckInTab() {
       {/* Success Popup */}
       {showSuccess && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-sm">
+          <Card className="w-full max-w-sm border border-amber-400/70">
             <CardContent className="p-5 text-center">
-              <div className="flex justify-end mb-1">
-                <button onClick={handleCloseSuccess} className="text-gray-400 hover:text-white text-xl">✕</button>
+              {/* Close X */}
+              <div className="flex justify-end -mt-1 -mr-1 mb-1">
+                <button onClick={handleCloseSuccess} className="text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center">✕</button>
               </div>
-              <P className="text-5xl mb-3">{tokenSendFailed ? '⚠️' : '🎉'}</P>
-              <H6>{tokenSendFailed ? 'Streak Saved!' : 'Claimed!'}</H6>
+
+              <P className="text-5xl mb-2">{tokenSendFailed ? '⚠️' : '🎉'}</P>
+              <H6 className="mb-3">{tokenSendFailed ? 'Streak Saved!' : 'Claimed!'}</H6>
+
               {!tokenSendFailed ? (
-                <div className="p-4 rounded-lg bg-amber-500/20 border border-amber-400 my-3">
+                <div className="p-3 rounded-lg bg-amber-500/20 border border-amber-400 mb-3">
                   <P className="text-3xl font-bold text-amber-400">{claimedReward.toLocaleString()}</P>
-                  <P className="text-sm text-gray-300">TYSM sent to your wallet</P>
+                  <P className="text-xs text-gray-300">TYSM sent to your wallet</P>
                 </div>
               ) : (
-                <div className="p-3 rounded-lg bg-yellow-500/20 border border-yellow-400/60 my-3">
+                <div className="p-3 rounded-lg bg-yellow-500/20 border border-yellow-400/60 mb-3">
                   <P className="text-sm text-gray-200">Streak recorded ✅</P>
-                  <P className="text-xs text-gray-400 mt-1">Token transfer pending — your reward will arrive shortly.</P>
+                  <P className="text-xs text-gray-400 mt-1">Token pending — reward will arrive shortly.</P>
                 </div>
               )}
+
               {txHash && (
                 <button
                   onClick={() => window.open(`https://basescan.org/tx/${txHash}`, '_blank')}
@@ -318,25 +322,32 @@ export function CheckInTab() {
                   View TX on BaseScan →
                 </button>
               )}
-              <div className="flex gap-2">
-                <ShareButton
-                  text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${claimedStreakSnap?.totalStreakDays ?? streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
-                  queryParams={{
-                    tysmBalance: String(claimedStreakSnap?.tysmBalance ?? streak?.tysmBalance ?? 0),
-                    streakDay: String(claimedStreakSnap?.streakDay ?? streak?.streakDay ?? 1),
-                    streakWeek: String(claimedStreakSnap?.streakWeek ?? streak?.streakWeek ?? 1),
-                    tier: getTier(claimedStreakSnap?.tysmBalance ?? streak?.tysmBalance ?? 0),
-                    username: user.username ?? 'Player',
-                  }}
-                  channelKey="base"
-                  onSuccess={handleCloseSuccess}
-                  variant="default"
-                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-bold"
-                >
-                  🚀 Share
-                </ShareButton>
-                <Button variant="outline" className="flex-1" onClick={handleCloseSuccess}>Done</Button>
-              </div>
+
+              {/* Share CTA — full width, prominent */}
+              <P className="text-xs text-gray-400 mb-2">Tap to post your reward to Farcaster 👇</P>
+              <ShareButton
+                text={`Just claimed ${claimedReward.toLocaleString()} $TYSM on Day ${claimedStreakSnap?.totalStreakDays ?? streak?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`}
+                queryParams={{
+                  tysmBalance: String(claimedStreakSnap?.tysmBalance ?? streak?.tysmBalance ?? 0),
+                  streakDay: String(claimedStreakSnap?.streakDay ?? streak?.streakDay ?? 1),
+                  streakWeek: String(claimedStreakSnap?.streakWeek ?? streak?.streakWeek ?? 1),
+                  tier: getTier(claimedStreakSnap?.tysmBalance ?? streak?.tysmBalance ?? 0),
+                  username: user.username ?? 'Player',
+                }}
+                channelKey="base"
+                onSuccess={handleCloseSuccess}
+                variant="default"
+                className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold text-base py-3 mb-2"
+              >
+                🚀 Post to Farcaster
+              </ShareButton>
+
+              <button
+                onClick={handleCloseSuccess}
+                className="w-full text-xs text-gray-500 hover:text-gray-300 py-1"
+              >
+                Skip
+              </button>
             </CardContent>
           </Card>
         </div>
