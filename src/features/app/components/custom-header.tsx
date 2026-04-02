@@ -18,20 +18,20 @@ function HowItWorksPopup({ onClose }: { onClose: () => void }) {
           <div className="space-y-3 text-sm">
             <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-400/40">
               <p className="font-bold text-amber-400 mb-1">Daily Reward Formula</p>
-              <p className="text-gray-200 font-mono">Day × Week TYSM</p>
-              <p className="text-gray-400 text-xs mt-1">Example: Day 3, Week 2 = 3×2 = 6 TYSM</p>
+              <p className="text-gray-200 font-mono">Day × Week × 100 TYSM</p>
+              <p className="text-gray-400 text-xs mt-1">Example: Day 3, Week 2 = 3×2×100 = 600 TYSM</p>
             </div>
 
             <div className="p-3 rounded-lg bg-green-500/10 border border-green-400/40">
               <p className="font-bold text-green-400 mb-1">🎉 Week Completion Bonus</p>
-              <p className="text-gray-200">On Day 7: extra 7 × Week TYSM bonus</p>
+              <p className="text-gray-200">On Day 7: extra 7 × Week × 100 TYSM bonus</p>
               <p className="text-gray-400 text-xs mt-1">Streak resets to Day 1 of next week</p>
             </div>
 
             <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-400/40">
-              <p className="font-bold text-blue-400 mb-1">📅 Week Multiplier</p>
+              <p className="font-bold text-blue-400 mb-1">📅 Week Multiplier (Booster)</p>
               <p className="text-gray-200">Each week completed increases rewards</p>
-              <p className="text-gray-400 text-xs mt-1">Week 1 = ×1, Week 2 = ×2, Week 52 = ×52</p>
+              <p className="text-gray-400 text-xs mt-1">Week 1 = 100x, Week 2 = 200x, Week 52 = 5200x</p>
             </div>
 
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-400/40">
@@ -42,8 +42,8 @@ function HowItWorksPopup({ onClose }: { onClose: () => void }) {
 
             <div className="p-3 rounded-lg bg-red-500/10 border border-red-400/40">
               <p className="font-bold text-red-400 mb-1">⚠️ Streak Reset</p>
-              <p className="text-gray-200">Miss a day = reset to Week 1, Day 1</p>
-              <p className="text-gray-400 text-xs mt-1">Resets at 00:00 UTC each day</p>
+              <p className="text-gray-200">Miss 48h = reset to Week 1, Day 1</p>
+              <p className="text-gray-400 text-xs mt-1">Check-in window: 20h cooldown per claim</p>
             </div>
 
             <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-400/40">
