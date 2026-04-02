@@ -14,34 +14,32 @@ import type { UserStreak } from '@/features/app/types';
 const BUILDER_DATA_SUFFIX = Attribution.toDataSuffix({ codes: ['bc_rmi5daom'] });
 
 /**
- * Auto-trigger cast compose after successful claim.
- * - In Farcaster mini app: uses sdk.actions.composeCast() — works from async, no user gesture needed
- * - In Base App / browser: uses window.open() Warpcast compose URL — fallback
+ * Hook that returns a composeCast function.
+ * - If farcasterUser exists → we're inside Farcaster → use sdk.actions.composeCast()
+ *   This works from async callbacks (no user gesture required in Farcaster context).
+ * - Otherwise (Base App / browser) → fallback to window.open() Warpcast compose URL.
  */
-async function autoComposeCast(text: string, embedUrl: string) {
-  try {
-    const { default: sdk } = await import('@farcaster/miniapp-sdk');
-    const ctx = await Promise.race([
-      sdk.context,
-      new Promise<null>(r => setTimeout(() => r(null), 1000)),
-    ]);
-    if (ctx && 'user' in ctx && ctx.user) {
-      // Running inside Farcaster — use SDK composeCast (works from async)
-      await sdk.actions.composeCast({
-        text,
-        embeds: [embedUrl as `https://${string}`],
-      });
-      return;
+function useComposeCast(isFarcaster: boolean) {
+  return useCallback(async (text: string, embedUrl: string) => {
+    if (isFarcaster) {
+      try {
+        const { default: sdk } = await import('@farcaster/miniapp-sdk');
+        await sdk.actions.composeCast({
+          text,
+          embeds: [embedUrl as `https://${string}`],
+        });
+        return;
+      } catch {
+        // SDK call failed — fall through to window.open
+      }
     }
-  } catch {
-    // Not in Farcaster context or SDK unavailable
-  }
-  // Fallback: open Warpcast compose in new tab (Base App / browser)
-  const shareText = `${text}\n${embedUrl}`;
-  window.open(
-    `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`,
-    '_blank',
-  );
+    // Base App / browser fallback: open Warpcast compose
+    const shareText = `${text}\n${embedUrl}`;
+    window.open(
+      `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`,
+      '_blank',
+    );
+  }, [isFarcaster]);
 }
 
 function getTier(balance: number) {
@@ -97,6 +95,10 @@ export function CheckInTab() {
   // Countdown based on server-returned ms until next check-in (20h cooldown)
   const [countdownMs, setCountdownMs] = useState(0);
   const txProcessedRef = useRef<string | null>(null);
+
+  // composeCast: Farcaster = sdk.actions.composeCast (async-safe), Base App = window.open fallback
+  const isFarcaster = !!farcasterUser;
+  const composeCast = useComposeCast(isFarcaster);
 
   const { writeContract, data: txData, isPending: txPending, error: txError, reset: resetTx } = useWriteContract();
   const { isLoading: txConfirming, isSuccess: txSuccess } = useWaitForTransactionReceipt({ hash: txData });
@@ -219,9 +221,10 @@ export function CheckInTab() {
           setShowSuccess(true);
           refetchContract();
 
-          // Auto-compose cast — works in Farcaster via SDK, fallback to window.open in Base App
+          // Auto-compose cast — Farcaster: sdk.actions.composeCast (no gesture needed)
+          // Base App: window.open Warpcast compose URL
           const castText = `Just claimed ${reward} $TYSM on Day ${s?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`;
-          autoComposeCast(castText, publicConfig.homeUrl).catch(() => {/* ignore */});
+          composeCast(castText, publicConfig.homeUrl).catch(() => {/* ignore */});
         } else {
           console.error('claim-reward error:', result.error);
           setTokenSendFailed(true);
