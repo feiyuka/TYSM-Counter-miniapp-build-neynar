@@ -8,9 +8,41 @@ import { Attribution } from 'ox/erc8021';
 import { MILESTONES } from '@/data/mocks';
 import { calculateReward } from '@/db/actions/streak-utils';
 import { TYSM_CHECKIN_ADDRESS, TYSM_CHECKIN_ABI } from '@/contracts/tysm-checkin-abi';
+import { publicConfig } from '@/config/public-config';
 import type { UserStreak } from '@/features/app/types';
 
 const BUILDER_DATA_SUFFIX = Attribution.toDataSuffix({ codes: ['bc_rmi5daom'] });
+
+/**
+ * Auto-trigger cast compose after successful claim.
+ * - In Farcaster mini app: uses sdk.actions.composeCast() — works from async, no user gesture needed
+ * - In Base App / browser: uses window.open() Warpcast compose URL — fallback
+ */
+async function autoComposeCast(text: string, embedUrl: string) {
+  try {
+    const { default: sdk } = await import('@farcaster/miniapp-sdk');
+    const ctx = await Promise.race([
+      sdk.context,
+      new Promise<null>(r => setTimeout(() => r(null), 1000)),
+    ]);
+    if (ctx && 'user' in ctx && ctx.user) {
+      // Running inside Farcaster — use SDK composeCast (works from async)
+      await sdk.actions.composeCast({
+        text,
+        embeds: [embedUrl as `https://${string}`],
+      });
+      return;
+    }
+  } catch {
+    // Not in Farcaster context or SDK unavailable
+  }
+  // Fallback: open Warpcast compose in new tab (Base App / browser)
+  const shareText = `${text}\n${embedUrl}`;
+  window.open(
+    `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`,
+    '_blank',
+  );
+}
 
 function getTier(balance: number) {
   if (balance >= 500000) return 'LEGENDARY';
@@ -183,9 +215,13 @@ export function CheckInTab() {
             setClaimedStreakSnap(snap);
           }
           setTodayClaimed(true);
-          setCountdownMs(72_000 * 1000); // reset to 20h countdown
+          setCountdownMs(72_000 * 1000);
           setShowSuccess(true);
           refetchContract();
+
+          // Auto-compose cast — works in Farcaster via SDK, fallback to window.open in Base App
+          const castText = `Just claimed ${reward} $TYSM on Day ${s?.totalStreakDays ?? 1} 🔥 Stack your streak and earn $TYSM daily!`;
+          autoComposeCast(castText, publicConfig.homeUrl).catch(() => {/* ignore */});
         } else {
           console.error('claim-reward error:', result.error);
           setTokenSendFailed(true);
