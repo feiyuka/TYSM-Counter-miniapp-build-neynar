@@ -264,7 +264,7 @@ export function LeaderboardTab() {
                 </div>
               </div>
               <div className="text-right">
-                <P className="text-xl font-bold text-amber-400">{myRank.totalTYSM}</P>
+                <P className="text-xl font-bold text-amber-400">{myRank.totalTYSM.toLocaleString()}</P>
                 <P className="text-xs opacity-50">Week {myRank.streakWeek} streak</P>
               </div>
             </div>

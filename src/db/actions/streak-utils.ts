@@ -3,8 +3,8 @@
 // BOOSTER = 100: Week 1 = 100x, Week 2 = 200x, ... Week 52 = 5200x (up to 1 year)
 export const MAX_WEEK = 52;
 export const BOOSTER = 100;
-export const MILESTONE_DAY_29 = 500;   // Day 29: +500 TYSM one-time bonus
-export const MILESTONE_DAY_30 = 1_000; // Day 30: +1000 TYSM one-time bonus
+export const MILESTONE_DAY_29 = 50_000;   // Day 29: +50,000 TYSM (500 × 100 booster)
+export const MILESTONE_DAY_30 = 100_000;  // Day 30: +100,000 TYSM (1000 × 100 booster)
 
 /**
  * Calculate reward paid out from the pool wallet.
@@ -12,7 +12,7 @@ export const MILESTONE_DAY_30 = 1_000; // Day 30: +1000 TYSM one-time bonus
  * Formula:
  *   dailyReward = streakDay × streakWeek × 100  TYSM
  *   weekBonus   = 7 × streakWeek × 100          TYSM  (on Day 7 completion)
- *   milestone   = 500 (Day 29) or 1000 (Day 30) TYSM
+ *   milestone   = 50,000 (Day 29) or 100,000 (Day 30) TYSM
  *
  * Examples:
  *   Day 1, Week 1  → 1 × 1 × 100 = 100 TYSM

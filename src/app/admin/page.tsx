@@ -96,6 +96,7 @@ export default async function AdminPage({
           <p style={{ color: '#f97316', fontWeight: 'bold', fontSize: '12px', marginBottom: '6px' }}>🚀 Booster Formula (Pool Wallet)</p>
           <p style={{ color: '#fde68a', fontSize: '14px', fontWeight: 'bold', fontFamily: 'monospace' }}>Day × Week × 100 TYSM</p>
           <p style={{ color: '#666', fontSize: '11px', marginTop: '4px' }}>Contoh: Day 3 Week 2 = 600 TYSM dikirim dari pool</p>
+          <p style={{ color: '#555', fontSize: '11px', marginTop: '2px' }}>Milestone: Day 29 = +50,000 · Day 30 = +100,000</p>
         </div>
         <div style={{ background: '#111', border: '1px solid #1e3a5f', borderRadius: '12px', padding: '14px' }}>
           <p style={{ color: '#60a5fa', fontWeight: 'bold', fontSize: '12px', marginBottom: '6px' }}>📅 Week Booster Range</p>
