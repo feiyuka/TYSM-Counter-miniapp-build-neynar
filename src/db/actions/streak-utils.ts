@@ -1,8 +1,8 @@
 // Shared constants — single source of truth for reward calculation
 export const REWARD_MULTIPLIER = 100;
 export const MAX_WEEK = 52;
-export const MILESTONE_DAY_29 = 50_000;
-export const MILESTONE_DAY_30 = 100_000;
+export const MILESTONE_DAY_29 = 500;    // Day 29: +500 TYSM one-time bonus
+export const MILESTONE_DAY_30 = 1_000;  // Day 30: +1000 TYSM one-time bonus
 
 /**
  * Calculate reward for given streak state.

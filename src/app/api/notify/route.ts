@@ -11,15 +11,15 @@ const APP_UUID = publicConfig.webhookUrl
   ? publicConfig.webhookUrl.match(/app\/([^/]+)\/event/)?.[1] ?? ''
   : '';
 
-// Notification messages
+// Notification messages — 20h cooldown, 48h streak window
 const MESSAGES = {
   morning: {
-    title: '☀️ Morning Check-in',
-    body: "Don't lose your streak! Claim your TYSM reward before midnight UTC 🔥",
+    title: '🔥 TYSM Check-in Ready',
+    body: "Your 20h cooldown is up! Claim your TYSM and keep your streak alive 🚀",
   },
   evening: {
-    title: '🌙 Evening Reminder',
-    body: "⏰ Only a few hours left! Check in now to keep your streak alive 💎",
+    title: '⚠️ Streak at Risk!',
+    body: "Don't miss your check-in! You have 48h before your streak resets 💎",
   },
 };
 
