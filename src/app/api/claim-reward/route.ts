@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
 
     // If we have a valid FID, send TYSM via Neynar server wallet
     // Neynar API: POST /v2/farcaster/fungible/send/
-    // Body: { network, fungible_contract_address, recipients: [{ fid: number, amount: number }] }
+    // Body: { network, fungible_contract_address, recipients: [{ fid: number, amount: string }] }
     if (recipientFid) {
       const sendResponse = await fetch('https://api.neynar.com/v2/farcaster/fungible/send/', {
         method: 'POST',

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parseUnits } from 'viem';
 import { privateConfig } from '@/config/private-config';
 
 // TYSM Token contract (ERC-20) on Base Network
@@ -39,14 +38,16 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        network: 'base',
+        fungible_contract_address: TYSM_CONTRACT,
         recipients: [
           {
+            // address-based withdraw (no FID needed for admin)
             address: toAddress,
-            amount: parseUnits(String(amountNum), 18).toString(),
+            // amount MUST be a string of whole token units per Neynar API spec
+            amount: String(amountNum),
           },
         ],
-        token_address: TYSM_CONTRACT,
-        network: 'base',
       }),
     });
 
