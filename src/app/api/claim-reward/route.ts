@@ -130,10 +130,9 @@ export async function POST(req: NextRequest) {
           recipients: [
             {
               fid: recipientFid,
-              // Neynar API accepts WHOLE token amounts (not wei).
-              // Verified onchain: amount:1 → 1 TYSM transferred (1e18 wei).
-              // amount:100 → 100 TYSM, amount:600 → 600 TYSM, etc.
-              amount: totalReward,
+              // amount MUST be a string per Neynar API spec.
+              // Whole token units (not wei): "100" = 100 TYSM, "600" = 600 TYSM
+              amount: String(totalReward),
             },
           ],
         }),
