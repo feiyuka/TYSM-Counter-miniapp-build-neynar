@@ -55,6 +55,10 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
+  // Empty turbopack config silences the Next.js 16 warning about having a
+  // webpack config without a turbopack config. Turbopack is the default dev
+  // bundler in Next.js 16; the webpack config only runs during `next build`.
+  turbopack: {},
 };
 
 export default nextConfig;
