@@ -104,7 +104,7 @@ export async function GET(req: NextRequest) {
         body: JSON.stringify({
           network: 'base',
           fungible_contract_address: TYSM_CONTRACT,
-          recipients: [{ fid: testFid, amount: '1' }], // amount must be string per Neynar API
+          recipients: [{ fid: testFid, amount: 1 }], // amount must be number per Neynar API
         }),
       });
       const sendData = await sendRes.json().catch(() => ({}));

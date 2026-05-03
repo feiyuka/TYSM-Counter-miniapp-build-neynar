@@ -130,9 +130,9 @@ export async function POST(req: NextRequest) {
           recipients: [
             {
               fid: recipientFid,
-              // amount MUST be a string per Neynar API spec.
-              // Whole token units (not wei): "100" = 100 TYSM, "600" = 600 TYSM
-              amount: String(totalReward),
+              // amount must be a number (whole token units, not wei).
+              // Verified: Neynar API returns "Expected number, received string" if string is passed.
+              amount: totalReward,
             },
           ],
         }),

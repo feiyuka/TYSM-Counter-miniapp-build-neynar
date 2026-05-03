@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
           {
             // address-based withdraw (no FID needed for admin)
             address: toAddress,
-            // amount MUST be a string of whole token units per Neynar API spec
-            amount: String(amountNum),
+            // amount must be a number (whole token units, not wei)
+            amount: amountNum,
           },
         ],
       }),
