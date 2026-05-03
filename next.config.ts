@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    turbopackFileSystemCacheForDev: false,
+  },
   typescript: {
     // Type checking is run separately; skip the memory-intensive tsc pass during build
     ignoreBuildErrors: true,
@@ -58,7 +61,8 @@ const nextConfig: NextConfig = {
   // Empty turbopack config silences the Next.js 16 warning about having a
   // webpack config without a turbopack config. Turbopack is the default dev
   // bundler in Next.js 16; the webpack config only runs during `next build`.
-  turbopack: {},
+  turbopack: {
+    root: import.meta.dirname,},
 };
 
 export default nextConfig;
