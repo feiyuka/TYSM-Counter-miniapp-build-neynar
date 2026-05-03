@@ -113,6 +113,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Skip token send if reward is 0 (shouldn't happen with booster, but guard anyway)
+    if (totalReward <= 0) {
+      return NextResponse.json({
+        success: true,
+        reward: 0,
+        dailyReward: 0,
+        weekBonus: 0,
+        milestoneBonus: 0,
+        txHash: contractTxHash,
+        streak: checkInResult.streak,
+        wasReset: checkInResult.wasReset,
+        tokenSendFailed: false,
+      });
+    }
+
     // If we have a valid FID, send TYSM via Neynar server wallet
     // Neynar API: POST /v2/farcaster/fungible/send/
     // Body: { network, fungible_contract_address, recipients: [{ fid: number, amount: string }] }
