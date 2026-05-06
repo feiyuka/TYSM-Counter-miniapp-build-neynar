@@ -918,17 +918,23 @@ export function useNotificationTokens(
 }
 
 type UsePublishFrameNotificationsParams = {
-  /** URL of the frame sending notification */
-  frame_url: string;
+  /** FIDs to notify. Pass an empty array to broadcast to all subscribers. */
+  target_fids: number[];
 
-  /** Notification title */
-  title: string;
+  /** Notification content */
+  notification: {
+    /** Notification title (max 32 characters) */
+    title: string;
 
-  /** Notification message body */
-  message: string;
+    /** Notification body text (max 128 characters) */
+    body: string;
 
-  /** Specific FIDs to notify (optional, defaults to all subscribers) */
-  target_fids?: number[];
+    /** URL to open when the user taps the notification */
+    target_url: string;
+
+    /** Optional idempotency key */
+    uuid?: string;
+  };
 };
 
 /**
@@ -954,10 +960,12 @@ type UsePublishFrameNotificationsParams = {
  *
  * const handleSendNotifications = () => {
  *   publishNotifications.mutate({
- *     frame_url: 'https://myapp.com/frame',
- *     title: 'Frame Updated!',
- *     message: 'Your frame interaction has new results.',
  *     target_fids: [123, 456, 789],
+ *     notification: {
+ *       title: 'Frame Updated!',
+ *       body: 'Your frame interaction has new results.',
+ *       target_url: publicConfig.homeUrl,
+ *     },
  *   });
  * };
  * ```
@@ -966,9 +974,12 @@ type UsePublishFrameNotificationsParams = {
  * ```tsx
  * const broadcastUpdate = () => {
  *   publishNotifications.mutate({
- *     frame_url: 'https://myapp.com/frame',
- *     title: 'New Feature Available',
- *     message: 'Check out the latest updates to our frame!',
+ *     target_fids: [],
+ *     notification: {
+ *       title: 'New Feature Available',
+ *       body: 'Check out the latest updates to our frame!',
+ *       target_url: publicConfig.homeUrl,
+ *     },
  *   });
  * };
  * ```
