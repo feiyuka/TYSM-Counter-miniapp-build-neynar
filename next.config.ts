@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    turbopackFileSystemCacheForDev: false,
-  },
   typescript: {
     // Type checking is run separately; skip the memory-intensive tsc pass during build
     ignoreBuildErrors: true,

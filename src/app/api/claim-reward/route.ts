@@ -65,10 +65,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
     }
 
-    // Rate limit: max 20 requests per FID per hour.
-    // Generous enough for retries/errors, strict enough to block spam bots.
-    // (Claim cooldown is 20h so only 1 legit claim per window anyway.)
-    const rateResult = checkRateLimit(`fid:${fid}`, { limit: 20, windowMs: 60 * 60 * 1000 });
+    // Rate limit: keyed by wallet address (consistent for both Farcaster + Base App users)
+    // Max 20 requests per hour — generous for retries, blocks spam bots
+    const rateResult = checkRateLimit(`wallet:${walletAddress.toLowerCase()}`, { limit: 20, windowMs: 60 * 60 * 1000 });
     if (!rateResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait before trying again.' },
@@ -76,9 +75,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Score guard: real Farcaster users need Neynar score >= 0.5 to claim
-    // Runs server-side so it cannot be bypassed via direct API calls
-    if (fid <= 10_000_000) {
+    // Score guard: only applies to real Farcaster users (fid <= 10_000_000)
+    // Base App wallet-only users (pseudo-fid > 10_000_000) are fully exempt
+    const isBaseAppUser = fid > 10_000_000;
+    if (!isBaseAppUser) {
       const neynarScore = await fetchNeynarScore(fid);
       if (neynarScore !== null && neynarScore < 0.5) {
         console.warn(`[claim-reward] Score guard blocked fid=${fid} score=${neynarScore}`);
@@ -118,39 +118,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine the real Farcaster FID to send tokens to.
-    // - Real Farcaster users (fid <= 10_000_000): use their fid directly
-    // - Base App wallet users (pseudo-fid > 10_000_000): look up real FID from wallet address
-    let recipientFid: number | null = fid <= 10_000_000 ? fid : null;
-    if (recipientFid === null) {
-      console.log(`[claim-reward] Pseudo-fid detected, looking up FID from wallet: ${walletAddress}`);
-      recipientFid = await getFidFromAddress(walletAddress);
-      if (recipientFid) {
-        console.log(`[claim-reward] Found real FID ${recipientFid} for wallet ${walletAddress}`);
-      } else {
-        console.log(`[claim-reward] No Farcaster FID found for wallet ${walletAddress} — skipping token send`);
-      }
-    }
-
-    // Skip token send if reward is 0 (shouldn't happen with booster, but guard anyway)
+    // Skip token send if reward is 0
     if (totalReward <= 0) {
       return NextResponse.json({
-        success: true,
-        reward: 0,
-        dailyReward: 0,
-        weekBonus: 0,
-        milestoneBonus: 0,
-        txHash: contractTxHash,
-        streak: checkInResult.streak,
-        wasReset: checkInResult.wasReset,
-        tokenSendFailed: false,
+        success: true, reward: 0, dailyReward: 0, weekBonus: 0, milestoneBonus: 0,
+        txHash: contractTxHash, streak: checkInResult.streak, wasReset: checkInResult.wasReset, tokenSendFailed: false,
       });
     }
 
-    // If we have a valid FID, send TYSM via Neynar server wallet
-    // Neynar API: POST /v2/farcaster/fungible/send/
-    // Body: { network, fungible_contract_address, recipients: [{ fid: number, amount: string }] }
-    if (recipientFid) {
+    // Determine send recipient:
+    // Strategy 1 — Farcaster user: send by FID (direct, most reliable)
+    // Strategy 2 — Base App user with no Farcaster: try FID lookup from wallet, fall back to address-based send
+    let recipientFid: number | null = isBaseAppUser ? null : fid;
+    let recipientAddress: string | null = null;
+
+    if (isBaseAppUser) {
+      console.log(`[claim-reward] Base App user — looking up FID for wallet: ${walletAddress}`);
+      recipientFid = await getFidFromAddress(walletAddress);
+      if (recipientFid) {
+        console.log(`[claim-reward] Found Farcaster FID ${recipientFid} for Base App wallet ${walletAddress}`);
+      } else {
+        // No Farcaster account — send directly to wallet address
+        recipientAddress = walletAddress;
+        console.log(`[claim-reward] No Farcaster FID — will send to address: ${walletAddress}`);
+      }
+    }
+
+    // Build recipient object: FID takes priority, fall back to address
+    const recipient = recipientFid
+      ? { fid: recipientFid, amount: totalReward }
+      : recipientAddress
+        ? { address: recipientAddress, amount: totalReward }
+        : null;
+
+    if (recipient) {
       const sendResponse = await fetch('https://api.neynar.com/v2/farcaster/fungible/send/', {
         method: 'POST',
         headers: {
@@ -161,14 +162,7 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           network: 'base',
           fungible_contract_address: TYSM_CONTRACT,
-          recipients: [
-            {
-              fid: recipientFid,
-              // amount must be a number (whole token units, not wei).
-              // Verified: Neynar API returns "Expected number, received string" if string is passed.
-              amount: totalReward,
-            },
-          ],
+          recipients: [recipient],
         }),
       });
 
@@ -214,7 +208,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // No FID found — streak saved, but token send skipped
+    // No valid recipient (no FID, no address) — streak saved but token send skipped
     return NextResponse.json({
       success: true,
       reward: totalReward,
@@ -225,7 +219,7 @@ export async function POST(req: NextRequest) {
       streak: checkInResult.streak,
       wasReset: checkInResult.wasReset,
       tokenSendFailed: true,
-      tokenSendError: 'No Farcaster account linked to this wallet — connect Farcaster to receive tokens',
+      tokenSendError: 'Could not determine recipient — please try again.',
     });
 
   } catch (err) {

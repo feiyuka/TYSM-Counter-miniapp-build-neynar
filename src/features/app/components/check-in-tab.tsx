@@ -129,7 +129,8 @@ export function CheckInTab() {
     if (!user) return;
     setStreakLoading(true);
     try {
-      const res = await fetch(`/api/user-streak?fid=${user.fid}&username=${encodeURIComponent(user.username || 'user')}`);
+      const walletParam = walletAddress ? `&walletAddress=${encodeURIComponent(walletAddress)}` : '';
+      const res = await fetch(`/api/user-streak?fid=${user.fid}&username=${encodeURIComponent(user.username || 'user')}${walletParam}`);
       const data = await res.json();
       if (data.streak) {
         const s = data.streak;
@@ -291,8 +292,18 @@ export function CheckInTab() {
       <Card className="border border-amber-400/70 rounded-xl">
         <CardContent className="p-6 text-center">
           <P className="text-4xl mb-3">🔐</P>
-          <H6>Connect Your Wallet</H6>
-          <P className="text-sm text-gray-300 mt-2">Open in Farcaster or connect a wallet to start earning TYSM!</P>
+          <H6>Connect to Start</H6>
+          <P className="text-sm text-gray-300 mt-2 mb-3">Open in Farcaster or connect a Base wallet to start earning TYSM!</P>
+          <div className="space-y-2 text-left">
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-500/10 border border-purple-400/30">
+              <span className="text-lg">💜</span>
+              <P className="text-xs text-gray-300">Farcaster users — open via Warpcast frame</P>
+            </div>
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-500/10 border border-blue-400/30">
+              <span className="text-lg">🔵</span>
+              <P className="text-xs text-gray-300">Base App users — connect your wallet above</P>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -421,13 +432,27 @@ export function CheckInTab() {
               <P className="font-bold truncate">{user.displayName || user.username}</P>
               <div className="flex items-center gap-2 flex-wrap">
                 <P className="text-xs text-gray-400">Week {weekMultiplier} • {weekMultiplier * 100}x</P>
-                {neynarScore !== null && (
+                {neynarScore !== null && !isFarcaster && effectiveFid <= 10_000_000 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     scoreQualified
                       ? 'bg-green-500/20 text-green-400 border border-green-400/40'
                       : 'bg-red-500/20 text-red-400 border border-red-400/40'
                   }`}>
                     {scoreQualified ? '✓' : '✗'} Score {(neynarScore * 100).toFixed(0)}
+                  </span>
+                )}
+                {isFarcaster && neynarScore !== null && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                    scoreQualified
+                      ? 'bg-green-500/20 text-green-400 border border-green-400/40'
+                      : 'bg-red-500/20 text-red-400 border border-red-400/40'
+                  }`}>
+                    {scoreQualified ? '✓' : '✗'} Score {(neynarScore * 100).toFixed(0)}
+                  </span>
+                )}
+                {!farcasterUser && walletAddress && (
+                  <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-blue-500/20 text-blue-400 border border-blue-400/40">
+                    🔵 Base
                   </span>
                 )}
               </div>

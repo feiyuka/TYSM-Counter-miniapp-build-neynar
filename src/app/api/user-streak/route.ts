@@ -28,16 +28,30 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const fid = searchParams.get('fid');
     const username = searchParams.get('username') || 'user';
+    const walletAddress = searchParams.get('walletAddress') ?? '';
 
     if (!fid || isNaN(parseInt(fid))) {
       return NextResponse.json({ error: 'Missing fid' }, { status: 400 });
     }
 
     const fidNum = parseInt(fid);
+    // For Base App users (pseudo-fid > 10M), use a stable wallet-derived FID
+    // so the same wallet always maps to the same streak record
+    const isBaseAppUser = fidNum > 10_000_000;
+    const stableFid = isBaseAppUser && walletAddress
+      ? Math.abs(
+          Array.from(walletAddress.toLowerCase()).reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0)
+        ) % 4_000_000_000 + 10_000_001 // always > 10M, always stable for same address
+      : fidNum;
+
+    const displayUsername = isBaseAppUser && walletAddress
+      ? (username !== 'user' ? username : `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`)
+      : username;
+
     const [streak, canCheck, neynarScore] = await Promise.all([
-      getOrCreateUserStreak(fidNum, username),
-      canCheckInToday(fidNum),
-      fetchNeynarScore(fidNum),
+      getOrCreateUserStreak(stableFid, displayUsername),
+      canCheckInToday(stableFid),
+      fetchNeynarScore(fidNum), // score check uses original fid (returns null for pseudo-fid)
     ]);
 
     // Calculate ms until next check-in is allowed (based on 20h cooldown)
