@@ -432,7 +432,8 @@ export function CheckInTab() {
               <P className="font-bold truncate">{user.displayName || user.username}</P>
               <div className="flex items-center gap-2 flex-wrap">
                 <P className="text-xs text-gray-400">Week {weekMultiplier} • {weekMultiplier * 100}x</P>
-                {neynarScore !== null && !isFarcaster && effectiveFid <= 10_000_000 && (
+                {/* Score badge — only for real Farcaster users */}
+                {neynarScore !== null && effectiveFid <= 10_000_000 && (
                   <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                     scoreQualified
                       ? 'bg-green-500/20 text-green-400 border border-green-400/40'
@@ -441,15 +442,7 @@ export function CheckInTab() {
                     {scoreQualified ? '✓' : '✗'} Score {(neynarScore * 100).toFixed(0)}
                   </span>
                 )}
-                {isFarcaster && neynarScore !== null && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                    scoreQualified
-                      ? 'bg-green-500/20 text-green-400 border border-green-400/40'
-                      : 'bg-red-500/20 text-red-400 border border-red-400/40'
-                  }`}>
-                    {scoreQualified ? '✓' : '✗'} Score {(neynarScore * 100).toFixed(0)}
-                  </span>
-                )}
+                {/* Base badge — wallet-only users (no Farcaster) */}
                 {!farcasterUser && walletAddress && (
                   <span className="text-xs px-1.5 py-0.5 rounded font-medium bg-blue-500/20 text-blue-400 border border-blue-400/40">
                     🔵 Base
