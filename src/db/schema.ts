@@ -58,7 +58,7 @@ export const claims = pgTable("claims", {
   username: text("username").notNull(),
   pfpUrl: text("pfp_url"),
   amount: bigint("amount", { mode: "number" }).notNull(),
-  txHash: text("tx_hash").notNull().unique(), // unique prevents double-claim with same txHash
+  txHash: text("tx_hash").notNull(), // dedup handled at app level in saveClaim()
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   // Speed up live feed queries (sort by createdAt DESC)

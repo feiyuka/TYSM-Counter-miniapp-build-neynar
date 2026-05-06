@@ -2,7 +2,7 @@
 
 import { db } from '@/neynar-db-sdk/db';
 import { kv, claims } from '@/db/schema';
-import { desc, sql } from 'drizzle-orm';
+import { desc, sql, eq } from 'drizzle-orm';
 
 const POOL_KEY = 'total_pool';
 const DEFAULT_POOL = 991611;
@@ -84,20 +84,20 @@ export async function saveClaim(
   txHash: string,
   pfpUrl?: string
 ): Promise<{ saved: boolean; duplicate: boolean }> {
-  try {
-    await db.insert(claims).values({ fid, username, pfpUrl, amount, txHash });
-    return { saved: true, duplicate: false };
-  } catch (err: unknown) {
-    // Postgres unique violation code = 23505
-    const isUniqueViolation =
-      typeof err === 'object' && err !== null &&
-      'code' in err && (err as { code: string }).code === '23505';
-    if (isUniqueViolation) {
-      console.warn(`[saveClaim] Duplicate txHash blocked: ${txHash} fid=${fid}`);
-      return { saved: false, duplicate: true };
-    }
-    throw err;
+  // App-level dedup: check if txHash already claimed before inserting
+  const existing = await db
+    .select({ id: claims.id })
+    .from(claims)
+    .where(eq(claims.txHash, txHash))
+    .limit(1);
+
+  if (existing.length > 0) {
+    console.warn(`[saveClaim] Duplicate txHash blocked: ${txHash} fid=${fid}`);
+    return { saved: false, duplicate: true };
   }
+
+  await db.insert(claims).values({ fid, username, pfpUrl, amount, txHash });
+  return { saved: true, duplicate: false };
 }
 
 /**
