@@ -65,8 +65,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
     }
 
-    // Rate limit: max 5 requests per FID per hour (prevents spam/retry loops)
-    const rateResult = checkRateLimit(`fid:${fid}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+    // Rate limit: max 20 requests per FID per hour.
+    // Generous enough for retries/errors, strict enough to block spam bots.
+    // (Claim cooldown is 20h so only 1 legit claim per window anyway.)
+    const rateResult = checkRateLimit(`fid:${fid}`, { limit: 20, windowMs: 60 * 60 * 1000 });
     if (!rateResult.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait before trying again.' },
