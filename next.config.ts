@@ -59,7 +59,26 @@ const nextConfig: NextConfig = {
   // webpack config without a turbopack config. Turbopack is the default dev
   // bundler in Next.js 16; the webpack config only runs during `next build`.
   turbopack: {
-    root: import.meta.dirname,},
+    root: import.meta.dirname,
+  },
+  experimental: {
+    // Exclude large node_modules from file tracing to reduce memory usage
+    // during "Collecting build traces" step (prevents OOM / exit code 137).
+    outputFileTracingExcludes: {
+      '*': [
+        'node_modules/**/@swc/**',
+        'node_modules/**/webpack/**',
+        'node_modules/**/typescript/**',
+        'node_modules/**/ts-morph/**',
+        'node_modules/**/ts-node/**',
+        'node_modules/**/drizzle-kit/**',
+        'node_modules/**/esbuild/**',
+        'node_modules/**/prettier/**',
+        'node_modules/**/eslint/**',
+        'node_modules/**/@eslint/**',
+      ],
+    },
+  },
 };
 
 export default nextConfig;
