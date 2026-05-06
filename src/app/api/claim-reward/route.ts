@@ -108,8 +108,15 @@ export async function POST(req: NextRequest) {
       `milestone=${checkInResult.milestoneBonus} TOTAL=${totalReward}`
     );
 
-    // Save claim record immediately (so live feed updates regardless of token send)
-    await saveClaim(fid, username || 'user', totalReward, contractTxHash, pfpUrl);
+    // Save claim record — also deduplicates: same txHash = double-claim attempt
+    const saveResult = await saveClaim(fid, username || 'user', totalReward, contractTxHash, pfpUrl);
+    if (saveResult.duplicate) {
+      console.warn(`[claim-reward] Double-claim blocked fid=${fid} txHash=${contractTxHash}`);
+      return NextResponse.json(
+        { error: 'This transaction has already been claimed.' },
+        { status: 409 }
+      );
+    }
 
     // Determine the real Farcaster FID to send tokens to.
     // - Real Farcaster users (fid <= 10_000_000): use their fid directly

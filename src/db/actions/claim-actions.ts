@@ -74,7 +74,8 @@ export async function setPoolTotal(amount: number): Promise<number> {
 }
 
 /**
- * Save a new claim record
+ * Save a new claim record.
+ * Returns false if txHash already exists (duplicate claim attempt).
  */
 export async function saveClaim(
   fid: number,
@@ -82,14 +83,21 @@ export async function saveClaim(
   amount: number,
   txHash: string,
   pfpUrl?: string
-) {
-  await db.insert(claims).values({
-    fid,
-    username,
-    pfpUrl,
-    amount,
-    txHash,
-  });
+): Promise<{ saved: boolean; duplicate: boolean }> {
+  try {
+    await db.insert(claims).values({ fid, username, pfpUrl, amount, txHash });
+    return { saved: true, duplicate: false };
+  } catch (err: unknown) {
+    // Postgres unique violation code = 23505
+    const isUniqueViolation =
+      typeof err === 'object' && err !== null &&
+      'code' in err && (err as { code: string }).code === '23505';
+    if (isUniqueViolation) {
+      console.warn(`[saveClaim] Duplicate txHash blocked: ${txHash} fid=${fid}`);
+      return { saved: false, duplicate: true };
+    }
+    throw err;
+  }
 }
 
 /**

@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, integer, bigint, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, integer, bigint, timestamp, index } from "drizzle-orm/pg-core";
 
 /**
  * Key-Value Store Table
@@ -39,7 +39,14 @@ export const userStreaks = pgTable("user_streaks", {
   totalStreakDays: integer("total_streak_days").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  // Speed up leaderboard queries (sort by balance DESC)
+  index("user_streaks_tysm_balance_idx").on(t.tysmBalance),
+  // Speed up cron queries (find users by lastCheckIn range)
+  index("user_streaks_last_check_in_idx").on(t.lastCheckIn),
+  // Speed up active-user counts
+  index("user_streaks_updated_at_idx").on(t.updatedAt),
+]);
 
 /**
  * Claims Table
@@ -51,6 +58,11 @@ export const claims = pgTable("claims", {
   username: text("username").notNull(),
   pfpUrl: text("pfp_url"),
   amount: bigint("amount", { mode: "number" }).notNull(),
-  txHash: text("tx_hash").notNull(),
+  txHash: text("tx_hash").notNull().unique(), // unique prevents double-claim with same txHash
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  // Speed up live feed queries (sort by createdAt DESC)
+  index("claims_created_at_idx").on(t.createdAt),
+  // Speed up per-user claim history
+  index("claims_fid_idx").on(t.fid),
+]);
