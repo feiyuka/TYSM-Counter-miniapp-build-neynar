@@ -347,9 +347,24 @@ export function CheckInTab() {
                   <P className="text-xs text-gray-300">TYSM sent to your wallet</P>
                 </div>
               ) : (
-                <div className="p-3 rounded-lg bg-yellow-500/20 border border-yellow-400/60 mb-3">
-                  <P className="text-sm text-gray-200">Streak recorded ✅</P>
-                  <P className="text-xs text-gray-400 mt-1">Token pending — reward will arrive shortly.</P>
+                <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-400/60 mb-3 text-left">
+                  <div className="flex items-start gap-2">
+                    <span className="text-lg mt-0.5">⚠️</span>
+                    <div>
+                      <P className="text-sm font-bold text-orange-300">Streak saved — token delayed</P>
+                      <P className="text-xs text-gray-300 mt-1">
+                        Your check-in is recorded onchain ✅ but the TYSM transfer hit a temporary issue.
+                      </P>
+                      <P className="text-xs text-gray-400 mt-1">
+                        {claimedReward > 0
+                          ? `${claimedReward.toLocaleString()} TYSM will be sent to your wallet shortly.`
+                          : 'Your reward will be sent to your wallet shortly.'}
+                      </P>
+                      <P className="text-xs text-gray-500 mt-1.5">
+                        If tokens don&apos;t arrive within 10 mins, contact support with your TX hash.
+                      </P>
+                    </div>
+                  </div>
                 </div>
               )}
 

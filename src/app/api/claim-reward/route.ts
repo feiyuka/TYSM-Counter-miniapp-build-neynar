@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { performCheckIn } from '@/db/actions/streak-actions';
 import { saveClaim } from '@/db/actions/claim-actions';
 import { privateConfig } from '@/config/private-config';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 // TYSM Token contract (ERC-20) on Base Network
 const TYSM_CONTRACT = '0x0358795322C04DE04EAD2338A803A9D3518a9877';
@@ -62,6 +63,15 @@ export async function POST(req: NextRequest) {
     }
     if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
       return NextResponse.json({ error: 'Invalid wallet address' }, { status: 400 });
+    }
+
+    // Rate limit: max 5 requests per FID per hour (prevents spam/retry loops)
+    const rateResult = checkRateLimit(`fid:${fid}`, { limit: 5, windowMs: 60 * 60 * 1000 });
+    if (!rateResult.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before trying again.' },
+        { status: 429 }
+      );
     }
 
     // Score guard: real Farcaster users need Neynar score >= 0.5 to claim
