@@ -1,30 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/neynar-db-sdk/db';
-import { userStreaks } from '@/db/schema';
-import { isNotNull, lte, and } from 'drizzle-orm';
 import { privateConfig } from '@/config/private-config';
 import { publicConfig } from '@/config/public-config';
 
-// App UUID from WEBHOOK_URL — used for mini-app notifications
-// Format: https://api.neynar.com/f/app/{UUID}/event
-const APP_UUID = publicConfig.webhookUrl
-  ? publicConfig.webhookUrl.match(/app\/([^/]+)\/event/)?.[1] ?? ''
-  : '';
+/**
+ * POST /api/notify
+ *
+ * Sends push notifications to ALL subscribers of this app.
+ * Uses target_fids: [] which broadcasts to everyone who has enabled
+ * notifications for TYSM Counter — Neynar handles the subscriber list.
+ *
+ * Two message types:
+ *   morning → "Check-in Ready" (20h cooldown expired)
+ *   evening → "Streak at Risk" (streak about to expire)
+ */
 
-// Notification messages — 20h cooldown, 48h streak window
 const MESSAGES = {
   morning: {
-    title: '🔥 TYSM Check-in Ready',
-    body: "Your 20h cooldown is up! Claim your TYSM and keep your streak alive 🚀",
+    title: '🔥 TYSM Check-in Ready!',
+    body: 'Your 20h cooldown is up! Claim TYSM and keep your streak alive 🚀',
   },
   evening: {
-    title: '⚠️ Streak at Risk!',
-    body: "Don't miss your check-in! You have 48h before your streak resets 💎",
+    title: '⚠️ Streak Expiring Soon!',
+    body: "Check in now before your streak resets! Don't lose your multiplier 🔥",
   },
 };
 
 export async function POST(req: NextRequest) {
-  // Verify secret via header
   const secret = req.headers.get('x-notify-secret');
   if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -34,105 +35,64 @@ export async function POST(req: NextRequest) {
   const type = body.type === 'evening' ? 'evening' : 'morning';
   const message = MESSAGES[type];
 
+  console.log(`[notify] Broadcasting ${type} notification to all subscribers`);
+
   try {
-    // Only notify real Farcaster users (fid < 10_000_000 = not pseudo-fid from wallet)
-    // Pseudo-fids are derived from wallet addresses and cannot receive Farcaster notifications
-    const users = await db
-      .select({ fid: userStreaks.fid })
-      .from(userStreaks)
-      .where(and(
-        isNotNull(userStreaks.lastCheckIn),
-        lte(userStreaks.fid, 10_000_000), // real Farcaster FIDs only
-      ));
+    // target_fids: [] = broadcast to ALL subscribers who enabled notifications
+    // Neynar manages the subscriber list — no need to query our DB for FIDs
+    const response = await fetch('https://api.neynar.com/v2/farcaster/frame/notifications/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': privateConfig.neynarApiKey,
+      },
+      body: JSON.stringify({
+        target_fids: [],
+        notification: {
+          title: message.title,
+          body: message.body,
+          target_url: publicConfig.homeUrl,
+        },
+      }),
+    });
 
-    if (users.length === 0) {
-      return NextResponse.json({ success: true, sent: 0, message: 'No Farcaster users to notify' });
+    const responseData = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error('[notify] Broadcast failed:', response.status, responseData);
+      return NextResponse.json({
+        success: false,
+        type,
+        error: responseData?.message || `Neynar API error (${response.status})`,
+        details: responseData,
+      }, { status: 500 });
     }
 
-    const fids = users.map((u) => u.fid);
-    console.log(`[notify] Sending ${type} notification to ${fids.length} users, app_uuid=${APP_UUID}`);
-
-    // Correct Neynar endpoint for mini-app notifications
-    // https://docs.neynar.com/reference/publish-frame-notifications
-    const BATCH_SIZE = 100;
-    let totalSent = 0;
-    let totalFailed = 0;
-    const errors: string[] = [];
-
-    for (let i = 0; i < fids.length; i += BATCH_SIZE) {
-      const batch = fids.slice(i, i + BATCH_SIZE);
-
-      try {
-        const response = await fetch('https://api.neynar.com/v2/farcaster/frame/notifications/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': privateConfig.neynarApiKey,
-          },
-          body: JSON.stringify({
-            target_fids: batch,
-            notification: {
-              title: message.title,
-              body: message.body,
-              target_url: publicConfig.homeUrl,
-            },
-          }),
-        });
-
-        const responseText = await response.text();
-
-        if (response.ok) {
-          totalSent += batch.length;
-          console.log(`[notify] Batch ${Math.floor(i / BATCH_SIZE) + 1}: sent ${batch.length}`);
-        } else {
-          totalFailed += batch.length;
-          const errMsg = `Batch ${Math.floor(i / BATCH_SIZE) + 1} failed (${response.status}): ${responseText}`;
-          console.error('[notify]', errMsg);
-          errors.push(errMsg);
-        }
-      } catch (err) {
-        totalFailed += batch.length;
-        const errMsg = `Batch ${Math.floor(i / BATCH_SIZE) + 1} error: ${err}`;
-        console.error('[notify]', errMsg);
-        errors.push(errMsg);
-      }
-    }
+    console.log('[notify] Broadcast success:', responseData);
 
     return NextResponse.json({
-      success: totalSent > 0 || totalFailed === 0,
+      success: true,
       type,
-      totalUsers: fids.length,
-      sent: totalSent,
-      failed: totalFailed,
-      errors: errors.length > 0 ? errors : undefined,
       message: message.body,
+      neynarResponse: responseData,
     });
 
   } catch (err) {
-    console.error('Notify route error:', err);
+    console.error('[notify] Error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-// GET endpoint — status check (header auth only, no query param secret)
+// GET — status check
 export async function GET(req: NextRequest) {
   const secret = req.headers.get('x-notify-secret');
   if (secret !== privateConfig.notifySecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const users = await db
-    .select({ fid: userStreaks.fid })
-    .from(userStreaks)
-    .where(and(
-      isNotNull(userStreaks.lastCheckIn),
-      lte(userStreaks.fid, 10_000_000),
-    ));
-
   return NextResponse.json({
     status: 'ok',
-    totalUsersToNotify: users.length,
-    appUuid: APP_UUID,
     messages: MESSAGES,
+    note: 'Broadcasts to all subscribers via target_fids: []',
   });
 }
