@@ -25,10 +25,11 @@ export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET ?? '';
   const notifySecret = privateConfig.notifySecret;
 
-  const isValidCron   = cronSecret && authHeader === `Bearer ${cronSecret}`;
-  const isValidManual = authHeader === `Bearer ${notifySecret}`;
+  const isValidCron    = cronSecret && authHeader === `Bearer ${cronSecret}`;
+  const isValidManual  = authHeader === `Bearer ${notifySecret}`;
+  const isVercelCron   = req.headers.get('x-vercel-cron') === '1'; // Vercel always sends this
 
-  if (!isValidCron && !isValidManual) {
+  if (!isValidCron && !isValidManual && !isVercelCron) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
